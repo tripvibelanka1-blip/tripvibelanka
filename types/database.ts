@@ -61,6 +61,28 @@ export type DestinationInsert = Omit<Destination, 'id' | 'created_at' | 'updated
 
 export type DestinationUpdate = Partial<DestinationInsert>;
 
+export interface Activity {
+  id: string;
+  title: string;
+  destination_id: string | null;
+  duration: string | null;
+  price: number;
+  description: string | null;
+  cover_image: string | null;
+  gallery_images: string[];
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type ActivityInsert = Omit<Activity, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ActivityUpdate = Partial<ActivityInsert>;
+
 export interface Database {
   public: {
     Tables: {
@@ -74,6 +96,12 @@ export interface Database {
         Insert: DestinationInsert;
         Update: DestinationUpdate;
       };
+      activities: {
+        Row: Activity;
+        Insert: ActivityInsert;
+        Update: ActivityUpdate;
+      };
     };
   };
 }
+

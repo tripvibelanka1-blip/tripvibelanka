@@ -224,20 +224,52 @@ TO authenticated
 USING (bucket_id = 'destination-images');
 
 
--- 1. Extend destinations table columns safely
-ALTER TABLE destinations ADD COLUMN IF NOT EXISTS cover_image TEXT;
-ALTER TABLE destinations ADD COLUMN IF NOT EXISTS gallery_images JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE destinations ADD COLUMN IF NOT EXISTS popular_attractions JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE destinations ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
-ALTER TABLE destinations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+-- ----------------------------------------------------
+-- 4. ACTIVITIES & EXPERIENCES MODULE
+-- ----------------------------------------------------
 
--- 2. Create destination-images storage bucket with 10MB limit & MIME whitelist
+-- Table: public.activities
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  destination_id UUID REFERENCES destinations(id) ON DELETE SET NULL,
+  duration TEXT,
+  price NUMERIC(10, 2) DEFAULT 0.00,
+  description TEXT,
+  cover_image TEXT,
+  gallery_images JSONB DEFAULT '[]'::jsonb,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Enable RLS
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+
+-- RLS: Public Read Access (for visitor-facing catalog & destination views)
+DROP POLICY IF EXISTS "Public Read Access (Activities)" ON activities;
+CREATE POLICY "Public Read Access (Activities)" 
+ON activities FOR SELECT 
+TO public 
+USING (true);
+
+-- RLS: Full Authenticated Admin Access
+DROP POLICY IF EXISTS "Allow authenticated full access to activities" ON activities;
+CREATE POLICY "Allow authenticated full access to activities" 
+ON activities FOR ALL 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
+
+-- ----------------------------------------------------
+-- Storage Bucket for Activities Media (10MB limit + WebP/PNG/JPG whitelist)
+-- ----------------------------------------------------
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
 VALUES (
-  'destination-images', 
-  'destination-images', 
+  'activity-images', 
+  'activity-images', 
   true, 
-  10485760,
+  10485760, -- 10MB limit
   ARRAY['image/jpeg', 'image/png', 'image/webp']
 )
 ON CONFLICT (id) DO UPDATE SET 
@@ -245,27 +277,28 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = 10485760,
   allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
 
--- 3. Storage Policies for destination-images
-DROP POLICY IF EXISTS "Public Read Access (Destinations)" ON storage.objects;
-CREATE POLICY "Public Read Access (Destinations)" 
+-- Storage Policies for 'activity-images'
+DROP POLICY IF EXISTS "Public Read Access (Activities Bucket)" ON storage.objects;
+CREATE POLICY "Public Read Access (Activities Bucket)" 
 ON storage.objects FOR SELECT 
 TO public 
-USING (bucket_id = 'destination-images');
+USING (bucket_id = 'activity-images');
 
-DROP POLICY IF EXISTS "Admin Upload Access (Destinations)" ON storage.objects;
-CREATE POLICY "Admin Upload Access (Destinations)" 
+DROP POLICY IF EXISTS "Admin Upload Access (Activities Bucket)" ON storage.objects;
+CREATE POLICY "Admin Upload Access (Activities Bucket)" 
 ON storage.objects FOR INSERT 
 TO authenticated 
-WITH CHECK (bucket_id = 'destination-images');
+WITH CHECK (bucket_id = 'activity-images');
 
-DROP POLICY IF EXISTS "Admin Update Access (Destinations)" ON storage.objects;
-CREATE POLICY "Admin Update Access (Destinations)" 
+DROP POLICY IF EXISTS "Admin Update Access (Activities Bucket)" ON storage.objects;
+CREATE POLICY "Admin Update Access (Activities Bucket)" 
 ON storage.objects FOR UPDATE 
 TO authenticated 
-USING (bucket_id = 'destination-images');
+USING (bucket_id = 'activity-images');
 
-DROP POLICY IF EXISTS "Admin Delete Access (Destinations)" ON storage.objects;
-CREATE POLICY "Admin Delete Access (Destinations)" 
+DROP POLICY IF EXISTS "Admin Delete Access (Activities Bucket)" ON storage.objects;
+CREATE POLICY "Admin Delete Access (Activities Bucket)" 
 ON storage.objects FOR DELETE 
 TO authenticated 
-USING (bucket_id = 'destination-images');
+USING (bucket_id = 'activity-images');
+

@@ -15,6 +15,7 @@ import {
   ChevronRight,
   PlusCircle,
   MapPin,
+  Ticket,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -67,6 +68,13 @@ export default function AdminLayout({
       isActive: pathname.startsWith('/admin/destinations'),
       badge: pathname === '/admin/destinations/create' ? 'Creating' : undefined,
     },
+    {
+      name: 'Activities & Experiences',
+      href: '/admin/activities',
+      icon: Ticket,
+      isActive: pathname.startsWith('/admin/activities'),
+      badge: pathname === '/admin/activities/create' ? 'Creating' : undefined,
+    },
   ];
 
   // Breadcrumbs generator
@@ -107,6 +115,23 @@ export default function AdminLayout({
     }
     if (pathname.startsWith('/admin/destinations')) {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Destinations' }];
+    }
+    if (pathname === '/admin/activities/create') {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Activities', href: '/admin/activities' },
+        { label: 'Add New' },
+      ];
+    }
+    if (pathname.startsWith('/admin/activities') && pathname.includes('/edit')) {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Activities', href: '/admin/activities' },
+        { label: 'Edit Activity' },
+      ];
+    }
+    if (pathname.startsWith('/admin/activities')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Activities' }];
     }
     return [{ label: 'Admin', href: '/admin' }];
   };

@@ -2,6 +2,7 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { Compass, Plus, Sparkles, Filter } from 'lucide-react';
+import Link from 'next/link';
 import { Tour } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -37,10 +38,13 @@ export default async function AdminToursPage() {
             <Filter className="w-3.5 h-3.5 text-slate-400" />
             <span>Filter</span>
           </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+          <Link
+            href="/admin/tours/create"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+          >
             <Plus className="w-3.5 h-3.5" />
             <span>Create New Tour</span>
-          </button>
+          </Link>
         </div>
       </div>
 

@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Layers,
   Image as ImageIcon,
+  Images,
   Loader2,
   MapPin,
   UploadCloud,
@@ -70,12 +71,13 @@ const initialFormData: TourFormData = {
 export default function CreateTourPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState<TourFormData>(initialFormData);
   const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
   const [isLoadingDestinations, setIsLoadingDestinations] = useState<boolean>(true);
 
-  // Storage upload states
+  // Cover Image Storage upload states
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
   const [uploadStage, setUploadStage] = useState<'optimizing' | 'uploading' | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -84,6 +86,13 @@ export default function CreateTourPage() {
     compressedSize: string;
     reductionPercentage: number;
   } | null>(null);
+
+  // Tour Gallery Storage upload states
+  const [isUploadingGallery, setIsUploadingGallery] = useState<boolean>(false);
+  const [isGalleryDragging, setIsGalleryDragging] = useState<boolean>(false);
+  const [galleryUploadStage, setGalleryUploadStage] = useState<string | null>(null);
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+  const [galleryOptimizationSummary, setGalleryOptimizationSummary] = useState<string | null>(null);
 
   // Form submission states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -223,6 +232,121 @@ export default function CreateTourPage() {
   };
 
   // ----------------------------------------------------
+  // Task 9 (Part 2): Multi-Image Gallery Upload to 'tour-images'
+  // ----------------------------------------------------
+  const processGalleryFiles = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    setGalleryError(null);
+    setIsUploadingGallery(true);
+    setGalleryUploadStage(`Preparing ${fileList.length} image${fileList.length === 1 ? '' : 's'}...`);
+
+    try {
+      const supabase = createClient();
+      const newUrls: string[] = [];
+      let totalOriginalBytes = 0;
+      let totalCompressedBytes = 0;
+
+      for (let i = 0; i < fileList.length; i++) {
+        const rawFile = fileList[i];
+        if (!rawFile.type.startsWith('image/')) {
+          continue;
+        }
+
+        setGalleryUploadStage(
+          `Optimizing photo ${i + 1} of ${fileList.length} to WebP...`
+        );
+
+        // Compress & convert to WebP
+        const {
+          file: optimizedFile,
+          originalSize,
+          compressedSize,
+        } = await compressImage(rawFile, 1920, 0.82);
+
+        totalOriginalBytes += originalSize;
+        totalCompressedBytes += compressedSize;
+
+        setGalleryUploadStage(
+          `Uploading photo ${i + 1} of ${fileList.length} to storage...`
+        );
+
+        const fileExt = optimizedFile.name.split('.').pop() || 'webp';
+        const cleanFileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 9)}.${fileExt}`;
+        const filePath = `gallery/${cleanFileName}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from('tour-images')
+          .upload(filePath, optimizedFile, {
+            cacheControl: '31536000',
+            contentType: optimizedFile.type,
+            upsert: false,
+          });
+
+        if (uploadErr) {
+          console.error(`Gallery upload error for ${rawFile.name}:`, uploadErr);
+          continue;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('tour-images').getPublicUrl(filePath);
+
+        if (publicUrl) {
+          newUrls.push(publicUrl);
+        }
+      }
+
+      if (newUrls.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          gallery_images: [...prev.gallery_images, ...newUrls],
+        }));
+
+        if (totalOriginalBytes > 0 && totalCompressedBytes < totalOriginalBytes) {
+          const savings = Math.round(
+            ((totalOriginalBytes - totalCompressedBytes) / totalOriginalBytes) * 100
+          );
+          setGalleryOptimizationSummary(
+            `Added ${newUrls.length} photos (${savings}% storage saved with WebP)`
+          );
+        }
+      } else {
+        setGalleryError('Failed to upload selected images. Please check bucket policies.');
+      }
+    } catch (err: unknown) {
+      console.error('[Gallery Upload Error]:', err);
+      setGalleryError(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred during gallery upload.'
+      );
+    } finally {
+      setIsUploadingGallery(false);
+      setGalleryUploadStage(null);
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processGalleryFiles(e.target.files);
+    }
+  };
+
+  const handleRemoveGalleryImage = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      gallery_images: prev.gallery_images.filter((_, i) => i !== indexToRemove),
+    }));
+  };
+
+  // ----------------------------------------------------
   // Repeater: Highlights
   // ----------------------------------------------------
   const handleHighlightChange = (index: number, val: string) => {
@@ -353,6 +477,11 @@ export default function CreateTourPage() {
 
     if (isUploadingImage) {
       setErrorBanner('Please wait for the cover image upload to finish before saving.');
+      return;
+    }
+
+    if (isUploadingGallery) {
+      setErrorBanner('Please wait for gallery images to finish uploading before saving.');
       return;
     }
 
@@ -497,7 +626,7 @@ export default function CreateTourPage() {
 
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || isUploadingImage}
+            disabled={isSubmitting || isUploadingImage || isUploadingGallery}
             className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
@@ -508,7 +637,12 @@ export default function CreateTourPage() {
             ) : isUploadingImage ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Uploading Image...</span>
+                <span>Uploading Cover...</span>
+              </>
+            ) : isUploadingGallery ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Uploading Gallery...</span>
               </>
             ) : (
               <>
@@ -1036,6 +1170,206 @@ export default function CreateTourPage() {
               ))}
             </div>
           </div>
+
+          {/* Section 5: Multi-Image Tour Gallery Upload */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900">
+                    Tour Gallery Images
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                    {formData.gallery_images.length} {formData.gallery_images.length === 1 ? 'Photo' : 'Photos'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Showcase multiple destinations, accommodations, activities, and scenic viewpoints (auto-optimized to WebP)
+                </p>
+              </div>
+
+              {formData.gallery_images.length > 0 && (
+                <button
+                  type="button"
+                  disabled={isSubmitting || isUploadingGallery}
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add More Photos</span>
+                </button>
+              )}
+            </div>
+
+            {/* Gallery Upload Error Banner */}
+            {galleryError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{galleryError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGalleryError(null)}
+                  className="text-rose-500 hover:text-rose-800 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Gallery Optimization Success Banner */}
+            {galleryOptimizationSummary && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="font-medium text-emerald-900">{galleryOptimizationSummary}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGalleryOptimizationSummary(null)}
+                  className="text-emerald-600 hover:text-emerald-900 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Hidden multi-file input */}
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={isSubmitting || isUploadingGallery}
+              onChange={handleGalleryUpload}
+              className="hidden"
+              id="gallery-file-upload"
+            />
+
+            {/* Multi-Image Dropzone */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsGalleryDragging(true);
+              }}
+              onDragLeave={() => setIsGalleryDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsGalleryDragging(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  processGalleryFiles(e.dataTransfer.files);
+                }
+              }}
+            >
+              <label
+                htmlFor="gallery-file-upload"
+                className={`
+                  rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3
+                  ${isGalleryDragging ? 'border-emerald-500 bg-emerald-50/50 scale-[0.99]' : 'border-slate-300 hover:border-emerald-500 hover:bg-slate-50/70'}
+                  ${isUploadingGallery ? 'pointer-events-none opacity-80 bg-slate-50' : ''}
+                `}
+              >
+                {isUploadingGallery ? (
+                  <>
+                    <Loader2 className="w-9 h-9 text-emerald-600 animate-spin" />
+                    <div className="space-y-1">
+                      <span className="text-sm font-bold text-slate-800 block">
+                        {galleryUploadStage || 'Uploading gallery photos...'}
+                      </span>
+                      <span className="text-xs text-slate-500 block">
+                        Auto-converting to WebP and uploading to tour-images storage bucket
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 shadow-sm">
+                      <Images className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-slate-800">
+                        <span className="text-emerald-700 hover:underline">
+                          Click to browse multiple photos
+                        </span>{' '}
+                        or drag and drop them here
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Select multiple images at once (JPEG, PNG, WebP) • Up to 10MB per file
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-[11px] font-medium text-slate-600">
+                      <Sparkles className="w-3 h-3 text-emerald-600" />
+                      <span>Automatic WebP compression active (saves ~85% storage space)</span>
+                    </div>
+                  </>
+                )}
+              </label>
+            </div>
+
+            {/* Thumbnail Previews Grid */}
+            {formData.gallery_images.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span className="font-bold">
+                    Uploaded Gallery Thumbnails ({formData.gallery_images.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Remove all gallery photos?')) {
+                        setFormData((prev) => ({ ...prev, gallery_images: [] }));
+                      }
+                    }}
+                    className="text-rose-600 hover:text-rose-700 font-semibold cursor-pointer text-[11px]"
+                  >
+                    Clear All
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                  {formData.gallery_images.map((url, index) => (
+                    <div
+                      key={`${url}-${index}`}
+                      className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs hover:shadow-md transition-shadow"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Gallery photo ${index + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+
+                      {/* Photo Index Badge */}
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-slate-950/70 text-white font-mono text-[10px] font-bold backdrop-blur-xs">
+                        #{index + 1}
+                      </div>
+
+                      {/* Remove 'x' Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryImage(index)}
+                        disabled={isSubmitting || isUploadingGallery}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-600/90 text-white flex items-center justify-center hover:bg-rose-700 shadow cursor-pointer transition-all hover:scale-110 disabled:opacity-50"
+                        title="Remove photo"
+                        aria-label={`Remove photo ${index + 1}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Bottom Filename overlay on hover */}
+                      <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-slate-950/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-[10px] text-white truncate px-1">
+                          {url.split('/').pop() || `Photo ${index + 1}`}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Sidebar (1/3 width on desktop) */}
@@ -1304,8 +1638,27 @@ export default function CreateTourPage() {
 
               <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
                 <span>{formData.itinerary.length} Days Itinerary</span>
-                <span>{formData.highlights.length} Highlights</span>
+                <span>{formData.gallery_images.length} Gallery Photos</span>
               </div>
+
+              {formData.gallery_images.length > 0 && (
+                <div className="pt-2 flex items-center gap-1.5 overflow-hidden">
+                  {formData.gallery_images.slice(0, 4).map((img, idx) => (
+                    <div
+                      key={idx}
+                      className="w-10 h-10 rounded-lg overflow-hidden bg-slate-200 flex-shrink-0 border border-slate-200 shadow-xs"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt="Mini preview" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  {formData.gallery_images.length > 4 && (
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center text-[11px] font-bold flex-shrink-0 border border-emerald-200">
+                      +{formData.gallery_images.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

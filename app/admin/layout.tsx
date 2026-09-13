@@ -16,6 +16,7 @@ import {
   PlusCircle,
   MapPin,
   Ticket,
+  CalendarCheck,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -55,6 +56,12 @@ export default function AdminLayout({
       isActive: pathname === '/admin',
     },
     {
+      name: 'Bookings & Orders',
+      href: '/admin/bookings',
+      icon: CalendarCheck,
+      isActive: pathname.startsWith('/admin/bookings'),
+    },
+    {
       name: 'Tour Packages',
       href: '/admin/tours',
       icon: Compass,
@@ -82,6 +89,10 @@ export default function AdminLayout({
     if (pathname === '/admin') {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Dashboard' }];
     }
+    if (pathname.startsWith('/admin/bookings')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Bookings & Orders' }];
+    }
+
     if (pathname === '/admin/tours/create') {
       return [
         { label: 'Admin', href: '/admin' },

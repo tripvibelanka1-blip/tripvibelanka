@@ -83,6 +83,66 @@ export type ActivityInsert = Omit<Activity, 'id' | 'created_at' | 'updated_at'> 
 
 export type ActivityUpdate = Partial<ActivityInsert>;
 
+export type PaymentStatus = 'pending' | 'advance_paid' | 'fully_paid' | 'failed' | 'refunded';
+export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+
+export interface SelectedActivityItem {
+  activity_id: string;
+  title: string;
+  price_per_person: number;
+  quantity: number;
+  total: number;
+}
+
+export interface Booking {
+  id: string;
+  reference_no: string;
+  tour_id: string | null;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  customer_country?: string;
+  pickup_location?: string | null;
+  special_requests?: string | null;
+  travel_date: string;
+  travelers_count: number;
+  adults: number;
+  children: number;
+  selected_activities?: SelectedActivityItem[];
+  currency: 'USD' | 'LKR';
+  total_amount: number;
+  advance_percentage: number;
+  advance_amount: number;
+  remaining_balance: number;
+  payment_status: PaymentStatus;
+  booking_status: BookingStatus;
+  payhere_payment_id?: string | null;
+  payment_method?: string;
+  assigned_driver_guide?: string | null;
+  admin_notes?: string | null;
+  balance_settled_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // Joined relation for display
+  tours?: {
+    id: string;
+    title: string;
+    duration_days: number;
+    duration_nights: number;
+    price_usd: number;
+    price_lkr: number;
+    cover_image: string | null;
+  } | null;
+}
+
+export type BookingInsert = Omit<Booking, 'id' | 'created_at' | 'updated_at' | 'tours'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type BookingUpdate = Partial<BookingInsert>;
+
 export interface Database {
   public: {
     Tables: {
@@ -101,7 +161,13 @@ export interface Database {
         Insert: ActivityInsert;
         Update: ActivityUpdate;
       };
+      bookings: {
+        Row: Booking;
+        Insert: BookingInsert;
+        Update: BookingUpdate;
+      };
     };
   };
 }
+
 

@@ -302,3 +302,83 @@ ON storage.objects FOR DELETE
 TO authenticated 
 USING (bucket_id = 'activity-images');
 
+-- ----------------------------------------------------
+-- 5. BOOKINGS & ORDERS MODULE
+-- ----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS bookings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  reference_no TEXT UNIQUE NOT NULL, -- Format: TVL-YYYY-XXXXX
+  tour_id UUID REFERENCES tours(id) ON DELETE SET NULL,
+  
+  -- Customer Details
+  customer_name TEXT NOT NULL,
+  customer_email TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  customer_country TEXT,
+  pickup_location TEXT,
+  special_requests TEXT,
+  
+  -- Tour Schedule
+  travel_date DATE NOT NULL,
+  travelers_count INTEGER NOT NULL DEFAULT 1,
+  adults INTEGER NOT NULL DEFAULT 1,
+  children INTEGER NOT NULL DEFAULT 0,
+  
+  -- Optional Activity Add-ons Snapshot (Stores array of { activity_id, title, price_per_person, quantity, total })
+  selected_activities JSONB DEFAULT '[]'::jsonb,
+  
+  -- Financial Tracking
+  currency TEXT NOT NULL DEFAULT 'LKR' CHECK (currency IN ('LKR', 'USD')),
+  total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  advance_percentage NUMERIC(5, 2) NOT NULL DEFAULT 20.00,
+  advance_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  remaining_balance NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  
+  -- Lifecycles
+  payment_status TEXT NOT NULL DEFAULT 'pending' 
+    CHECK (payment_status IN ('pending', 'advance_paid', 'fully_paid', 'failed', 'refunded')),
+  booking_status TEXT NOT NULL DEFAULT 'pending' 
+    CHECK (booking_status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+    
+  -- Payment Gateway Tracking
+  payhere_payment_id TEXT,
+  payment_method TEXT,
+  
+  -- Operations & Logistics
+  admin_notes TEXT,
+  assigned_driver_guide TEXT,
+  balance_settled_at TIMESTAMP WITH TIME ZONE,
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Ensure newly added columns exist if table was already created
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_activities JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS admin_notes TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_driver_guide TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS balance_settled_at TIMESTAMP WITH TIME ZONE;
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_bookings_reference ON bookings(reference_no);
+CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status, payment_status);
+CREATE INDEX IF NOT EXISTS idx_bookings_travel_date ON bookings(travel_date);
+
+-- Enable RLS
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+DROP POLICY IF EXISTS "Allow authenticated full access to bookings" ON bookings;
+CREATE POLICY "Allow authenticated full access to bookings" 
+  ON bookings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public insert bookings" ON bookings;
+CREATE POLICY "Allow public insert bookings" 
+  ON bookings FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public view own booking by reference" ON bookings;
+CREATE POLICY "Allow public view own booking by reference" 
+  ON bookings FOR SELECT TO anon, authenticated USING (true);
+
+

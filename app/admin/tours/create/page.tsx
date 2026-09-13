@@ -11,17 +11,17 @@ import {
   X,
   Sparkles,
   Calendar,
-  DollarSign,
-  MapPin,
   FileText,
   Eye,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
   Layers,
   Image as ImageIcon,
+  Loader2,
+  MapPin,
 } from 'lucide-react';
-import { TourItineraryItem } from '@/types/database';
+import { createClient } from '@/utils/supabase/client';
+import { TourInsert, TourItineraryItem } from '@/types/database';
 
 interface TourFormData {
   title: string;
@@ -84,7 +84,9 @@ const initialFormData: TourFormData = {
 export default function CreateTourPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<TourFormData>(initialFormData);
-  const [submittedFeedback, setSubmittedFeedback] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [showJsonPreview, setShowJsonPreview] = useState<boolean>(false);
 
   // Field change handler for primitive fields
@@ -206,14 +208,115 @@ export default function CreateTourPage() {
     setFormData((prev) => ({ ...prev, itinerary: filtered }));
   };
 
-  // Form submission handler (State capture verification only, Supabase logic deferred)
-  const handleSubmit = (e: React.FormEvent) => {
+  // ----------------------------------------------------
+  // Task 7: Submit Tour to Supabase
+  // ----------------------------------------------------
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Create Tour Form State Captured]:', formData);
-    setSubmittedFeedback(true);
-    setTimeout(() => {
-      setSubmittedFeedback(false);
-    }, 5000);
+    setErrorBanner(null);
+    setSuccessBanner(null);
+
+    // Client-side validation
+    if (!formData.title.trim()) {
+      setErrorBanner('Please enter a tour title.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (formData.duration_days <= 0) {
+      setErrorBanner('Duration days must be at least 1.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const supabase = createClient();
+
+      // Clean empty items from repeaters
+      const cleanedHighlights = formData.highlights
+        .map((h) => h.trim())
+        .filter((h) => h.length > 0);
+
+      const cleanedIncluded = formData.included
+        .map((inc) => inc.trim())
+        .filter((inc) => inc.length > 0);
+
+      const cleanedExcluded = formData.excluded
+        .map((exc) => exc.trim())
+        .filter((exc) => exc.length > 0);
+
+      const cleanedItinerary = formData.itinerary
+        .filter(
+          (item) =>
+            item.title.trim().length > 0 || item.details.trim().length > 0
+        )
+        .map((item, idx) => ({
+          day: idx + 1,
+          title: item.title.trim() || `Day ${idx + 1}`,
+          details: item.details.trim(),
+        }));
+
+      // Prepare payload matching the public.tours table schema:
+      // Note: destination_id is UUID in DB, mock cover_image & gallery_images as requested
+      const payload: TourInsert = {
+        title: formData.title.trim(),
+        destination_id: null,
+        duration_days: Number(formData.duration_days) || 0,
+        duration_nights: Number(formData.duration_nights) || 0,
+        price_usd: Number(formData.price_usd) || 0,
+        price_lkr: Number(formData.price_lkr) || 0,
+        description: formData.description.trim(),
+        highlights: cleanedHighlights,
+        included: cleanedIncluded,
+        excluded: cleanedExcluded,
+        itinerary: cleanedItinerary,
+        cover_image: null, // Mocked as null for now
+        gallery_images: [], // Mocked as empty array for now
+        is_featured: Boolean(formData.is_featured),
+        is_active: Boolean(formData.is_active),
+      };
+
+      const { data, error } = await supabase
+        .from('tours')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Supabase Tour Insert Error]:', error);
+        setErrorBanner(
+          `Failed to save tour: ${error.message}${
+            error.message.includes('relation "public.tours" does not exist')
+              ? ' — Please run the database.sql migration in Supabase SQL editor.'
+              : ''
+          }`
+        );
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      setSuccessBanner(
+        `Tour "${formData.title}" created successfully! Redirecting to tours listing...`
+      );
+
+      // Brief delay so user sees the success toast before redirect
+      setTimeout(() => {
+        router.push('/admin/tours');
+        router.refresh();
+      }, 1200);
+    } catch (err: unknown) {
+      console.error('[Unexpected Error]:', err);
+      setErrorBanner(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while saving the tour.'
+      );
+      setIsSubmitting(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -249,7 +352,9 @@ export default function CreateTourPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/tours"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors"
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors ${
+              isSubmitting ? 'pointer-events-none opacity-50' : ''
+            }`}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Cancel</span>
@@ -266,29 +371,57 @@ export default function CreateTourPage() {
 
           <button
             onClick={handleSubmit}
-            className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Check className="w-3.5 h-3.5" />
-            <span>Save Tour</span>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Saving to Supabase...</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Save Tour</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* State Verification Toast Banner */}
-      {submittedFeedback && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
+      {/* Success Toast Banner */}
+      {successBanner && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
             <div>
-              <div className="font-bold">Form state captured successfully!</div>
+              <div className="font-bold">{successBanner}</div>
               <div className="text-emerald-700 mt-0.5">
-                All basic fields, dynamic repeaters (highlights, inclusions, exclusions, itinerary), and toggles are verified. (Supabase insert deferred).
+                Record inserted into <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">public.tours</code>.
               </div>
             </div>
           </div>
+          <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+        </div>
+      )}
+
+      {/* Error Toast Banner */}
+      {errorBanner && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 text-xs flex items-start justify-between shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-bold text-rose-900">Submission Error</div>
+              <div className="text-rose-700 mt-0.5">{errorBanner}</div>
+            </div>
+          </div>
           <button
-            onClick={() => setSubmittedFeedback(false)}
-            className="text-emerald-700 hover:text-emerald-950 p-1"
+            onClick={() => setErrorBanner(null)}
+            className="text-rose-700 hover:text-rose-950 p-1"
           >
             <X className="w-4 h-4" />
           </button>
@@ -302,7 +435,9 @@ export default function CreateTourPage() {
             <span className="font-bold text-emerald-400">
               Live React Form State (TourFormData)
             </span>
-            <span>{formData.itinerary.length} Days • {formData.highlights.length} Highlights</span>
+            <span>
+              {formData.itinerary.length} Days • {formData.highlights.length} Highlights
+            </span>
           </div>
           <pre className="max-h-72 overflow-y-auto text-[11px] leading-relaxed">
             {JSON.stringify(formData, null, 2)}
@@ -342,10 +477,11 @@ export default function CreateTourPage() {
                 id="tour-title"
                 type="text"
                 required
+                disabled={isSubmitting}
                 value={formData.title}
                 onChange={(e) => handleFieldChange('title', e.target.value)}
                 placeholder="e.g. 7-Day Wonders of Ceylon & Coastal Retreat"
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all"
+                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60"
               />
             </div>
 
@@ -364,16 +500,17 @@ export default function CreateTourPage() {
                 <input
                   id="destination-input"
                   type="text"
+                  disabled={isSubmitting}
                   value={formData.destination_id}
                   onChange={(e) =>
                     handleFieldChange('destination_id', e.target.value)
                   }
                   placeholder="e.g. Sigiriya, Kandy, Ella, Galle (Temporary text)"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60"
                 />
               </div>
               <p className="mt-1 text-[11px] text-slate-400">
-                Temporary text input (will link to foreign key in destinations table)
+                Temporary text input (stored as null in database until destinations table UUID is linked)
               </p>
             </div>
 
@@ -394,10 +531,11 @@ export default function CreateTourPage() {
                 id="tour-description"
                 rows={4}
                 required
+                disabled={isSubmitting}
                 value={formData.description}
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 placeholder="Provide an evocative, captivating description of this Sri Lanka journey..."
-                className="w-full p-3.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all"
+                className="w-full p-3.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60"
               />
             </div>
           </div>
@@ -432,11 +570,12 @@ export default function CreateTourPage() {
                   type="number"
                   min={1}
                   required
+                  disabled={isSubmitting}
                   value={formData.duration_days}
                   onChange={(e) =>
                     handleFieldChange('duration_days', parseInt(e.target.value) || 0)
                   }
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-semibold"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-semibold disabled:opacity-60"
                 />
               </div>
 
@@ -453,6 +592,7 @@ export default function CreateTourPage() {
                   type="number"
                   min={0}
                   required
+                  disabled={isSubmitting}
                   value={formData.duration_nights}
                   onChange={(e) =>
                     handleFieldChange(
@@ -460,7 +600,7 @@ export default function CreateTourPage() {
                       parseInt(e.target.value) || 0
                     )
                   }
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-semibold"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-semibold disabled:opacity-60"
                 />
               </div>
 
@@ -482,6 +622,7 @@ export default function CreateTourPage() {
                     min={0}
                     step={0.01}
                     required
+                    disabled={isSubmitting}
                     value={formData.price_usd}
                     onChange={(e) =>
                       handleFieldChange(
@@ -489,7 +630,7 @@ export default function CreateTourPage() {
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full pl-7 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-bold text-slate-900"
+                    className="w-full pl-7 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-bold text-slate-900 disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -512,6 +653,7 @@ export default function CreateTourPage() {
                     min={0}
                     step={1}
                     required
+                    disabled={isSubmitting}
                     value={formData.price_lkr}
                     onChange={(e) =>
                       handleFieldChange(
@@ -519,7 +661,7 @@ export default function CreateTourPage() {
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-bold text-slate-900"
+                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all font-bold text-slate-900 disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -552,7 +694,8 @@ export default function CreateTourPage() {
                 <button
                   type="button"
                   onClick={addHighlight}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Highlight</span>
@@ -567,15 +710,17 @@ export default function CreateTourPage() {
                     </span>
                     <input
                       type="text"
+                      disabled={isSubmitting}
                       value={highlight}
                       onChange={(e) => handleHighlightChange(index, e.target.value)}
                       placeholder={`Highlight #${index + 1}`}
-                      className="flex-1 px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                      className="flex-1 px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all disabled:opacity-60"
                     />
                     <button
                       type="button"
+                      disabled={isSubmitting}
                       onClick={() => removeHighlight(index)}
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30"
                       title="Remove highlight"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -597,7 +742,8 @@ export default function CreateTourPage() {
                   <button
                     type="button"
                     onClick={addIncluded}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Item</span>
@@ -609,15 +755,17 @@ export default function CreateTourPage() {
                     <div key={index} className="flex items-center gap-2">
                       <input
                         type="text"
+                        disabled={isSubmitting}
                         value={item}
                         onChange={(e) => handleIncludedChange(index, e.target.value)}
                         placeholder="e.g. Airport transfers"
-                        className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                        className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all disabled:opacity-60"
                       />
                       <button
                         type="button"
+                        disabled={isSubmitting}
                         onClick={() => removeIncluded(index)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -636,7 +784,8 @@ export default function CreateTourPage() {
                   <button
                     type="button"
                     onClick={addExcluded}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Item</span>
@@ -648,15 +797,17 @@ export default function CreateTourPage() {
                     <div key={index} className="flex items-center gap-2">
                       <input
                         type="text"
+                        disabled={isSubmitting}
                         value={item}
                         onChange={(e) => handleExcludedChange(index, e.target.value)}
                         placeholder="e.g. International flights"
-                        className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all disabled:opacity-60"
                       />
                       <button
                         type="button"
+                        disabled={isSubmitting}
                         onClick={() => removeExcluded(index)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -687,7 +838,8 @@ export default function CreateTourPage() {
               <button
                 type="button"
                 onClick={addItineraryDay}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all cursor-pointer"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Day {formData.itinerary.length + 1}</span>
@@ -707,18 +859,19 @@ export default function CreateTourPage() {
                       </span>
                       <input
                         type="text"
+                        disabled={isSubmitting}
                         value={item.title}
                         onChange={(e) =>
                           handleItineraryChange(index, 'title', e.target.value)
                         }
                         placeholder={`Day ${item.day} Title (e.g. Scenic Hill Country Train & Ella Gap)`}
-                        className="flex-1 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        className="flex-1 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-60"
                       />
                     </div>
 
                     <button
                       type="button"
-                      disabled={formData.itinerary.length <= 1}
+                      disabled={formData.itinerary.length <= 1 || isSubmitting}
                       onClick={() => removeItineraryDay(index)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Remove this day"
@@ -730,12 +883,13 @@ export default function CreateTourPage() {
                   <div>
                     <textarea
                       rows={2}
+                      disabled={isSubmitting}
                       value={item.details}
                       onChange={(e) =>
                         handleItineraryChange(index, 'details', e.target.value)
                       }
                       placeholder={`Describe the schedule, activities, meals, and hotels for Day ${item.day}...`}
-                      className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                      className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-60"
                     />
                   </div>
                 </div>
@@ -770,10 +924,11 @@ export default function CreateTourPage() {
               <button
                 type="button"
                 role="switch"
+                disabled={isSubmitting}
                 aria-checked={formData.is_active}
                 onClick={() => handleFieldChange('is_active', !formData.is_active)}
                 className={`
-                  relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                  relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50
                   ${formData.is_active ? 'bg-emerald-600' : 'bg-slate-300'}
                 `}
               >
@@ -804,12 +959,13 @@ export default function CreateTourPage() {
               <button
                 type="button"
                 role="switch"
+                disabled={isSubmitting}
                 aria-checked={formData.is_featured}
                 onClick={() =>
                   handleFieldChange('is_featured', !formData.is_featured)
                 }
                 className={`
-                  relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2
+                  relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50
                   ${formData.is_featured ? 'bg-amber-500' : 'bg-slate-300'}
                 `}
               >
@@ -823,10 +979,11 @@ export default function CreateTourPage() {
             </div>
           </div>
 
-          {/* Media & Images */}
+          {/* Media & Images (Mocked as null/empty for now) */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-2 border-b border-slate-100">
-              Media & Imagery
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-2 border-b border-slate-100 flex items-center justify-between">
+              <span>Media & Imagery</span>
+              <span className="text-[10px] text-slate-400 font-normal">Mocked for now</span>
             </h3>
 
             <div>
@@ -834,7 +991,7 @@ export default function CreateTourPage() {
                 htmlFor="cover-image"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                Cover Image URL
+                Cover Image URL (Optional)
               </label>
               <div className="relative rounded-xl shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -843,10 +1000,11 @@ export default function CreateTourPage() {
                 <input
                   id="cover-image"
                   type="url"
+                  disabled={isSubmitting}
                   value={formData.cover_image}
                   onChange={(e) => handleFieldChange('cover_image', e.target.value)}
                   placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-60"
                 />
               </div>
             </div>
@@ -862,7 +1020,7 @@ export default function CreateTourPage() {
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-slate-400 text-xs">
-                Enter an image URL above to preview the cover
+                File uploads will be added later; mocked with null/empty array.
               </div>
             )}
           </div>
@@ -872,7 +1030,7 @@ export default function CreateTourPage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-2 border-b border-slate-100 flex items-center justify-between">
               <span>Card Summary Preview</span>
               <span className="text-[10px] font-semibold text-emerald-600">
-                Real-Time
+                Live Sync
               </span>
             </h3>
 

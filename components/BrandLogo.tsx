@@ -46,7 +46,7 @@ export default function BrandLogo({
           <div className={`flex flex-col items-center text-center ${className}`}>
             <div className="relative mb-4">
               {/* Warm Ambient Brand Glow behind logo */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-amber-500/25 via-orange-500/25 to-sky-500/25 rounded-3xl blur-lg -z-10 opacity-70" />
+              <div className="absolute -inset-2 bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-amber-600/20 rounded-3xl blur-lg -z-10 opacity-70" />
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-xl shadow-orange-950/10 border border-orange-100 flex items-center justify-center overflow-hidden">
                 <Image
                   src="/logo.jpeg"
@@ -114,7 +114,7 @@ export default function BrandLogo({
                 Tripvibe<span className="text-[#FF6B00]">Lanka</span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF6B00]" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700/80">
                   {subtext || 'Operations'}
                 </span>

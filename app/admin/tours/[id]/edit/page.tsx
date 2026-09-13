@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Plus,
@@ -15,15 +15,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Layers,
-  Image as ImageIcon,
   Images,
   Loader2,
   MapPin,
   UploadCloud,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
-import { TourInsert, TourItineraryItem, DestinationRecord } from '@/types/database';
-import { compressImage, formatBytes } from '@/utils/imageCompression';
+import { TourUpdate, TourItineraryItem, DestinationRecord } from '@/types/database';
+import { compressImage } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
 
 interface TourFormData {
@@ -44,7 +43,7 @@ interface TourFormData {
   is_active: boolean;
 }
 
-const initialFormData: TourFormData = {
+const defaultFormData: TourFormData = {
   title: '',
   destination_id: '',
   duration_days: 1,
@@ -68,31 +67,30 @@ const initialFormData: TourFormData = {
   is_active: true,
 };
 
-export default function CreateTourPage() {
+export default function EditTourPage() {
   const router = useRouter();
+  const params = useParams();
+  const tourId = params?.id as string;
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [formData, setFormData] = useState<TourFormData>(initialFormData);
+  const [formData, setFormData] = useState<TourFormData>(defaultFormData);
   const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
+  const [isLoadingTour, setIsLoadingTour] = useState<boolean>(true);
   const [isLoadingDestinations, setIsLoadingDestinations] = useState<boolean>(true);
+  const [tourNotFound, setTourNotFound] = useState<boolean>(false);
 
-  // Cover Image Storage upload states
+  // Cover Image upload states
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
   const [uploadStage, setUploadStage] = useState<'optimizing' | 'uploading' | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [optimizationInfo, setOptimizationInfo] = useState<{
-    originalSize: string;
-    compressedSize: string;
-    reductionPercentage: number;
-  } | null>(null);
 
-  // Tour Gallery Storage upload states
+  // Gallery upload states
   const [isUploadingGallery, setIsUploadingGallery] = useState<boolean>(false);
   const [isGalleryDragging, setIsGalleryDragging] = useState<boolean>(false);
   const [galleryUploadStage, setGalleryUploadStage] = useState<string | null>(null);
   const [galleryError, setGalleryError] = useState<string | null>(null);
-  const [galleryOptimizationSummary, setGalleryOptimizationSummary] = useState<string | null>(null);
 
   // Form submission states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -100,34 +98,72 @@ export default function CreateTourPage() {
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   // ----------------------------------------------------
-  // Task 8: Fetch Destinations on Mount
+  // Load Tour and Destinations on Mount
   // ----------------------------------------------------
   useEffect(() => {
-    async function fetchDestinations() {
-      setIsLoadingDestinations(true);
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('destinations')
-          .select('*')
-          .order('name', { ascending: true });
+    async function loadData() {
+      if (!tourId) return;
 
-        if (error) {
-          console.error('[Destinations Fetch Error]:', error);
-        } else if (data) {
-          setDestinations(data);
+      const supabase = createClient();
+      setIsLoadingTour(true);
+      setIsLoadingDestinations(true);
+
+      try {
+        // Parallel fetch for speed
+        const [tourRes, destRes] = await Promise.all([
+          supabase.from('tours').select('*').eq('id', tourId).single(),
+          supabase.from('destinations').select('*').order('name', { ascending: true }),
+        ]);
+
+        if (destRes.data) {
+          setDestinations(destRes.data);
         }
-      } catch (err) {
-        console.error('[Unexpected Destinations Error]:', err);
-      } finally {
         setIsLoadingDestinations(false);
+
+        if (tourRes.error || !tourRes.data) {
+          setTourNotFound(true);
+          setIsLoadingTour(false);
+          return;
+        }
+
+        const tour = tourRes.data;
+        setFormData({
+          title: tour.title || '',
+          destination_id: tour.destination_id || '',
+          duration_days: tour.duration_days ?? 1,
+          duration_nights: tour.duration_nights ?? 0,
+          price_usd: Number(tour.price_usd) || 0,
+          price_lkr: Number(tour.price_lkr) || 0,
+          description: tour.description || '',
+          highlights:
+            tour.highlights && tour.highlights.length > 0
+              ? tour.highlights
+              : [''],
+          included:
+            tour.included && tour.included.length > 0 ? tour.included : [''],
+          excluded:
+            tour.excluded && tour.excluded.length > 0 ? tour.excluded : [''],
+          itinerary:
+            tour.itinerary && tour.itinerary.length > 0
+              ? tour.itinerary
+              : [{ day: 1, title: '', details: '' }],
+          cover_image: tour.cover_image || '',
+          gallery_images: tour.gallery_images || [],
+          is_featured: Boolean(tour.is_featured),
+          is_active: Boolean(tour.is_active),
+        });
+      } catch (err) {
+        console.error('[Error loading tour]:', err);
+        setTourNotFound(true);
+      } finally {
+        setIsLoadingTour(false);
       }
     }
 
-    fetchDestinations();
-  }, []);
+    loadData();
+  }, [tourId]);
 
-  // Field change handler for primitive fields
+  // Field change handler
   const handleFieldChange = (
     field: keyof TourFormData,
     value: string | number | boolean
@@ -139,7 +175,7 @@ export default function CreateTourPage() {
   };
 
   // ----------------------------------------------------
-  // Task 9: Storage File Upload with Client-Side Compression
+  // Cover Image Upload Handler
   // ----------------------------------------------------
   const handleCoverImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -147,7 +183,6 @@ export default function CreateTourPage() {
     const rawFile = e.target.files?.[0];
     if (!rawFile) return;
 
-    // Validate size limit (max 10MB raw)
     if (rawFile.size > 10 * 1024 * 1024) {
       setUploadError('Image size exceeds 10MB limit. Please choose a smaller file.');
       return;
@@ -158,25 +193,9 @@ export default function CreateTourPage() {
     setUploadStage('optimizing');
 
     try {
-      // 1. Automatically compress & convert to efficient WebP (saves 80-95% storage)
-      const {
-        file: optimizedFile,
-        originalSize,
-        compressedSize,
-        reductionPercentage,
-      } = await compressImage(rawFile, 1920, 0.82);
-
-      if (reductionPercentage > 0) {
-        setOptimizationInfo({
-          originalSize: formatBytes(originalSize),
-          compressedSize: formatBytes(compressedSize),
-          reductionPercentage,
-        });
-      }
-
+      const { file: optimizedFile } = await compressImage(rawFile, 1920, 0.82);
       setUploadStage('uploading');
 
-      // 2. Upload optimized WebP directly to Supabase Storage bucket
       const supabase = createClient();
       const fileExt = optimizedFile.name.split('.').pop() || 'webp';
       const cleanFileName = `${Date.now()}-${Math.random()
@@ -187,20 +206,16 @@ export default function CreateTourPage() {
       const { error: uploadErr } = await supabase.storage
         .from('tour-images')
         .upload(filePath, optimizedFile, {
-          cacheControl: '31536000', // 1 year cache
+          cacheControl: '31536000',
           contentType: optimizedFile.type,
           upsert: false,
         });
 
       if (uploadErr) {
-        console.error('[Storage Upload Error]:', uploadErr);
         setUploadError(`Upload failed: ${uploadErr.message}`);
-        setIsUploadingImage(false);
-        setUploadStage(null);
         return;
       }
 
-      // 3. Retrieve public URL from Supabase Storage
       const {
         data: { publicUrl },
       } = supabase.storage.from('tour-images').getPublicUrl(filePath);
@@ -210,7 +225,7 @@ export default function CreateTourPage() {
         cover_image: publicUrl,
       }));
     } catch (err: unknown) {
-      console.error('[Unexpected Storage Error]:', err);
+      console.error('[Cover Upload Error]:', err);
       setUploadError(
         err instanceof Error
           ? err.message
@@ -224,14 +239,13 @@ export default function CreateTourPage() {
 
   const handleRemoveCoverImage = () => {
     setFormData((prev) => ({ ...prev, cover_image: '' }));
-    setOptimizationInfo(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   // ----------------------------------------------------
-  // Task 9 (Part 2): Multi-Image Gallery Upload to 'tour-images'
+  // Gallery Multi-Image Upload
   // ----------------------------------------------------
   const processGalleryFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
@@ -239,38 +253,19 @@ export default function CreateTourPage() {
     const fileList = Array.from(files);
     setGalleryError(null);
     setIsUploadingGallery(true);
-    setGalleryUploadStage(`Preparing ${fileList.length} image${fileList.length === 1 ? '' : 's'}...`);
+    setGalleryUploadStage(`Optimizing ${fileList.length} photo${fileList.length === 1 ? '' : 's'}...`);
 
     try {
       const supabase = createClient();
       const newUrls: string[] = [];
-      let totalOriginalBytes = 0;
-      let totalCompressedBytes = 0;
 
       for (let i = 0; i < fileList.length; i++) {
-        const rawFile = fileList[i];
-        if (!rawFile.type.startsWith('image/')) {
-          continue;
-        }
+        const file = fileList[i];
+        if (file.size > 10 * 1024 * 1024) continue;
 
-        setGalleryUploadStage(
-          `Optimizing photo ${i + 1} of ${fileList.length} to WebP...`
-        );
+        setGalleryUploadStage(`Uploading photo ${i + 1} of ${fileList.length}...`);
 
-        // Compress & convert to WebP
-        const {
-          file: optimizedFile,
-          originalSize,
-          compressedSize,
-        } = await compressImage(rawFile, 1920, 0.82);
-
-        totalOriginalBytes += originalSize;
-        totalCompressedBytes += compressedSize;
-
-        setGalleryUploadStage(
-          `Uploading photo ${i + 1} of ${fileList.length} to storage...`
-        );
-
+        const { file: optimizedFile } = await compressImage(file, 1600, 0.8);
         const fileExt = optimizedFile.name.split('.').pop() || 'webp';
         const cleanFileName = `${Date.now()}-${Math.random()
           .toString(36)
@@ -285,16 +280,10 @@ export default function CreateTourPage() {
             upsert: false,
           });
 
-        if (uploadErr) {
-          console.error(`Gallery upload error for ${rawFile.name}:`, uploadErr);
-          continue;
-        }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('tour-images').getPublicUrl(filePath);
-
-        if (publicUrl) {
+        if (!uploadErr) {
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from('tour-images').getPublicUrl(filePath);
           newUrls.push(publicUrl);
         }
       }
@@ -304,25 +293,10 @@ export default function CreateTourPage() {
           ...prev,
           gallery_images: [...prev.gallery_images, ...newUrls],
         }));
-
-        if (totalOriginalBytes > 0 && totalCompressedBytes < totalOriginalBytes) {
-          const savings = Math.round(
-            ((totalOriginalBytes - totalCompressedBytes) / totalOriginalBytes) * 100
-          );
-          setGalleryOptimizationSummary(
-            `Added ${newUrls.length} high-resolution photo${newUrls.length === 1 ? '' : 's'} (auto-optimized)`
-          );
-        }
-      } else {
-        setGalleryError('Failed to upload selected images. Please check file format or try again.');
       }
     } catch (err: unknown) {
       console.error('[Gallery Upload Error]:', err);
-      setGalleryError(
-        err instanceof Error
-          ? err.message
-          : 'An unexpected error occurred during gallery upload.'
-      );
+      setGalleryError('Failed to upload some gallery photos. Please try again.');
     } finally {
       setIsUploadingGallery(false);
       setGalleryUploadStage(null);
@@ -333,7 +307,7 @@ export default function CreateTourPage() {
   };
 
   const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files) {
       processGalleryFiles(e.target.files);
     }
   };
@@ -341,12 +315,12 @@ export default function CreateTourPage() {
   const handleRemoveGalleryImage = (indexToRemove: number) => {
     setFormData((prev) => ({
       ...prev,
-      gallery_images: prev.gallery_images.filter((_, i) => i !== indexToRemove),
+      gallery_images: prev.gallery_images.filter((_, idx) => idx !== indexToRemove),
     }));
   };
 
   // ----------------------------------------------------
-  // Repeater: Highlights
+  // Dynamic Repeaters Handlers
   // ----------------------------------------------------
   const handleHighlightChange = (index: number, val: string) => {
     const updated = [...formData.highlights];
@@ -368,9 +342,6 @@ export default function CreateTourPage() {
     }));
   };
 
-  // ----------------------------------------------------
-  // Repeater: Included
-  // ----------------------------------------------------
   const handleIncludedChange = (index: number, val: string) => {
     const updated = [...formData.included];
     updated[index] = val;
@@ -391,9 +362,6 @@ export default function CreateTourPage() {
     }));
   };
 
-  // ----------------------------------------------------
-  // Repeater: Excluded
-  // ----------------------------------------------------
   const handleExcludedChange = (index: number, val: string) => {
     const updated = [...formData.excluded];
     updated[index] = val;
@@ -414,9 +382,6 @@ export default function CreateTourPage() {
     }));
   };
 
-  // ----------------------------------------------------
-  // Repeater: Itinerary
-  // ----------------------------------------------------
   const handleItineraryChange = (
     index: number,
     field: keyof TourItineraryItem,
@@ -431,14 +396,13 @@ export default function CreateTourPage() {
   };
 
   const addItineraryDay = () => {
-    const nextDay = formData.itinerary.length + 1;
     setFormData((prev) => ({
       ...prev,
       itinerary: [
         ...prev.itinerary,
         {
-          day: nextDay,
-          title: `Day ${nextDay}: Adventure Continues`,
+          day: prev.itinerary.length + 1,
+          title: '',
           details: '',
         },
       ],
@@ -446,75 +410,63 @@ export default function CreateTourPage() {
   };
 
   const removeItineraryDay = (index: number) => {
-    if (formData.itinerary.length <= 1) return;
-    const filtered = formData.itinerary
-      .filter((_, i) => i !== index)
-      .map((item, idx) => ({ ...item, day: idx + 1 }));
-    setFormData((prev) => ({ ...prev, itinerary: filtered }));
+    setFormData((prev) => {
+      const filtered = prev.itinerary.filter((_, i) => i !== index);
+      const reindexed = filtered.map((item, idx) => ({
+        ...item,
+        day: idx + 1,
+      }));
+      return {
+        ...prev,
+        itinerary: reindexed,
+      };
+    });
   };
 
   // ----------------------------------------------------
-  // Form Submit: Insert to Supabase public.tours
+  // Form Update Submission
   // ----------------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorBanner(null);
     setSuccessBanner(null);
 
-    // Client-side validation
     if (!formData.title.trim()) {
-      setErrorBanner('Please enter a tour title.');
+      setErrorBanner('Please provide a tour package title.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    if (formData.duration_days <= 0) {
-      setErrorBanner('Duration days must be at least 1.');
+    if (!formData.description.trim()) {
+      setErrorBanner('Please provide a tour content description.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (isUploadingImage) {
-      setErrorBanner('Please wait for the cover image upload to finish before saving.');
-      return;
-    }
-
-    if (isUploadingGallery) {
-      setErrorBanner('Please wait for gallery images to finish uploading before saving.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const supabase = createClient();
-
-      // Clean empty items from repeaters
       const cleanedHighlights = formData.highlights
         .map((h) => h.trim())
         .filter((h) => h.length > 0);
 
       const cleanedIncluded = formData.included
-        .map((inc) => inc.trim())
-        .filter((inc) => inc.length > 0);
+        .map((i) => i.trim())
+        .filter((i) => i.length > 0);
 
       const cleanedExcluded = formData.excluded
-        .map((exc) => exc.trim())
-        .filter((exc) => exc.length > 0);
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0);
 
-      const cleanedItinerary = formData.itinerary
-        .filter(
-          (item) =>
-            item.title.trim().length > 0 || item.details.trim().length > 0
-        )
+      const cleanedItinerary: TourItineraryItem[] = formData.itinerary
+        .filter((item) => item.title.trim() || item.details.trim())
         .map((item, idx) => ({
           day: idx + 1,
           title: item.title.trim() || `Day ${idx + 1}`,
           details: item.details.trim(),
         }));
 
-      // Prepare payload matching the public.tours table schema:
-      const payload: TourInsert = {
+      const payload: TourUpdate = {
         title: formData.title.trim(),
         destination_id: formData.destination_id ? formData.destination_id : null,
         duration_days: Number(formData.duration_days) || 0,
@@ -532,83 +484,83 @@ export default function CreateTourPage() {
         is_active: Boolean(formData.is_active),
       };
 
+      const supabase = createClient();
       const { error } = await supabase
         .from('tours')
-        .insert([payload])
-        .select()
-        .single();
+        .update(payload)
+        .eq('id', tourId);
 
       if (error) {
-        console.error('[Supabase Tour Insert Error]:', error);
-        setErrorBanner(
-          `Failed to save tour: ${error.message}${
-            error.message.includes('relation "public.tours" does not exist')
-              ? ' — Database table not yet initialized. Please check your system configuration.'
-              : ''
-          }`
-        );
-        setIsSubmitting(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
+        throw new Error(error.message);
       }
 
-      setSuccessBanner(
-        `Tour "${formData.title}" created successfully! Redirecting to tours listing...`
-      );
+      setSuccessBanner(`Tour "${formData.title}" updated successfully! Redirecting...`);
 
-      // Brief delay so user sees success notification before redirect
       setTimeout(() => {
         router.push('/admin/tours');
-        router.refresh();
       }, 1200);
     } catch (err: unknown) {
-      console.error('[Unexpected Error]:', err);
+      console.error('[Update Tour Error]:', err);
       setErrorBanner(
-        err instanceof Error
-          ? err.message
-          : 'An unexpected error occurred while saving the tour.'
+        err instanceof Error ? err.message : 'Failed to update tour package.'
       );
-      setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  // Loading State Skeleton
+  if (isLoadingTour) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
+        <p className="text-xs font-semibold text-slate-500">
+          Loading tour package details...
+        </p>
+      </div>
+    );
+  }
+
+  // Not Found State
+  if (tourNotFound) {
+    return (
+      <div className="py-16 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100 shadow-sm">
+          <AlertCircle className="w-7 h-7" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900">Tour Package Not Found</h2>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          The tour you are trying to edit does not exist or has already been removed.
+        </p>
+        <Link
+          href="/admin/tours"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Tours Listing</span>
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 pb-16">
-      {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <Link
-              href="/admin"
-              className="hover:text-slate-900 transition-colors"
-            >
-              Admin
-            </Link>
-            <span>/</span>
-            <Link
-              href="/admin/tours"
-              className="hover:text-slate-900 transition-colors"
-            >
-              Tours
-            </Link>
-            <span>/</span>
-            <span className="text-orange-600 font-bold">Create</span>
-          </div>
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Create Tour Package
+            Edit Tour Package
           </h1>
           <p className="text-xs text-slate-500">
-            Configure destinations, travel highlights, day-by-day itinerary, pricing, and live storage media.
+            Update itinerary, pricing, media gallery, and live website publishing status
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
             href="/admin/tours"
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors ${
-              isSubmitting ? 'pointer-events-none opacity-50' : ''
-            }`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Cancel</span>
@@ -622,7 +574,7 @@ export default function CreateTourPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Saving Tour Package...</span>
+                <span>Updating Package...</span>
               </>
             ) : isUploadingImage ? (
               <>
@@ -632,12 +584,12 @@ export default function CreateTourPage() {
             ) : isUploadingGallery ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Uploading Gallery...</span>
+                <span>Uploading Photos...</span>
               </>
             ) : (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Save Tour</span>
+                <span>Update Tour</span>
               </>
             )}
           </button>
@@ -654,7 +606,7 @@ export default function CreateTourPage() {
             <div>
               <div className="font-bold text-slate-900">{successBanner}</div>
               <div className="text-slate-600 mt-0.5">
-                Tour package saved and ready on your website catalog.
+                Changes saved and synced with your database catalog.
               </div>
             </div>
           </div>
@@ -670,7 +622,7 @@ export default function CreateTourPage() {
               <AlertCircle className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-rose-900">Submission Error</div>
+              <div className="font-bold text-rose-900">Update Error</div>
               <div className="text-rose-700 mt-0.5">{errorBanner}</div>
             </div>
           </div>
@@ -706,13 +658,13 @@ export default function CreateTourPage() {
             {/* Tour Title */}
             <div>
               <label
-                htmlFor="tour-title"
+                htmlFor="edit-tour-title"
                 className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
               >
                 Tour Title <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tour-title"
+                id="edit-tour-title"
                 type="text"
                 required
                 disabled={isSubmitting}
@@ -723,12 +675,9 @@ export default function CreateTourPage() {
               />
             </div>
 
-            {/* Destination Select Dropdown (Task 8) */}
+            {/* Custom Destination Select */}
             <div>
-              <label
-                htmlFor="destination-select"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between"
-              >
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
                   Primary Destination
@@ -759,7 +708,7 @@ export default function CreateTourPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label
-                  htmlFor="tour-description"
+                  htmlFor="edit-tour-description"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-700"
                 >
                   Content Description <span className="text-rose-500">*</span>
@@ -769,7 +718,7 @@ export default function CreateTourPage() {
                 </span>
               </div>
               <textarea
-                id="tour-description"
+                id="edit-tour-description"
                 rows={4}
                 required
                 disabled={isSubmitting}
@@ -784,7 +733,7 @@ export default function CreateTourPage() {
           {/* Section 2: Duration & Pricing */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100">
                 <Calendar className="w-4 h-4" />
               </div>
               <div>
@@ -797,119 +746,102 @@ export default function CreateTourPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Duration Days */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label
-                  htmlFor="duration-days"
+                  htmlFor="edit-duration-days"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                 >
                   Duration Days
                 </label>
                 <input
-                  id="duration-days"
+                  id="edit-duration-days"
                   type="number"
                   min={1}
-                  required
                   disabled={isSubmitting}
                   value={formData.duration_days}
                   onChange={(e) =>
-                    handleFieldChange('duration_days', parseInt(e.target.value) || 0)
+                    handleFieldChange('duration_days', parseInt(e.target.value) || 1)
                   }
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-semibold disabled:opacity-60"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
                 />
               </div>
 
-              {/* Duration Nights */}
               <div>
                 <label
-                  htmlFor="duration-nights"
+                  htmlFor="edit-duration-nights"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                 >
                   Duration Nights
                 </label>
                 <input
-                  id="duration-nights"
+                  id="edit-duration-nights"
                   type="number"
                   min={0}
-                  required
                   disabled={isSubmitting}
                   value={formData.duration_nights}
                   onChange={(e) =>
-                    handleFieldChange(
-                      'duration_nights',
-                      parseInt(e.target.value) || 0
-                    )
+                    handleFieldChange('duration_nights', parseInt(e.target.value) || 0)
                   }
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-semibold disabled:opacity-60"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
                 />
               </div>
 
-              {/* Price USD */}
               <div>
                 <label
-                  htmlFor="price-usd"
+                  htmlFor="edit-price-usd"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                 >
                   Price (USD)
                 </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-bold text-xs">
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
                     $
-                  </div>
+                  </span>
                   <input
-                    id="price-usd"
+                    id="edit-price-usd"
                     type="number"
                     min={0}
-                    step={0.01}
-                    required
+                    step="any"
                     disabled={isSubmitting}
                     value={formData.price_usd}
                     onChange={(e) =>
-                      handleFieldChange(
-                        'price_usd',
-                        parseFloat(e.target.value) || 0
-                      )
+                      handleFieldChange('price_usd', parseFloat(e.target.value) || 0)
                     }
-                    className="w-full pl-7 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold text-slate-900 disabled:opacity-60"
+                    className="w-full pl-8 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-semibold"
                   />
                 </div>
               </div>
 
-              {/* Price LKR */}
               <div>
                 <label
-                  htmlFor="price-lkr"
+                  htmlFor="edit-price-lkr"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                 >
                   Price (LKR)
                 </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-bold text-xs">
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">
                     Rs.
-                  </div>
+                  </span>
                   <input
-                    id="price-lkr"
+                    id="edit-price-lkr"
                     type="number"
                     min={0}
-                    step={1}
-                    required
+                    step="any"
                     disabled={isSubmitting}
                     value={formData.price_lkr}
                     onChange={(e) =>
-                      handleFieldChange(
-                        'price_lkr',
-                        parseFloat(e.target.value) || 0
-                      )
+                      handleFieldChange('price_lkr', parseFloat(e.target.value) || 0)
                     }
-                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold text-slate-900 disabled:opacity-60"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-semibold"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Dynamic Repeaters (Highlights, Included, Excluded) */}
+          {/* Section 3: Highlights, Inclusions & Exclusions */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
               <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100">
@@ -936,7 +868,7 @@ export default function CreateTourPage() {
                   type="button"
                   onClick={addHighlight}
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6B00] hover:text-orange-700 cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6B00] hover:text-[#EA580C] cursor-pointer disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Highlight</span>
@@ -944,25 +876,24 @@ export default function CreateTourPage() {
               </div>
 
               <div className="space-y-2">
-                {formData.highlights.map((highlight, index) => (
+                {formData.highlights.map((item, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <span className="w-6 text-center text-xs font-bold text-slate-400">
+                    <span className="text-xs font-mono font-bold text-slate-400 w-5 text-center">
                       {index + 1}.
                     </span>
                     <input
                       type="text"
                       disabled={isSubmitting}
-                      value={highlight}
+                      value={item}
                       onChange={(e) => handleHighlightChange(index, e.target.value)}
                       placeholder={`Highlight #${index + 1}`}
-                      className="flex-1 px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                      className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
                     />
                     <button
                       type="button"
-                      disabled={isSubmitting}
+                      disabled={formData.highlights.length <= 1 || isSubmitting}
                       onClick={() => removeHighlight(index)}
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30"
-                      title="Remove highlight"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -971,9 +902,9 @@ export default function CreateTourPage() {
               </div>
             </div>
 
-            {/* Inclusions & Exclusions Grid */}
+            {/* Inclusions & Exclusions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-              {/* Included Repeater */}
+              {/* Included */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
@@ -1015,7 +946,7 @@ export default function CreateTourPage() {
                 </div>
               </div>
 
-              {/* Excluded Repeater */}
+              {/* Excluded */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
@@ -1105,7 +1036,7 @@ export default function CreateTourPage() {
                         onChange={(e) =>
                           handleItineraryChange(index, 'title', e.target.value)
                         }
-                        placeholder={`Day ${item.day} Title (e.g. Scenic Hill Country Train & Ella Gap)`}
+                        placeholder={`Day ${item.day} Title (e.g. Scenic Hill Country Train)`}
                         className="flex-1 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:opacity-60"
                       />
                     </div>
@@ -1115,66 +1046,52 @@ export default function CreateTourPage() {
                       disabled={formData.itinerary.length <= 1 || isSubmitting}
                       onClick={() => removeItineraryDay(index)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Remove this day"
+                      title="Delete this day"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div>
-                    <textarea
-                      rows={2}
-                      disabled={isSubmitting}
-                      value={item.details}
-                      onChange={(e) =>
-                        handleItineraryChange(index, 'details', e.target.value)
-                      }
-                      placeholder={`Describe the schedule, activities, meals, and hotels for Day ${item.day}...`}
-                      className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:opacity-60"
-                    />
-                  </div>
+                  <textarea
+                    rows={2}
+                    disabled={isSubmitting}
+                    value={item.details}
+                    onChange={(e) =>
+                      handleItineraryChange(index, 'details', e.target.value)
+                    }
+                    placeholder={`Describe the schedule, activities, meals, and hotels for Day ${item.day}...`}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all disabled:opacity-60"
+                  />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Section 5: Multi-Image Tour Gallery Upload */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-100">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-slate-900">
+          {/* Section 5: Gallery Images */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100">
+                  <Images className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">
                     Tour Gallery Images
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-800 border border-orange-200/60">
-                    {formData.gallery_images.length} {formData.gallery_images.length === 1 ? 'Photo' : 'Photos'}
-                  </span>
+                  <p className="text-[11px] text-slate-500">
+                    Showcase multiple viewpoints, activities, and accommodations
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Showcase multiple destinations, accommodations, activities, and scenic viewpoints (auto-optimized to WebP)
-                </p>
               </div>
 
-              {formData.gallery_images.length > 0 && (
-                <button
-                  type="button"
-                  disabled={isSubmitting || isUploadingGallery}
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-orange-800 bg-orange-50 hover:bg-orange-100 rounded-xl border border-orange-200/80 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add More Photos</span>
-                </button>
-              )}
+              <span className="text-xs font-bold text-slate-700">
+                {formData.gallery_images.length} Photos
+              </span>
             </div>
 
-            {/* Gallery Upload Error Banner */}
             {galleryError && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{galleryError}</span>
-                </div>
+                <span>{galleryError}</span>
                 <button
                   type="button"
                   onClick={() => setGalleryError(null)}
@@ -1185,24 +1102,6 @@ export default function CreateTourPage() {
               </div>
             )}
 
-            {/* Gallery Optimization Success Banner */}
-            {galleryOptimizationSummary && (
-              <div className="p-3 rounded-xl bg-orange-50/80 border border-orange-200/80 text-orange-950 text-xs flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#FF6B00] flex-shrink-0" />
-                  <span className="font-medium text-slate-800">{galleryOptimizationSummary}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setGalleryOptimizationSummary(null)}
-                  className="text-slate-400 hover:text-slate-700 p-1"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
-            {/* Hidden multi-file input */}
             <input
               ref={galleryInputRef}
               type="file"
@@ -1211,10 +1110,10 @@ export default function CreateTourPage() {
               disabled={isSubmitting || isUploadingGallery}
               onChange={handleGalleryUpload}
               className="hidden"
-              id="gallery-file-upload"
+              id="edit-gallery-file-upload"
             />
 
-            {/* Multi-Image Dropzone */}
+            {/* Dropzone */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -1230,56 +1129,47 @@ export default function CreateTourPage() {
               }}
             >
               <label
-                htmlFor="gallery-file-upload"
+                htmlFor="edit-gallery-file-upload"
                 className={`
-                  rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3
+                  rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5
                   ${isGalleryDragging ? 'border-orange-500 bg-orange-50/50 scale-[0.99]' : 'border-slate-300 hover:border-orange-500 hover:bg-orange-50/20'}
                   ${isUploadingGallery ? 'pointer-events-none opacity-80 bg-slate-50' : ''}
                 `}
               >
                 {isUploadingGallery ? (
                   <>
-                    <Loader2 className="w-9 h-9 text-[#FF6B00] animate-spin" />
-                    <div className="space-y-1">
-                      <span className="text-sm font-bold text-slate-800 block">
-                        {galleryUploadStage || 'Uploading gallery photos...'}
-                      </span>
-                      <span className="text-xs text-slate-500 block">
-                        Uploading high-resolution photos...
-                      </span>
-                    </div>
+                    <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
+                    <span className="text-xs font-bold text-slate-800 block">
+                      {galleryUploadStage || 'Uploading gallery photos...'}
+                    </span>
                   </>
                 ) : (
                   <>
-                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100 shadow-sm">
-                      <Images className="w-6 h-6" />
+                    <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100 shadow-xs">
+                      <Images className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-800">
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">
                         <span className="text-[#FF6B00] hover:underline">
-                          Click to browse multiple photos
+                          Click to browse photos
                         </span>{' '}
                         or drag and drop them here
                       </p>
-                      <p className="text-xs text-slate-500">
-                        Select multiple images at once (JPEG, PNG, WebP) • Up to 10MB per file
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        JPEG, PNG, WebP • Auto-optimized for web
                       </p>
-                    </div>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-[11px] font-medium text-slate-600">
-                      <Sparkles className="w-3 h-3 text-orange-500" />
-                      <span>Optimized for fast mobile loading</span>
                     </div>
                   </>
                 )}
               </label>
             </div>
 
-            {/* Thumbnail Previews Grid */}
+            {/* Thumbnails */}
             {formData.gallery_images.length > 0 && (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2 pt-2">
                 <div className="flex items-center justify-between text-xs text-slate-600">
                   <span className="font-bold">
-                    Uploaded Gallery Thumbnails ({formData.gallery_images.length})
+                    Gallery Thumbnails ({formData.gallery_images.length})
                   </span>
                   <button
                     type="button"
@@ -1294,43 +1184,29 @@ export default function CreateTourPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {formData.gallery_images.map((url, index) => (
                     <div
                       key={`${url}-${index}`}
-                      className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs hover:shadow-md transition-shadow"
+                      className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={url}
                         alt={`Gallery photo ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
                       />
-
-                      {/* Photo Index Badge */}
-                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-slate-950/70 text-white font-mono text-[10px] font-bold backdrop-blur-xs">
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-slate-950/70 text-white font-mono text-[10px] font-bold">
                         #{index + 1}
                       </div>
-
-                      {/* Remove 'x' Button */}
                       <button
                         type="button"
                         onClick={() => handleRemoveGalleryImage(index)}
-                        disabled={isSubmitting || isUploadingGallery}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-600/90 text-white flex items-center justify-center hover:bg-rose-700 shadow cursor-pointer transition-all hover:scale-110 disabled:opacity-50"
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-600/90 text-white flex items-center justify-center hover:bg-rose-700 shadow cursor-pointer transition-all hover:scale-110"
                         title="Remove photo"
-                        aria-label={`Remove photo ${index + 1}`}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
-
-                      {/* Bottom Filename overlay on hover */}
-                      <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-slate-950/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-[10px] text-white truncate px-1">
-                          {url.split('/').pop() || `Photo ${index + 1}`}
-                        </p>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -1341,13 +1217,13 @@ export default function CreateTourPage() {
 
         {/* Right Sidebar (1/3 width on desktop) */}
         <div className="space-y-6">
-          {/* Status & Visibility Toggles */}
+          {/* Status & Visibility */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-3 border-b border-slate-100">
               Publishing & Visibility
             </h3>
 
-            {/* Active Status Toggle */}
+            {/* Active Status */}
             <div className="flex items-start justify-between gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -1382,7 +1258,7 @@ export default function CreateTourPage() {
               </button>
             </div>
 
-            {/* Featured Status Toggle */}
+            {/* Featured Status */}
             <div className="flex items-start justify-between gap-3 pt-3 border-t border-slate-100">
               <div>
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -1420,7 +1296,7 @@ export default function CreateTourPage() {
             </div>
           </div>
 
-          {/* Task 9: Real Supabase Storage Upload for Cover Image */}
+          {/* Cover Image Card */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -1444,7 +1320,6 @@ export default function CreateTourPage() {
               </div>
             )}
 
-            {/* Hidden native file input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -1452,7 +1327,7 @@ export default function CreateTourPage() {
               disabled={isSubmitting || isUploadingImage}
               onChange={handleCoverImageUpload}
               className="hidden"
-              id="cover-file-upload"
+              id="edit-cover-file-upload"
             />
 
             {formData.cover_image ? (
@@ -1468,33 +1343,20 @@ export default function CreateTourPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 text-xs font-bold bg-white text-slate-900 rounded-lg shadow hover:bg-slate-100 transition-colors"
+                      className="px-3 py-1.5 text-xs font-bold bg-white text-slate-900 rounded-lg shadow hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                       Change
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveCoverImage}
-                      className="p-1.5 text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow transition-colors"
+                      className="p-1.5 text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow transition-colors cursor-pointer"
                       title="Remove image"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-
-                {/* Optimization Savings Badge */}
-                {optimizationInfo && optimizationInfo.reductionPercentage > 0 && (
-                  <div className="p-2.5 rounded-xl bg-orange-50/80 border border-orange-200/80 text-slate-900 text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                      <Sparkles className="w-3.5 h-3.5 text-[#FF6B00]" />
-                      <span>Optimized ({optimizationInfo.reductionPercentage}% size reduced)</span>
-                    </div>
-                    <span className="text-[11px] text-slate-600 font-mono">
-                      {optimizationInfo.compressedSize} (WebP)
-                    </span>
-                  </div>
-                )}
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500">
                   <span className="truncate max-w-[200px]" title={formData.cover_image}>
@@ -1511,7 +1373,7 @@ export default function CreateTourPage() {
               </div>
             ) : (
               <label
-                htmlFor="cover-file-upload"
+                htmlFor="edit-cover-file-upload"
                 className={`
                   rounded-2xl border-2 border-dashed border-slate-300 hover:border-orange-500 hover:bg-orange-50/20
                   p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5
@@ -1523,12 +1385,7 @@ export default function CreateTourPage() {
                     <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
                     <span className="text-xs font-bold text-slate-700">
                       {uploadStage === 'optimizing'
-                        ? 'Optimizing image (WebP)...'
-                        : 'Uploading to Supabase Storage...'}
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      {uploadStage === 'optimizing'
-                        ? 'Optimizing photo for fast mobile browsing...'
+                        ? 'Optimizing photo...'
                         : 'Uploading image...'}
                     </span>
                   </>
@@ -1539,7 +1396,7 @@ export default function CreateTourPage() {
                     </div>
                     <div>
                       <span className="text-xs font-bold text-[#FF6B00]">
-                        Click to upload cover image
+                        Click to upload cover photo
                       </span>
                       <span className="text-xs text-slate-500"> or drag and drop</span>
                     </div>
@@ -1552,7 +1409,7 @@ export default function CreateTourPage() {
             )}
           </div>
 
-          {/* Live Tour Card Preview */}
+          {/* Live Card Summary Preview */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-2 border-b border-slate-100 flex items-center justify-between">
               <span>Card Summary Preview</span>
@@ -1607,25 +1464,6 @@ export default function CreateTourPage() {
                 <span>{formData.itinerary.length} Days Itinerary</span>
                 <span>{formData.gallery_images.length} Gallery Photos</span>
               </div>
-
-              {formData.gallery_images.length > 0 && (
-                <div className="pt-2 flex items-center gap-1.5 overflow-hidden">
-                  {formData.gallery_images.slice(0, 4).map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="w-10 h-10 rounded-lg overflow-hidden bg-slate-200 flex-shrink-0 border border-slate-200 shadow-xs"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img} alt="Mini preview" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                  {formData.gallery_images.length > 4 && (
-                    <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-900 flex items-center justify-center text-[11px] font-bold flex-shrink-0 border border-orange-200">
-                      +{formData.gallery_images.length - 4}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

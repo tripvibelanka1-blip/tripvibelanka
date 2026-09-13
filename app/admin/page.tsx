@@ -7,13 +7,10 @@ import {
   Compass,
   MapPin,
   CalendarCheck,
-  ShieldCheck,
   Plus,
   ArrowRight,
-  Database,
   ExternalLink,
   Layers,
-  Image as ImageIcon,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -59,9 +56,9 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live Supabase SSR
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-950 border border-orange-200/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]" />
+            Live Catalog Online
           </span>
         </div>
       </div>
@@ -77,7 +74,7 @@ export default async function AdminDashboardPage() {
             Welcome to your Dashboard
           </h1>
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-xl">
-            Create travel itineraries, manage dual-currency pricing (USD & LKR), upload auto-compressed WebP tour photos, and publish curated experiences in real time.
+            Create travel itineraries, manage dual-currency pricing (USD & LKR), upload high-definition tour galleries, and publish curated experiences in real time.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -92,7 +89,7 @@ export default async function AdminDashboardPage() {
               href="/admin/tours"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors backdrop-blur-sm border border-white/10 cursor-pointer"
             >
-              <Compass className="w-3.5 h-3.5 text-sky-400" />
+              <Compass className="w-3.5 h-3.5 text-orange-300" />
               <span>View All Tours ({totalTours ?? 0})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -124,7 +121,7 @@ export default async function AdminDashboardPage() {
             {totalTours ?? 0}
           </div>
           <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>Configured in Supabase</span>
+            <span>Active Packages</span>
             <span className="text-orange-600 font-bold group-hover:translate-x-0.5 transition-transform">Manage →</span>
           </p>
         </Link>
@@ -135,11 +132,11 @@ export default async function AdminDashboardPage() {
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Published Live
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF6B00] flex items-center justify-center">
               <CalendarCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-emerald-700">
+          <div className="text-2xl font-black text-slate-900">
             {activeTours ?? 0}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
@@ -165,21 +162,21 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Card 4: Destinations & Storage */}
+        {/* Card 4: Destinations */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               Destinations
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#FF6B00] flex items-center justify-center">
               <MapPin className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-sky-700">
+          <div className="text-2xl font-black text-slate-900">
             {totalDestinations ?? 0}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            Colombo, Kandy, Ella, Yala...
+            Sri Lanka travel regions
           </p>
         </div>
       </div>
@@ -219,31 +216,31 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Card: Media & Storage Bucket Status */}
+        {/* Card: Live Website Showcase */}
         <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-              <ImageIcon className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100">
+              <ExternalLink className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                Media Storage Pipeline
+                Public Website Showcase
               </h3>
               <p className="text-xs text-slate-500">
-                Connected to <code className="font-mono text-slate-700 font-bold">tour-images</code> public bucket
+                Preview your live traveler experience and customer catalog
               </p>
             </div>
           </div>
 
-          <div className="text-xs text-slate-600 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Image Compression:</span>
-              <span className="font-bold text-emerald-700">Active (85%+ WebP savings)</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Public CDN Read:</span>
-              <span className="font-bold text-sky-700">Enabled</span>
-            </div>
+          <div className="pt-2 flex items-center gap-3">
+            <Link
+              href="/"
+              target="_blank"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-[#FF6B00] bg-orange-50 hover:bg-orange-100/80 border border-orange-200/80 rounded-xl transition-colors cursor-pointer"
+            >
+              <span>Visit TripVibe Lanka</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       </div>

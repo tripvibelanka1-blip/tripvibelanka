@@ -3,7 +3,7 @@
 import React, { useState, useTransition, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { Lock, Mail, Eye, EyeOff, Loader2, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -80,7 +80,7 @@ function LoginForm() {
         {/* Login Card */}
         <div className="bg-white py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/70 rounded-3xl border border-slate-200/80 relative overflow-hidden">
           {/* Subtle warm accent bar at top of card */}
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-[#FF6B00] to-sky-500" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-[#FF6B00] to-orange-600" />
 
           {/* Error Message */}
           {errorMessage && (
@@ -178,8 +178,8 @@ function LoginForm() {
           {/* Security note */}
           <div className="mt-6 pt-4 border-t border-slate-100 text-center">
             <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Supabase SSR Session • Encrypted Access</span>
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Authorized Personnel Only • Secure Access</span>
             </p>
           </div>
         </div>

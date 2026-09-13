@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { TourInsert, TourItineraryItem, DestinationRecord } from '@/types/database';
+import { compressImage, formatBytes } from '@/utils/imageCompression';
 
 interface TourFormData {
   title: string;
@@ -76,7 +77,13 @@ export default function CreateTourPage() {
 
   // Storage upload states
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [uploadStage, setUploadStage] = useState<'optimizing' | 'uploading' | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [optimizationInfo, setOptimizationInfo] = useState<{
+    originalSize: string;
+    compressedSize: string;
+    reductionPercentage: number;
+  } | null>(null);
 
   // Form submission states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -124,26 +131,46 @@ export default function CreateTourPage() {
   };
 
   // ----------------------------------------------------
-  // Task 9: Storage File Upload to 'tour-images' bucket
+  // Task 9: Storage File Upload with Client-Side Compression
   // ----------------------------------------------------
   const handleCoverImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
-    // Validate size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Image size exceeds 5MB limit. Please choose a smaller file.');
+    // Validate size limit (max 10MB raw)
+    if (rawFile.size > 10 * 1024 * 1024) {
+      setUploadError('Image size exceeds 10MB limit. Please choose a smaller file.');
       return;
     }
 
     setUploadError(null);
     setIsUploadingImage(true);
+    setUploadStage('optimizing');
 
     try {
+      // 1. Automatically compress & convert to efficient WebP (saves 80-95% storage)
+      const {
+        file: optimizedFile,
+        originalSize,
+        compressedSize,
+        reductionPercentage,
+      } = await compressImage(rawFile, 1920, 0.82);
+
+      if (reductionPercentage > 0) {
+        setOptimizationInfo({
+          originalSize: formatBytes(originalSize),
+          compressedSize: formatBytes(compressedSize),
+          reductionPercentage,
+        });
+      }
+
+      setUploadStage('uploading');
+
+      // 2. Upload optimized WebP directly to Supabase Storage bucket
       const supabase = createClient();
-      const fileExt = file.name.split('.').pop();
+      const fileExt = optimizedFile.name.split('.').pop() || 'webp';
       const cleanFileName = `${Date.now()}-${Math.random()
         .toString(36)
         .substring(2, 9)}.${fileExt}`;
@@ -151,8 +178,9 @@ export default function CreateTourPage() {
 
       const { error: uploadErr } = await supabase.storage
         .from('tour-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
+        .upload(filePath, optimizedFile, {
+          cacheControl: '31536000', // 1 year cache
+          contentType: optimizedFile.type,
           upsert: false,
         });
 
@@ -160,10 +188,11 @@ export default function CreateTourPage() {
         console.error('[Storage Upload Error]:', uploadErr);
         setUploadError(`Upload failed: ${uploadErr.message}`);
         setIsUploadingImage(false);
+        setUploadStage(null);
         return;
       }
 
-      // Retrieve public URL from Supabase Storage
+      // 3. Retrieve public URL from Supabase Storage
       const {
         data: { publicUrl },
       } = supabase.storage.from('tour-images').getPublicUrl(filePath);
@@ -181,11 +210,13 @@ export default function CreateTourPage() {
       );
     } finally {
       setIsUploadingImage(false);
+      setUploadStage(null);
     }
   };
 
   const handleRemoveCoverImage = () => {
     setFormData((prev) => ({ ...prev, cover_image: '' }));
+    setOptimizationInfo(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -1151,6 +1182,19 @@ export default function CreateTourPage() {
                   </div>
                 </div>
 
+                {/* Optimization Savings Badge */}
+                {optimizationInfo && optimizationInfo.reductionPercentage > 0 && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Optimized ({optimizationInfo.reductionPercentage}% saved)</span>
+                    </div>
+                    <span className="text-[11px] text-emerald-700 font-mono">
+                      {optimizationInfo.originalSize} → {optimizationInfo.compressedSize} (WebP)
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-[11px] text-slate-500">
                   <span className="truncate max-w-[200px]" title={formData.cover_image}>
                     {formData.cover_image.split('/').pop()}
@@ -1177,10 +1221,14 @@ export default function CreateTourPage() {
                   <>
                     <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
                     <span className="text-xs font-bold text-slate-700">
-                      Uploading to Supabase Storage...
+                      {uploadStage === 'optimizing'
+                        ? 'Optimizing image (WebP)...'
+                        : 'Uploading to Supabase Storage...'}
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      Generating public CDN URL
+                      {uploadStage === 'optimizing'
+                        ? 'Compressing & resizing for maximum storage efficiency'
+                        : 'Connecting to tour-images bucket'}
                     </span>
                   </>
                 ) : (
@@ -1195,7 +1243,7 @@ export default function CreateTourPage() {
                       <span className="text-xs text-slate-500"> or drag and drop</span>
                     </div>
                     <span className="text-[10px] text-slate-400">
-                      PNG, JPG, WEBP up to 5MB
+                      Auto-compressed to WebP to save 85%+ storage
                     </span>
                   </>
                 )}

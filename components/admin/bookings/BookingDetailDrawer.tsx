@@ -28,6 +28,7 @@ import {
   Receipt,
   UserCheck,
   Car,
+  Tag,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { Vehicle } from '@/types/database';
@@ -488,12 +489,53 @@ export default function BookingDetailDrawer({
 
               {/* 3. Financial Summary & PayHere Advance */}
               <div className="pt-2 border-t border-slate-100 space-y-2">
-                <div className="flex justify-between items-center text-slate-700 font-semibold">
-                  <span>Total Amount (Tour + Add-ons):</span>
-                  <span className="font-black text-slate-900 text-sm">
-                    {booking.currency} {Number(booking.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
+                {Number(booking.discount_amount || 0) > 0 ? (
+                  <>
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Subtotal (Tour + Add-ons):</span>
+                      <span className="font-semibold text-slate-800">
+                        {booking.currency}{' '}
+                        {(Number(booking.total_amount) + Number(booking.discount_amount)).toLocaleString(
+                          undefined,
+                          { minimumFractionDigits: 2 }
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-100 font-bold">
+                      <span className="flex items-center gap-1.5 text-[11px]">
+                        <Tag className="w-3 h-3 text-emerald-600" />
+                        <span>Promo Code: {booking.coupon_code || 'APPLIED'}</span>
+                      </span>
+                      <span className="text-xs">
+                        -{booking.currency}{' '}
+                        {Number(booking.discount_amount).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-slate-700 font-semibold">
+                      <span>Net Total Payable:</span>
+                      <span className="font-black text-slate-900 text-sm">
+                        {booking.currency}{' '}
+                        {Number(booking.total_amount).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center text-slate-700 font-semibold">
+                    <span>Total Amount (Tour + Add-ons):</span>
+                    <span className="font-black text-slate-900 text-sm">
+                      {booking.currency}{' '}
+                      {Number(booking.total_amount).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center text-sky-700">
                   <span className="flex items-center gap-1">
@@ -784,12 +826,48 @@ export default function BookingDetailDrawer({
                   Financial Settlement Summary
                 </h4>
                 <div className="border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Total Booking Price:</span>
-                    <span className="font-bold text-slate-900">
-                      {booking.currency} {Number(booking.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
+                  {Number(booking.discount_amount || 0) > 0 ? (
+                    <>
+                      <div className="flex justify-between text-slate-500">
+                        <span>Original Subtotal:</span>
+                        <span>
+                          {booking.currency}{' '}
+                          {(Number(booking.total_amount) + Number(booking.discount_amount)).toLocaleString(
+                            undefined,
+                            { minimumFractionDigits: 2 }
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-emerald-700 font-semibold">
+                        <span>Promo Code ({booking.coupon_code || 'APPLIED'}):</span>
+                        <span>
+                          -{booking.currency}{' '}
+                          {Number(booking.discount_amount).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-bold text-slate-900 border-t border-slate-100 pt-1">
+                        <span>Net Total Booking Price:</span>
+                        <span>
+                          {booking.currency}{' '}
+                          {Number(booking.total_amount).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Total Booking Price:</span>
+                      <span className="font-bold text-slate-900">
+                        {booking.currency}{' '}
+                        {Number(booking.total_amount).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-emerald-700">
                     <span>20% Advance Deposit:</span>
                     <span className="font-bold">

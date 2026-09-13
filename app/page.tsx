@@ -20,9 +20,11 @@ export default function HomePage() {
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
   const [selectedDestination, setSelectedDestination] = useState<string | undefined>(undefined);
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | undefined>(undefined);
 
-  const handleOpenBooking = (packageId?: string) => {
+  const handleOpenBooking = (packageId?: string, couponCode?: string) => {
     setSelectedPackageId(packageId);
+    setAppliedCouponCode(couponCode);
     setIsBookingOpen(true);
   };
 
@@ -57,7 +59,7 @@ export default function HomePage() {
         <Hero onOpenBooking={handleOpenBooking} />
 
         {/* Limited-Time Seasonal Promo Offer Banner */}
-        <PromoBanner onOpenBooking={() => handleOpenBooking()} />
+        <PromoBanner onOpenBooking={handleOpenBooking} />
 
         {/* Featured Destinations Bento Grid */}
         <Destinations onSelectDestination={handleSelectDestination} />
@@ -97,6 +99,7 @@ export default function HomePage() {
         currency={currency}
         initialPackageId={selectedPackageId}
         initialDestination={selectedDestination}
+        initialCouponCode={appliedCouponCode}
       />
     </div>
   );

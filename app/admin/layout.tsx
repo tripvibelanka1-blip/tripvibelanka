@@ -18,6 +18,7 @@ import {
   Ticket,
   CalendarCheck,
   Car,
+  Megaphone,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -89,6 +90,13 @@ export default function AdminLayout({
       icon: Car,
       isActive: pathname.startsWith('/admin/vehicles'),
       badge: pathname === '/admin/vehicles/create' ? 'Creating' : undefined,
+    },
+    {
+      name: 'Promotional Banners',
+      href: '/admin/banners',
+      icon: Megaphone,
+      isActive: pathname.startsWith('/admin/banners'),
+      badge: pathname === '/admin/banners/create' ? 'Creating' : undefined,
     },
   ];
 
@@ -168,6 +176,23 @@ export default function AdminLayout({
     }
     if (pathname.startsWith('/admin/vehicles')) {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Vehicles & Fleet' }];
+    }
+    if (pathname === '/admin/banners/create') {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Promotions', href: '/admin/banners' },
+        { label: 'Create Offer' },
+      ];
+    }
+    if (pathname.startsWith('/admin/banners') && pathname.includes('/edit')) {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Promotions', href: '/admin/banners' },
+        { label: 'Edit Offer' },
+      ];
+    }
+    if (pathname.startsWith('/admin/banners')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Promotional Banners' }];
     }
     return [{ label: 'Admin', href: '/admin' }];
   };

@@ -476,8 +476,10 @@ CREATE TABLE IF NOT EXISTS banners (
   title TEXT NOT NULL,
   description TEXT,
   coupon_code TEXT, -- e.g. VIBELANKA15
+  discount_type TEXT DEFAULT 'percentage' CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_value NUMERIC(10, 2) DEFAULT 15.00,
   button_text TEXT NOT NULL DEFAULT 'Claim Seasonal Offer',
-  button_link TEXT NOT NULL DEFAULT '/tours',
+  button_link TEXT NOT NULL DEFAULT '/#tours',
   validity_text TEXT DEFAULT 'Valid for bookings made this month',
   start_date DATE DEFAULT CURRENT_DATE,
   end_date DATE,
@@ -485,6 +487,14 @@ CREATE TABLE IF NOT EXISTS banners (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure columns exist if table was already created
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS discount_type TEXT DEFAULT 'percentage';
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS discount_value NUMERIC(10, 2) DEFAULT 15.00;
+
+-- Ensure coupon tracking columns exist in bookings table
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10, 2) DEFAULT 0.00;
 
 -- Enable RLS
 ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
@@ -511,6 +521,8 @@ INSERT INTO banners (
   title,
   description,
   coupon_code,
+  discount_type,
+  discount_value,
   button_text,
   button_link,
   validity_text,
@@ -520,11 +532,13 @@ INSERT INTO banners (
 ) 
 SELECT 
   'Limited Seasonal Offer',
-  'Exclusive Summer Escape',
-  'Enjoy up to 15% off bespoke private chauffeured tours across the cultural triangle and southern coast.',
+  'Exclusive Summer Escape: 15% Off Private Tours',
+  'Enjoy 15% off bespoke private chauffeured tours across the cultural triangle and southern coast.',
   'VIBELANKA15',
+  'percentage',
+  15.00,
   'Claim Seasonal Offer',
-  '#tours',
+  '#booking',
   'Valid for private bookings reserved this month',
   CURRENT_DATE,
   (CURRENT_DATE + INTERVAL '30 days')::date,

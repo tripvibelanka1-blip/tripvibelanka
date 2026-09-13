@@ -4,7 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { Currency, TourPackage } from '@/types/tourism';
 import { TOUR_PACKAGES, FLEET_VEHICLES, EXPERIENCES, DESTINATIONS } from '@/data/mockData';
 import { useCurrency } from '@/context/CurrencyContext';
-import { X, Check, ArrowRight, ArrowLeft, Send, Sparkles, ShieldCheck, PhoneCall } from 'lucide-react';
+import {
+  X,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Send,
+  Sparkles,
+  ShieldCheck,
+  PhoneCall,
+  Tag,
+  Loader2,
+  AlertCircle,
+  Percent,
+} from 'lucide-react';
+import { validateCouponCode, CouponValidationResult } from '@/app/admin/banners/actions';
+import { submitBookingWithCurrencyLock } from '@/lib/supabase/booking-actions';
+import { Booking } from '@/types/database';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -12,6 +28,7 @@ interface BookingModalProps {
   currency: Currency;
   initialPackageId?: string;
   initialDestination?: string;
+  initialCouponCode?: string;
 }
 
 export default function BookingModal({
@@ -20,6 +37,7 @@ export default function BookingModal({
   currency,
   initialPackageId,
   initialDestination,
+  initialCouponCode,
 }: BookingModalProps) {
   const { exchangeRate } = useCurrency();
   const [step, setStep] = useState(1);
@@ -34,6 +52,17 @@ export default function BookingModal({
   const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [travelerError, setTravelerError] = useState<string | null>(null);
+
+  // Promo Code State
+  const [couponInput, setCouponInput] = useState<string>(initialCouponCode || '');
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Booking Confirmation State
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
   useEffect(() => {
@@ -45,6 +74,13 @@ export default function BookingModal({
       setSelectedDestination(initialDestination);
     }
   }, [initialPackageId, initialDestination]);
+
+  useEffect(() => {
+    if (initialCouponCode) {
+      setCouponInput(initialCouponCode);
+      handleValidateCoupon(initialCouponCode);
+    }
+  }, [initialCouponCode]);
 
   if (!isOpen) return null;
 
@@ -69,11 +105,110 @@ export default function BookingModal({
     'Confirmation',
   ];
 
-  const handleNext = () => {
+  const calculateSubtotalUsd = () => {
+    const base = currentPkg.priceUSD * guests;
+    const addonsTotal = selectedAddons.reduce((acc, expId) => {
+      const exp = EXPERIENCES.find((e) => e.id === expId);
+      return acc + (exp ? exp.priceUSD * guests : 0);
+    }, 0);
+    return base + addonsTotal;
+  };
+
+  const handleValidateCoupon = async (codeToTest?: string) => {
+    const targetCode = (codeToTest ?? couponInput).trim();
+    if (!targetCode) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setIsValidatingCoupon(true);
+    setCouponError(null);
+    try {
+      const subtotalInUsd = calculateSubtotalUsd();
+      const subtotal = currency === 'USD' ? subtotalInUsd : Math.round(subtotalInUsd * exchangeRate);
+      const res = await validateCouponCode(targetCode, subtotal, currency, exchangeRate);
+      if (!res.isValid) {
+        setCouponError(res.error || 'Invalid or expired promotional code.');
+        setAppliedCoupon(null);
+      } else {
+        setAppliedCoupon(res);
+        setCouponError(null);
+      }
+    } catch (err: any) {
+      console.error('Coupon validation error:', err);
+      setCouponError('Unable to validate coupon code at this time.');
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError(null);
+  };
+
+  // Real-time financial calculations
+  const subtotalInUsd = calculateSubtotalUsd();
+  const subtotalInCurrency = currency === 'USD' ? subtotalInUsd : Math.round(subtotalInUsd * exchangeRate);
+  const discountAmount = appliedCoupon?.isValid ? (appliedCoupon.discountAmount || 0) : 0;
+  const netTotalInCurrency = Math.max(0, subtotalInCurrency - discountAmount);
+  const advanceAmountInCurrency = currency === 'USD'
+    ? parseFloat((netTotalInCurrency * 0.20).toFixed(2))
+    : Math.round(netTotalInCurrency * 0.20);
+  const remainingBalanceInCurrency = currency === 'USD'
+    ? parseFloat((netTotalInCurrency - advanceAmountInCurrency).toFixed(2))
+    : netTotalInCurrency - advanceAmountInCurrency;
+
+  const handleNext = async () => {
+    if (step === 6) {
+      if (!fullName.trim() || !email.trim() || !phone.trim()) {
+        setTravelerError('Please complete all required fields (Name, Email, Phone).');
+        return;
+      }
+      setTravelerError(null);
+      setStep(7);
+      return;
+    }
+
     if (step < 7) {
       setStep(step + 1);
     } else {
-      setBookingConfirmed(true);
+      // Step 7: Final Booking Submission (Currency Locked in Supabase)
+      setIsSubmittingBooking(true);
+      try {
+        const res = await submitBookingWithCurrencyLock({
+          customerName: fullName,
+          customerEmail: email,
+          customerPhone: phone,
+          pickupLocation: selectedDestination,
+          specialRequests: notes,
+          travelDate: startDate || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          adults: guests,
+          children: 0,
+          basePriceUsd: currentPkg.priceUSD,
+          currency: currency,
+          couponCode: appliedCoupon?.isValid ? appliedCoupon.couponCode : null,
+          discountAmount: discountAmount,
+          selectedActivities: selectedAddons.map((id) => {
+            const exp = EXPERIENCES.find((e) => e.id === id);
+            return {
+              activity_id: id,
+              title: exp?.title || id,
+              price_per_person_usd: exp?.priceUSD || 0,
+              quantity: guests,
+            };
+          }),
+        });
+
+        if (res.success && res.booking) {
+          setCreatedBooking(res.booking);
+        }
+      } catch (err) {
+        console.error('Failed to submit booking row:', err);
+      } finally {
+        setIsSubmittingBooking(false);
+        setBookingConfirmed(true);
+      }
     }
   };
 
@@ -88,24 +223,28 @@ export default function BookingModal({
     return `Rs. ${Math.round(usd * exchangeRate).toLocaleString()}`;
   };
 
-  const calculateTotalEstimate = () => {
-    const base = currentPkg.priceUSD * guests;
-    const addonsTotal = selectedAddons.reduce((acc, expId) => {
-      const exp = EXPERIENCES.find((e) => e.id === expId);
-      return acc + (exp ? exp.priceUSD * guests : 0);
-    }, 0);
-    return base + addonsTotal;
-  };
-
   const constructWhatsAppMessage = () => {
-    const text = `Hello Tripvibe Lanka! I want to book a bespoke tour:%0A` +
+    let text = `Hello Tripvibe Lanka! I want to confirm my bespoke tour booking:%0A` +
       `*Package:* ${currentPkg.title}%0A` +
       `*Destination Focus:* ${selectedDestination}%0A` +
       `*Date:* ${startDate || 'Flexible'} (${duration})%0A` +
       `*Guests:* ${guests} Travelers%0A` +
       `*Vehicle:* ${currentVehicle.name}%0A` +
-      `*Lead Traveler:* ${fullName} (${email}, ${phone})%0A` +
-      `*Special Requests:* ${notes || 'None'}`;
+      `*Lead Traveler:* ${fullName} (${email}, ${phone})%0A`;
+
+    if (appliedCoupon?.isValid) {
+      text += `*Coupon Code Applied:* ${appliedCoupon.couponCode} (-${currency} ${discountAmount.toLocaleString()})%0A`;
+    }
+
+    text += `*Net Total:* ${currency} ${netTotalInCurrency.toLocaleString()}%0A` +
+      `*20% Online Advance:* ${currency} ${advanceAmountInCurrency.toLocaleString()}%0A` +
+      `*80% Balance on Arrival:* ${currency} ${remainingBalanceInCurrency.toLocaleString()}%0A`;
+
+    if (createdBooking?.reference_no) {
+      text += `*Booking Reference:* ${createdBooking.reference_no}%0A`;
+    }
+
+    text += `*Special Requests:* ${notes || 'None'}`;
     return `https://wa.me/94770000000?text=${text}`;
   };
 
@@ -354,44 +493,61 @@ export default function BookingModal({
                   <h4 className="text-lg font-bold text-slate-900">
                     Lead Traveler Information
                   </h4>
+
+                  {travelerError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                      <span>{travelerError}</span>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                        Full Name *
+                        Full Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         required
                         placeholder="e.g. John Doe"
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        onChange={(e) => {
+                          setFullName(e.target.value);
+                          if (travelerError) setTravelerError(null);
+                        }}
                         className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:border-orange-500 focus:outline-none"
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                          Email Address *
+                          Email Address <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="email"
                           required
                           placeholder="john@example.com"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            if (travelerError) setTravelerError(null);
+                          }}
                           className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:border-orange-500 focus:outline-none"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                          WhatsApp / Mobile *
+                          WhatsApp / Mobile <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="tel"
                           required
                           placeholder="+1 555 019 283"
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          onChange={(e) => {
+                            setPhone(e.target.value);
+                            if (travelerError) setTravelerError(null);
+                          }}
                           className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:border-orange-500 focus:outline-none"
                         />
                       </div>
@@ -415,9 +571,10 @@ export default function BookingModal({
               {/* Step 7: Confirmation & Summary */}
               {step === 7 && (
                 <div className="space-y-4">
+                  {/* Summary Card */}
                   <div className="p-4 rounded-2xl bg-orange-50/70 border border-orange-200/80 space-y-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
-                      Trip Summary & Estimate
+                      Trip Summary & Details
                     </span>
                     <div className="space-y-1.5 text-xs text-slate-700">
                       <div className="flex justify-between">
@@ -440,19 +597,143 @@ export default function BookingModal({
                         <span className="text-slate-500">Vehicle:</span>
                         <span className="font-semibold text-slate-800">{currentVehicle.name}</span>
                       </div>
+                      {selectedAddons.length > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Add-on Experiences:</span>
+                          <span className="font-semibold text-slate-800">{selectedAddons.length} Selected</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Promo Code Input Section */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5 text-[#FF6B00]" />
+                        <span>Promotional Coupon Code</span>
+                      </label>
+                      {appliedCoupon?.isValid && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>
+                            {appliedCoupon.discountType === 'percentage'
+                              ? `${appliedCoupon.discountValue}% OFF`
+                              : `$${appliedCoupon.discountValue} OFF`}
+                          </span>
+                        </span>
+                      )}
                     </div>
 
-                    <div className="pt-3 border-t border-orange-200 flex justify-between items-baseline">
-                      <span className="text-xs font-bold text-slate-700">Estimated Total:</span>
-                      <span className="text-2xl font-black text-slate-900 font-heading">
-                        {formatPrice(calculateTotalEstimate())}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="e.g. VIBELANKA15"
+                          value={couponInput}
+                          disabled={appliedCoupon?.isValid}
+                          onChange={(e) => {
+                            setCouponInput(e.target.value.toUpperCase());
+                            setCouponError(null);
+                          }}
+                          className="w-full px-3.5 py-2 text-xs font-mono font-bold tracking-wider uppercase bg-white border border-slate-200 rounded-xl focus:border-[#FF6B00] focus:ring-1 focus:ring-[#FF6B00] focus:outline-none disabled:bg-slate-100 disabled:text-slate-600"
+                        />
+                      </div>
+
+                      {appliedCoupon?.isValid ? (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="px-3.5 py-2 text-xs font-bold text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 rounded-xl transition-colors cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isValidatingCoupon || !couponInput.trim()}
+                          onClick={() => handleValidateCoupon()}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          {isValidatingCoupon ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Checking...</span>
+                            </>
+                          ) : (
+                            <span>Apply</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {couponError && (
+                      <p className="text-[11px] text-rose-600 flex items-center gap-1 font-semibold">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <span>{couponError}</span>
+                      </p>
+                    )}
+
+                    {appliedCoupon?.isValid && appliedCoupon.bannerTitle && (
+                      <p className="text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
+                        <Sparkles className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span>Offer applied: &quot;{appliedCoupon.bannerTitle}&quot;</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Financial Breakdown & Totals */}
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Financial Calculation & Breakdown
+                    </span>
+
+                    <div className="space-y-1.5 text-xs text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Base Tour Subtotal:</span>
+                        <span className="font-semibold text-slate-900">
+                          {currency} {subtotalInCurrency.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {appliedCoupon?.isValid && (
+                        <div className="flex justify-between text-emerald-700 font-bold bg-emerald-50/70 p-2 rounded-lg border border-emerald-100">
+                          <span className="flex items-center gap-1">
+                            <Tag className="w-3 h-3 text-emerald-600" />
+                            <span>Promotion Discount ({appliedCoupon.couponCode}):</span>
+                          </span>
+                          <span>
+                            -{currency} {discountAmount.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between pt-1.5 border-t border-slate-100 font-bold text-slate-800">
+                        <span>Estimated Net Total:</span>
+                        <span className="text-sm font-black text-slate-900 font-heading">
+                          {currency} {netTotalInCurrency.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between text-sky-700 text-[11px] font-semibold">
+                        <span>20% Online Advance Deposit (Payable Now):</span>
+                        <span>
+                          {currency} {advanceAmountInCurrency.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between text-amber-800 text-[11px] font-semibold">
+                        <span>80% Balance (Payable Upon Arrival):</span>
+                        <span>
+                          {currency} {remainingBalanceInCurrency.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Zero booking fee. Payment arranged securely upon arrival or bank transfer.</span>
+                    <span>Locked currency guarantee. Anti-arbitrage rate snapshot applied.</span>
                   </div>
                 </div>
               )}
@@ -466,9 +747,22 @@ export default function BookingModal({
               <h4 className="text-2xl font-bold text-slate-900 font-heading">
                 Booking Inquiry Received!
               </h4>
+
+              {createdBooking?.reference_no && (
+                <div className="inline-block px-4 py-1.5 rounded-full bg-slate-100 text-slate-800 font-mono text-xs font-bold border border-slate-200">
+                  Booking Ref: {createdBooking.reference_no}
+                </div>
+              )}
+
               <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                Thank you <strong>{fullName || 'Traveler'}</strong>. Your dedicated island concierge will review your custom itinerary and respond within 15 minutes.
+                Thank you <strong>{fullName || 'Traveler'}</strong>. Your bespoke tour reservation has been received and locked in our database with your selected payment preferences.
               </p>
+
+              {appliedCoupon?.isValid && (
+                <div className="max-w-xs mx-auto p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                  🎉 Promo discount of <strong>{currency} {discountAmount.toLocaleString()}</strong> applied with code <strong>{appliedCoupon.couponCode}</strong>.
+                </div>
+              )}
 
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a
@@ -482,7 +776,7 @@ export default function BookingModal({
                 </a>
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 rounded-full text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200"
+                  className="px-6 py-3 rounded-full text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 cursor-pointer"
                 >
                   Back to Homepage
                 </button>
@@ -496,8 +790,9 @@ export default function BookingModal({
               {step > 1 ? (
                 <button
                   type="button"
+                  disabled={isSubmittingBooking}
                   onClick={handleBack}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer disabled:opacity-50"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Back</span>
@@ -508,11 +803,21 @@ export default function BookingModal({
 
               <button
                 type="button"
+                disabled={isSubmittingBooking}
                 onClick={handleNext}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.98] transition-all shadow-md shadow-orange-500/20 cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.98] transition-all shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-50"
               >
-                <span>{step === 7 ? 'Confirm & Send Inquiry' : 'Continue'}</span>
-                {step === 7 ? <Send className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                {isSubmittingBooking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Confirming...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{step === 7 ? 'Confirm & Send Inquiry' : 'Continue'}</span>
+                    {step === 7 ? <Send className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  </>
+                )}
               </button>
             </div>
           )}

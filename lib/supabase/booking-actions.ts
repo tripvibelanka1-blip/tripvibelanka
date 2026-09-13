@@ -74,6 +74,8 @@ export interface CreateBookingInput {
   selectedActivities?: CheckoutActivityInput[];
   basePriceUsd: number; // Master Anchor USD rate
   currency: 'USD' | 'LKR'; // Customer's preferred payment currency
+  couponCode?: string | null;
+  discountAmount?: number;
 }
 
 export interface BookingResult {
@@ -144,9 +146,15 @@ export async function submitBookingWithCurrencyLock(
       }
     }
 
-    const grandTotalUsd = tourTotalUsd + activitiesTotalUsd;
+    const subtotalUsd = tourTotalUsd + activitiesTotalUsd;
 
-    // 4. Lock in Amounts and 20% Advance based on customer's chosen checkout currency
+    // 4. Calculate Discount & Deductions
+    const rawDiscount = Math.max(0, Number(input.discountAmount) || 0);
+    // Determine USD discount equivalent
+    const discountInUsd = input.currency === 'LKR' ? rawDiscount / liveRate : rawDiscount;
+    const grandTotalUsd = Math.max(0, subtotalUsd - discountInUsd);
+
+    // 5. Lock in Amounts and 20% Advance based on customer's chosen checkout currency
     let totalAmount: number;
     let advanceAmount: number;
     let remainingBalance: number;
@@ -154,22 +162,22 @@ export async function submitBookingWithCurrencyLock(
 
     if (input.currency === 'LKR') {
       // Convert to Sri Lankan Rupees rounded to nearest whole rupee
-      totalAmount = Math.round(grandTotalUsd * liveRate);
+      totalAmount = Math.max(0, Math.round(grandTotalUsd * liveRate));
       advanceAmount = Math.round(totalAmount * 0.20);
       remainingBalance = totalAmount - advanceAmount;
     } else {
       // USD Master Currency
-      totalAmount = parseFloat(grandTotalUsd.toFixed(2));
+      totalAmount = Math.max(0, parseFloat(grandTotalUsd.toFixed(2)));
       advanceAmount = parseFloat((totalAmount * 0.20).toFixed(2));
       remainingBalance = parseFloat((totalAmount - advanceAmount).toFixed(2));
     }
 
-    // 5. Generate unique tracking reference number (TVL-YYYY-XXXXX)
+    // 6. Generate unique tracking reference number (TVL-YYYY-XXXXX)
     const year = new Date().getFullYear();
     const randomSuffix = Math.floor(10000 + Math.random() * 90000);
     const referenceNo = `TVL-${year}-${randomSuffix}`;
 
-    // 6. Assemble complete database payload
+    // 7. Assemble complete database payload
     const bookingPayload: BookingInsert = {
       reference_no: referenceNo,
       tour_id: input.tourId || null,
@@ -186,13 +194,17 @@ export async function submitBookingWithCurrencyLock(
       selected_activities: activitiesSnapshot,
       currency: input.currency,
       applied_exchange_rate: appliedExchangeRate, // PERMANENTLY LOCKED
-      total_amount: totalAmount,                  // PERMANENTLY LOCKED
+      coupon_code: input.couponCode?.trim() ? input.couponCode.trim().toUpperCase() : null,
+      discount_amount: rawDiscount,
+      total_amount: totalAmount,                  // PERMANENTLY LOCKED Net Total
       advance_percentage: 20.00,
       advance_amount: advanceAmount,              // PERMANENTLY LOCKED (PayHere amount)
       remaining_balance: remainingBalance,        // PERMANENTLY LOCKED (Due on arrival)
       payment_status: 'pending',
       booking_status: 'pending',
-      admin_notes: `Checkout locked at 1 USD = ${liveRate.toFixed(4)} LKR via server proxy. Master USD base: $${grandTotalUsd.toFixed(2)}.`,
+      admin_notes: input.couponCode
+        ? `Promo code ${input.couponCode.toUpperCase()} applied (-${input.currency} ${rawDiscount}). Locked at 1 USD = ${liveRate.toFixed(4)} LKR. Subtotal: $${subtotalUsd.toFixed(2)} USD, Net: $${grandTotalUsd.toFixed(2)} USD.`
+        : `Checkout locked at 1 USD = ${liveRate.toFixed(4)} LKR via server proxy. Master USD base: $${grandTotalUsd.toFixed(2)}.`,
     };
 
     // 7. Insert into Supabase

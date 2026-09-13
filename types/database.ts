@@ -113,6 +113,8 @@ export interface Booking {
   currency: 'USD' | 'LKR';
   applied_exchange_rate?: number;
   total_amount: number;
+  coupon_code?: string | null;
+  discount_amount?: number;
   advance_percentage: number;
   advance_amount: number;
   remaining_balance: number;
@@ -177,6 +179,35 @@ export type VehicleInsert = Omit<Vehicle, 'id' | 'created_at' | 'updated_at'> & 
 
 export type VehicleUpdate = Partial<VehicleInsert>;
 
+// ------------------------------------------------------------------
+// Promotional Banners
+// ------------------------------------------------------------------
+export interface Banner {
+  id: string;
+  badge_text: string;
+  title: string;
+  description?: string | null;
+  coupon_code?: string | null;
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number;
+  button_text: string;
+  button_link: string;
+  validity_text?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type BannerInsert = Omit<Banner, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type BannerUpdate = Partial<BannerInsert>;
+
 export interface Database {
   public: {
     Tables: {
@@ -205,9 +236,15 @@ export interface Database {
         Insert: VehicleInsert;
         Update: VehicleUpdate;
       };
+      banners: {
+        Row: Banner;
+        Insert: BannerInsert;
+        Update: BannerUpdate;
+      };
     };
   };
 }
+
 
 
 

@@ -45,35 +45,19 @@ interface TourFormData {
 const initialFormData: TourFormData = {
   title: '',
   destination_id: '',
-  duration_days: 5,
-  duration_nights: 4,
-  price_usd: 650,
-  price_lkr: 195000,
+  duration_days: 1,
+  duration_nights: 0,
+  price_usd: 0,
+  price_lkr: 0,
   description: '',
-  highlights: [
-    'Ascend the UNESCO World Heritage Sigiriya Rock Fortress',
-    'Scenic blue train journey through lush tea plantations',
-  ],
-  included: [
-    'Private air-conditioned vehicle with English-speaking chauffeur',
-    'Daily breakfast and luxury boutique hotel accommodations',
-  ],
-  excluded: [
-    'International airline tickets and visa fees',
-    'Personal expenses and alcoholic beverages',
-  ],
+  highlights: [''],
+  included: [''],
+  excluded: [''],
   itinerary: [
     {
       day: 1,
-      title: 'Arrival & Scenic Transfer to Sigiriya',
-      details:
-        'Warm welcome at Bandaranaike International Airport (CMB). Transfer to Sigiriya with an en-route coconut refreshment stop and check-in to your eco-resort.',
-    },
-    {
-      day: 2,
-      title: 'Sigiriya Rock Fortress & Village Safari',
-      details:
-        'Early morning climb of the iconic Lion Rock citadel before the heat sets in. Afternoon traditional catamaran village boat ride with an authentic village lunch.',
+      title: '',
+      details: '',
     },
   ],
   cover_image: '',

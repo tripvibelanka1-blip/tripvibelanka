@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Currency, TourPackage } from '@/types/tourism';
 import { TOUR_PACKAGES } from '@/data/mockData';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Clock, Star, MapPin, CheckCircle2, ArrowUpRight, Sparkles } from 'lucide-react';
 
 interface TourPackagesProps {
@@ -12,6 +13,7 @@ interface TourPackagesProps {
 }
 
 export default function TourPackages({ currency, onSelectPackage }: TourPackagesProps) {
+  const { exchangeRate } = useCurrency();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   const categories = ['All', 'Cultural', 'Wildlife', 'Coastal', 'Hill Country'];
@@ -24,7 +26,8 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
     if (currency === 'USD') {
       return `$${pkg.priceUSD.toLocaleString()}`;
     }
-    return `Rs. ${pkg.priceLKR.toLocaleString()}`;
+    const lkr = Math.round(pkg.priceUSD * exchangeRate);
+    return `Rs. ${lkr.toLocaleString()}`;
   };
 
   return (

@@ -331,9 +331,19 @@ export default function ActivitiesTable({
                             Free / Enquire
                           </span>
                         ) : (
-                          <span className="font-black text-[#FF6B00] text-sm">
-                            ${priceNum.toFixed(2)}
-                          </span>
+                          <div>
+                            <div className="font-extrabold text-slate-900 text-sm">
+                              ${priceNum.toFixed(2)}{' '}
+                              <span className="text-[10px] font-bold text-slate-400">USD</span>
+                            </div>
+                            {act.price_lkr && Number(act.price_lkr) > 0 ? (
+                              <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                                Rs. {Number(act.price_lkr).toLocaleString()}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-400 italic">LKR on request</div>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -546,11 +556,18 @@ export default function ActivitiesTable({
                 <h4 className="text-base font-black text-slate-900">
                   {previewActivity.title}
                 </h4>
-                <span className="font-black text-[#FF6B00] text-base">
-                  {Number(previewActivity.price) > 0
-                    ? `$${Number(previewActivity.price).toFixed(2)} USD`
-                    : 'Free / Enquire'}
-                </span>
+                <div className="text-right">
+                  <span className="font-black text-[#FF6B00] text-base block">
+                    {Number(previewActivity.price) > 0
+                      ? `$${Number(previewActivity.price).toFixed(2)} USD`
+                      : 'Free / Enquire'}
+                  </span>
+                  {previewActivity.price_lkr && Number(previewActivity.price_lkr) > 0 && (
+                    <span className="text-xs text-slate-500 font-mono block">
+                      Rs. {Number(previewActivity.price_lkr).toLocaleString()} LKR
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 mt-2 flex-wrap">

@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { CurrencyProvider } from "@/context/CurrencyContext";
+
 export default function RootLayout({
   children,
 }: {
@@ -50,7 +52,9 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-screen bg-white text-slate-900 font-body selection:bg-orange-500/20 selection:text-orange-900"
       >
-        {children}
+        <CurrencyProvider>
+          {children}
+        </CurrencyProvider>
       </body>
     </html>
   );

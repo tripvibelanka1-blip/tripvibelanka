@@ -27,8 +27,11 @@ import {
   Trash2,
   Receipt,
   UserCheck,
+  Car,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
+import { Vehicle } from '@/types/database';
+import { createClient } from '@/utils/supabase/client';
 import {
   updateBookingStatus,
   updatePaymentStatus,
@@ -63,6 +66,27 @@ export default function BookingDetailDrawer({
   const [driverGuide, setDriverGuide] = useState(booking?.assigned_driver_guide || '');
   const [adminNotes, setAdminNotes] = useState(booking?.admin_notes || '');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [fleetVehicles, setFleetVehicles] = useState<Vehicle[]>([]);
+
+  // Load available fleet vehicles for quick assignment
+  React.useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('is_active', true)
+          .order('name', { ascending: true });
+        if (data) {
+          setFleetVehicles(data as Vehicle[]);
+        }
+      } catch (err) {
+        console.error('Failed to load fleet vehicles for drawer:', err);
+      }
+    };
+    fetchVehicles();
+  }, []);
 
   // Sync state when booking changes
   React.useEffect(() => {
@@ -545,6 +569,36 @@ export default function BookingDetailDrawer({
               Dispatch & Driver Logistics
             </h3>
             <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-3">
+              {/* Quick Select Registered Fleet Vehicle */}
+              {fleetVehicles.length > 0 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1 flex items-center gap-1.5">
+                    <Car className="w-3.5 h-3.5 text-[#FF6B00]" />
+                    <span>Quick-Select Registered Fleet Vehicle:</span>
+                  </label>
+                  <select
+                    onChange={(e) => {
+                      const vId = e.target.value;
+                      if (!vId) return;
+                      const selectedV = fleetVehicles.find((v) => v.id === vId);
+                      if (selectedV) {
+                        const plateStr = selectedV.license_plate ? ` (${selectedV.license_plate})` : '';
+                        setDriverGuide(`${selectedV.name}${plateStr}`);
+                      }
+                    }}
+                    defaultValue=""
+                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl cursor-pointer"
+                  >
+                    <option value="">-- Choose from Fleet ({fleetVehicles.length} available) --</option>
+                    {fleetVehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} {v.license_plate ? `[${v.license_plate}]` : ''} - {v.passenger_capacity} Seats ({v.category.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Assigned Driver / Tour Guide & Vehicle Plate:

@@ -212,9 +212,15 @@ export default function ToursTable({
                             USD
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                          Rs. {Number(tour.price_lkr).toLocaleString('en-US')}
-                        </div>
+                        {tour.price_lkr && Number(tour.price_lkr) > 0 ? (
+                          <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                            Rs. {Number(tour.price_lkr).toLocaleString('en-US')}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic mt-0.5">
+                            LKR on request
+                          </div>
+                        )}
                       </td>
 
                       {/* Active Status Badge */}

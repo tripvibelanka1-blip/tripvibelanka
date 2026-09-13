@@ -17,6 +17,7 @@ import {
   MapPin,
   Ticket,
   CalendarCheck,
+  Car,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -82,6 +83,13 @@ export default function AdminLayout({
       isActive: pathname.startsWith('/admin/activities'),
       badge: pathname === '/admin/activities/create' ? 'Creating' : undefined,
     },
+    {
+      name: 'Vehicles & Fleet',
+      href: '/admin/vehicles',
+      icon: Car,
+      isActive: pathname.startsWith('/admin/vehicles'),
+      badge: pathname === '/admin/vehicles/create' ? 'Creating' : undefined,
+    },
   ];
 
   // Breadcrumbs generator
@@ -143,6 +151,23 @@ export default function AdminLayout({
     }
     if (pathname.startsWith('/admin/activities')) {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Activities' }];
+    }
+    if (pathname === '/admin/vehicles/create') {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Fleet', href: '/admin/vehicles' },
+        { label: 'Add Vehicle' },
+      ];
+    }
+    if (pathname.startsWith('/admin/vehicles') && pathname.includes('/edit')) {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Fleet', href: '/admin/vehicles' },
+        { label: 'Edit Vehicle' },
+      ];
+    }
+    if (pathname.startsWith('/admin/vehicles')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Vehicles & Fleet' }];
     }
     return [{ label: 'Admin', href: '/admin' }];
   };

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Currency, TourPackage } from '@/types/tourism';
-import { TOUR_PACKAGES, FLEET_VEHICLES, EXPERIENCES, DESTINATIONS, USD_TO_LKR_RATE } from '@/data/mockData';
+import { TOUR_PACKAGES, FLEET_VEHICLES, EXPERIENCES, DESTINATIONS } from '@/data/mockData';
+import { useCurrency } from '@/context/CurrencyContext';
 import { X, Check, ArrowRight, ArrowLeft, Send, Sparkles, ShieldCheck, PhoneCall } from 'lucide-react';
 
 interface BookingModalProps {
@@ -20,6 +21,7 @@ export default function BookingModal({
   initialPackageId,
   initialDestination,
 }: BookingModalProps) {
+  const { exchangeRate } = useCurrency();
   const [step, setStep] = useState(1);
   const [selectedDestination, setSelectedDestination] = useState<string>(initialDestination || 'All Island Tour');
   const [selectedPackageId, setSelectedPackageId] = useState<string>(initialPackageId || TOUR_PACKAGES[0].id);
@@ -83,7 +85,7 @@ export default function BookingModal({
 
   const formatPrice = (usd: number) => {
     if (currency === 'USD') return `$${usd.toLocaleString()}`;
-    return `Rs. ${(usd * USD_TO_LKR_RATE).toLocaleString()}`;
+    return `Rs. ${Math.round(usd * exchangeRate).toLocaleString()}`;
   };
 
   const calculateTotalEstimate = () => {

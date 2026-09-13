@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Currency, FleetVehicle } from '@/types/tourism';
 import { FLEET_VEHICLES } from '@/data/mockData';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Users, Briefcase, Sparkles, CheckCircle2, ArrowUpRight, Shield } from 'lucide-react';
 
 interface FleetShowcaseProps {
@@ -12,6 +13,7 @@ interface FleetShowcaseProps {
 }
 
 export default function FleetShowcase({ currency, onSelectVehicle }: FleetShowcaseProps) {
+  const { exchangeRate } = useCurrency();
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Sedans' | 'Vans' | 'Mini Buses'>('All');
 
   const filteredVehicles = selectedCategory === 'All'
@@ -22,7 +24,8 @@ export default function FleetShowcase({ currency, onSelectVehicle }: FleetShowca
     if (currency === 'USD') {
       return `$${v.pricePerDayUSD}`;
     }
-    return `Rs. ${v.pricePerDayLKR.toLocaleString()}`;
+    const lkr = Math.round(v.pricePerDayUSD * exchangeRate);
+    return `Rs. ${lkr.toLocaleString()}`;
   };
 
   return (

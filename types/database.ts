@@ -67,6 +67,7 @@ export interface Activity {
   destination_id: string | null;
   duration: string | null;
   price: number;
+  price_lkr?: number;
   description: string | null;
   cover_image: string | null;
   gallery_images: string[];
@@ -110,6 +111,7 @@ export interface Booking {
   children: number;
   selected_activities?: SelectedActivityItem[];
   currency: 'USD' | 'LKR';
+  applied_exchange_rate?: number;
   total_amount: number;
   advance_percentage: number;
   advance_amount: number;
@@ -143,6 +145,38 @@ export type BookingInsert = Omit<Booking, 'id' | 'created_at' | 'updated_at' | '
 
 export type BookingUpdate = Partial<BookingInsert>;
 
+export type VehicleCategory = 'sedan' | 'van' | 'mini_bus' | 'bus' | 'luxury';
+
+export interface Vehicle {
+  id: string;
+  name: string;
+  category: VehicleCategory | string;
+  license_plate?: string | null;
+  passenger_capacity: number;
+  luggage_capacity: number;
+  transmission?: string;
+  fuel_type?: string;
+  features: string[];
+  description?: string | null;
+  cover_image?: string | null;
+  gallery_images: string[];
+  price_per_day_usd?: number;
+  price_per_day_lkr?: number;
+  price_per_km_usd?: number;
+  price_per_km_lkr?: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type VehicleInsert = Omit<Vehicle, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type VehicleUpdate = Partial<VehicleInsert>;
+
 export interface Database {
   public: {
     Tables: {
@@ -166,8 +200,14 @@ export interface Database {
         Insert: BookingInsert;
         Update: BookingUpdate;
       };
+      vehicles: {
+        Row: Vehicle;
+        Insert: VehicleInsert;
+        Update: VehicleUpdate;
+      };
     };
   };
 }
+
 
 

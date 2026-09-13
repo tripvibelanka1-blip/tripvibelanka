@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import { Currency, Experience } from '@/types/tourism';
 import { EXPERIENCES } from '@/data/mockData';
+import { useCurrency } from '@/context/CurrencyContext';
 import { ChevronLeft, ChevronRight, Clock, MapPin, Sparkles, Plus } from 'lucide-react';
 
 interface ExperiencesProps {
@@ -12,6 +13,7 @@ interface ExperiencesProps {
 }
 
 export default function Experiences({ currency, onSelectExperience }: ExperiencesProps) {
+  const { exchangeRate } = useCurrency();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -38,7 +40,8 @@ export default function Experiences({ currency, onSelectExperience }: Experience
     if (currency === 'USD') {
       return `$${exp.priceUSD}`;
     }
-    return `Rs. ${exp.priceLKR.toLocaleString()}`;
+    const lkr = Math.round(exp.priceUSD * exchangeRate);
+    return `Rs. ${lkr.toLocaleString()}`;
   };
 
   return (

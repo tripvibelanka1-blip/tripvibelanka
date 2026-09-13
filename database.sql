@@ -234,7 +234,8 @@ CREATE TABLE IF NOT EXISTS activities (
   title TEXT NOT NULL,
   destination_id UUID REFERENCES destinations(id) ON DELETE SET NULL,
   duration TEXT,
-  price NUMERIC(10, 2) DEFAULT 0.00,
+  price NUMERIC(10, 2) DEFAULT 0.00, -- Primary Price in USD
+  price_lkr NUMERIC(12, 2) DEFAULT 0.00, -- Optional Price in LKR (Domestic Trust)
   description TEXT,
   cover_image TEXT,
   gallery_images JSONB DEFAULT '[]'::jsonb,
@@ -242,6 +243,9 @@ CREATE TABLE IF NOT EXISTS activities (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+-- Ensure newly added columns exist if table was already created
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS price_lkr NUMERIC(12, 2) DEFAULT 0.00;
 
 -- Enable RLS
 ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
@@ -330,6 +334,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   
   -- Financial Tracking
   currency TEXT NOT NULL DEFAULT 'LKR' CHECK (currency IN ('LKR', 'USD')),
+  applied_exchange_rate NUMERIC(10, 4) DEFAULT 1.0000, -- Locked exchange rate snapshot at checkout
   total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
   advance_percentage NUMERIC(5, 2) NOT NULL DEFAULT 20.00,
   advance_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
@@ -355,6 +360,8 @@ CREATE TABLE IF NOT EXISTS bookings (
 );
 
 -- Ensure newly added columns exist if table was already created
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'LKR';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS applied_exchange_rate NUMERIC(10, 4) DEFAULT 1.0000;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_activities JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS admin_notes TEXT;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_driver_guide TEXT;
@@ -380,5 +387,84 @@ CREATE POLICY "Allow public insert bookings"
 DROP POLICY IF EXISTS "Allow public view own booking by reference" ON bookings;
 CREATE POLICY "Allow public view own booking by reference" 
   ON bookings FOR SELECT TO anon, authenticated USING (true);
+
+
+-- ----------------------------------------------------
+-- 6. VEHICLES & FLEET MANAGEMENT MODULE
+-- ----------------------------------------------------
+
+-- 1. Create Vehicles Table
+CREATE TABLE IF NOT EXISTS vehicles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,                         -- e.g. "Toyota HiAce Super GL Luxury"
+  category TEXT NOT NULL,                     -- 'sedan', 'van', 'mini_bus', 'bus', 'luxury'
+  license_plate TEXT,                         -- e.g. "WP NB-4421" (Internal dispatch use)
+  passenger_capacity INTEGER NOT NULL DEFAULT 4,
+  luggage_capacity INTEGER NOT NULL DEFAULT 3,
+  transmission TEXT DEFAULT 'Automatic',      -- 'Automatic', 'Manual'
+  fuel_type TEXT DEFAULT 'Diesel',            -- 'Petrol', 'Diesel', 'Hybrid', 'Electric'
+  features JSONB DEFAULT '[]'::jsonb,         -- ["Dual AC", "Wi-Fi", "USB Charging", "Reclining Seats", "English Speaking Chauffeur"]
+  description TEXT,
+  cover_image TEXT,
+  gallery_images JSONB DEFAULT '[]'::jsonb,
+  price_per_day_usd NUMERIC(8, 2) DEFAULT 0.00,  -- Primary Daily Rate (USD)
+  price_per_day_lkr NUMERIC(10, 2) DEFAULT 0.00, -- Optional Daily Rate (LKR for Trust)
+  price_per_km_usd NUMERIC(8, 2) DEFAULT 0.00,   -- Optional Excess KM Rate (USD)
+  price_per_km_lkr NUMERIC(8, 2) DEFAULT 0.00,   -- Optional Excess KM Rate (LKR)
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Ensure newly added columns exist if table was already created
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS license_plate TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS transmission TEXT DEFAULT 'Automatic';
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_type TEXT DEFAULT 'Diesel';
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS price_per_day_usd NUMERIC(8, 2) DEFAULT 0.00;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS price_per_day_lkr NUMERIC(10, 2) DEFAULT 0.00;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS price_per_km_usd NUMERIC(8, 2) DEFAULT 0.00;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS price_per_km_lkr NUMERIC(8, 2) DEFAULT 0.00;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+-- Enable RLS
+ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated full access to vehicles" ON vehicles;
+CREATE POLICY "Allow authenticated full access to vehicles"
+  ON vehicles FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read access to active vehicles" ON vehicles;
+CREATE POLICY "Allow public read access to active vehicles"
+  ON vehicles FOR SELECT TO public USING (is_active = true);
+
+-- 2. Storage Bucket for Vehicle Media with Strict MIME & Size Controls
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
+VALUES (
+  'vehicle-images', 
+  'vehicle-images', 
+  true, 
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET 
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+DROP POLICY IF EXISTS "Public Read Access (Vehicle Bucket)" ON storage.objects;
+CREATE POLICY "Public Read Access (Vehicle Bucket)" 
+  ON storage.objects FOR SELECT TO public USING (bucket_id = 'vehicle-images');
+
+DROP POLICY IF EXISTS "Admin Upload Access (Vehicle Bucket)" ON storage.objects;
+CREATE POLICY "Admin Upload Access (Vehicle Bucket)" 
+  ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'vehicle-images');
+
+DROP POLICY IF EXISTS "Admin Update Access (Vehicle Bucket)" ON storage.objects;
+CREATE POLICY "Admin Update Access (Vehicle Bucket)" 
+  ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'vehicle-images');
+
+DROP POLICY IF EXISTS "Admin Delete Access (Vehicle Bucket)" ON storage.objects;
+CREATE POLICY "Admin Delete Access (Vehicle Bucket)" 
+  ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'vehicle-images');
 
 

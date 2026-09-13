@@ -24,12 +24,15 @@ import { createClient } from '@/utils/supabase/client';
 import { ActivityUpdate, DestinationRecord } from '@/types/database';
 import { compressImage } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
+import TrustTooltip from '@/components/admin/TrustTooltip';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface ActivityFormData {
   title: string;
   destination_id: string;
   duration: string;
   price: number;
+  price_lkr?: number;
   description: string;
   cover_image: string;
   gallery_images: string[];
@@ -41,6 +44,7 @@ const initialFormData: ActivityFormData = {
   destination_id: '',
   duration: '',
   price: 0,
+  price_lkr: 0,
   description: '',
   cover_image: '',
   gallery_images: [],
@@ -51,6 +55,7 @@ export default function EditActivityPage() {
   const router = useRouter();
   const params = useParams();
   const activityId = params?.id as string;
+  const { exchangeRate, isFallback: isRateFallback } = useCurrency();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -117,6 +122,7 @@ export default function EditActivityPage() {
           destination_id: data.destination_id || '',
           duration: data.duration || '',
           price: Number(data.price) || 0,
+          price_lkr: Number(data.price_lkr) || 0,
           description: data.description || '',
           cover_image: data.cover_image || '',
           gallery_images: gallery,
@@ -309,6 +315,7 @@ export default function EditActivityPage() {
         destination_id: formData.destination_id || null,
         duration: formData.duration.trim() || null,
         price: Number(formData.price) || 0,
+        price_lkr: Number(formData.price_lkr) || 0,
         description: formData.description.trim() || null,
         cover_image: formData.cover_image || null,
         gallery_images: formData.gallery_images || [],
@@ -585,15 +592,15 @@ export default function EditActivityPage() {
               </p>
             </div>
 
-            {/* Duration & Price Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Duration & Dual Price Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Duration */}
               <div>
                 <label
                   htmlFor="act-duration"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                 >
-                  Estimated Duration
+                  Duration (e.g. 3 Hours / Half Day)
                 </label>
                 <div className="relative">
                   <Clock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -603,24 +610,34 @@ export default function EditActivityPage() {
                     disabled={isSubmitting}
                     value={formData.duration}
                     onChange={(e) => handleFieldChange('duration', e.target.value)}
-                    placeholder="e.g. Half Day, 3-4 Hours, Full Day"
-                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                    placeholder="e.g. 4-5 Hours, Full Day"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-medium"
                   />
                 </div>
               </div>
 
-              {/* Price (USD) */}
+              {/* Price (USD) - Required (0 for Free) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label
                     htmlFor="act-price"
                     className="block text-xs font-bold uppercase tracking-wider text-slate-700"
                   >
-                    Price (USD)
+                    Price (USD) <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[10px] font-semibold text-slate-400">
-                    Set $0 for Free / Enquiry
-                  </span>
+                  {formData.price > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const calculatedLkr = Math.round(formData.price * exchangeRate);
+                        handleFieldChange('price_lkr', calculatedLkr);
+                      }}
+                      className="text-[10px] font-bold text-[#FF6B00] hover:underline cursor-pointer bg-orange-50 hover:bg-orange-100 px-2 py-0.5 rounded-lg border border-orange-200/80 transition-all active:scale-95"
+                      title={`Auto-convert USD to LKR using cached live rate (1 USD ≈ ${exchangeRate.toFixed(2)} LKR)`}
+                    >
+                      ⚡ Auto-fill ({exchangeRate.toFixed(0)})
+                    </button>
+                  )}
                 </div>
                 <div className="relative">
                   <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -629,13 +646,48 @@ export default function EditActivityPage() {
                     type="number"
                     min="0"
                     step="0.01"
+                    required
                     disabled={isSubmitting}
-                    value={formData.price}
+                    value={formData.price || ''}
                     onChange={(e) =>
                       handleFieldChange('price', parseFloat(e.target.value) || 0)
                     }
-                    placeholder="0.00"
-                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                    placeholder="0.00 ($0 = Free)"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              {/* Price (LKR) - Optional + Trust Tooltip */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="act-price-lkr"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+                  >
+                    Price (LKR) <span className="text-[10px] font-normal lowercase text-slate-400">(optional)</span>
+                  </label>
+                  <TrustTooltip
+                    title="Activity Rate in LKR"
+                    message="Optional: Quoting activity or safari admission in LKR provides clarity for local guests and avoids foreign card surcharge disputes."
+                  />
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                    Rs.
+                  </span>
+                  <input
+                    id="act-price-lkr"
+                    type="number"
+                    min="0"
+                    step="100"
+                    disabled={isSubmitting}
+                    value={formData.price_lkr || ''}
+                    onChange={(e) =>
+                      handleFieldChange('price_lkr', parseFloat(e.target.value) || 0)
+                    }
+                    placeholder="Optional (e.g. 15500)"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -1057,9 +1109,16 @@ export default function EditActivityPage() {
                 <span className="text-sm font-bold text-slate-900 truncate">
                   {formData.title || 'Untitled Activity'}
                 </span>
-                <span className="font-bold text-[#FF6B00] text-xs">
-                  {formData.price > 0 ? `$${formData.price.toFixed(2)} USD` : 'Free / Enquire'}
-                </span>
+                <div className="text-right">
+                  <span className="font-bold text-[#FF6B00] text-xs block">
+                    {formData.price > 0 ? `$${formData.price.toFixed(2)} USD` : 'Free / Enquire'}
+                  </span>
+                  {Number(formData.price_lkr) > 0 && (
+                    <span className="text-[10px] text-slate-400 font-mono block">
+                      Rs. {Number(formData.price_lkr).toLocaleString()} LKR
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">

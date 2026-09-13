@@ -8,9 +8,10 @@
   --color-slate-deep: #0F172A;
   --color-canvas: #FFFFFF;
   --color-canvas-subtle: #F8FAFC;
-  --font-heading: var(--font-poppins), sans-serif;
-  --font-poppins: var(--font-poppins), sans-serif;
-  --font-body: var(--font-jakarta), sans-serif;
+  --font-heading: var(--font-poppins), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-poppins: var(--font-poppins), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 :root {

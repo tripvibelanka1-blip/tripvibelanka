@@ -24,6 +24,8 @@ import { createClient } from '@/utils/supabase/client';
 import { TourUpdate, TourItineraryItem, DestinationRecord } from '@/types/database';
 import { compressImage } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
+import TrustTooltip from '@/components/admin/TrustTooltip';
+import DualPriceInput from '@/components/admin/DualPriceInput';
 
 interface TourFormData {
   title: string;
@@ -461,7 +463,13 @@ export default function EditTourPage() {
     setSuccessBanner(null);
 
     if (!formData.title.trim()) {
-      setErrorBanner('Please provide a tour package title.');
+      setErrorBanner('Please enter a tour title.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!formData.price_usd || formData.price_usd <= 0) {
+      setErrorBanner('Price in USD is required.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -826,56 +834,16 @@ export default function EditTourPage() {
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="edit-price-usd"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Price (USD)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
-                    $
-                  </span>
-                  <input
-                    id="edit-price-usd"
-                    type="number"
-                    min={0}
-                    step="any"
-                    disabled={isSubmitting}
-                    value={formData.price_usd}
-                    onChange={(e) =>
-                      handleFieldChange('price_usd', parseFloat(e.target.value) || 0)
-                    }
-                    className="w-full pl-8 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="edit-price-lkr"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Price (LKR)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">
-                    Rs.
-                  </span>
-                  <input
-                    id="edit-price-lkr"
-                    type="number"
-                    min={0}
-                    step="any"
-                    disabled={isSubmitting}
-                    value={formData.price_lkr}
-                    onChange={(e) =>
-                      handleFieldChange('price_lkr', parseFloat(e.target.value) || 0)
-                    }
-                    className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-semibold"
-                  />
-                </div>
+              {/* Dual Price Input (Master USD + Live/Unlocked LKR) */}
+              <div className="sm:col-span-2 pt-2 border-t border-slate-100">
+                <DualPriceInput
+                  priceUsd={formData.price_usd}
+                  priceLkr={formData.price_lkr}
+                  onChangeUsd={(val) => handleFieldChange('price_usd', val)}
+                  onChangeLkr={(val) => handleFieldChange('price_lkr', val)}
+                  disabled={isSubmitting}
+                  usdRequired={true}
+                />
               </div>
             </div>
           </div>

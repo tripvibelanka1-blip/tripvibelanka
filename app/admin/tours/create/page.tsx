@@ -25,6 +25,8 @@ import { createClient } from '@/utils/supabase/client';
 import { TourInsert, TourItineraryItem, DestinationRecord } from '@/types/database';
 import { compressImage, formatBytes } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
+import TrustTooltip from '@/components/admin/TrustTooltip';
+import DualPriceInput from '@/components/admin/DualPriceInput';
 
 interface TourFormData {
   title: string;
@@ -845,66 +847,16 @@ export default function CreateTourPage() {
                 />
               </div>
 
-              {/* Price USD */}
-              <div>
-                <label
-                  htmlFor="price-usd"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Price (USD)
-                </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-bold text-xs">
-                    $
-                  </div>
-                  <input
-                    id="price-usd"
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    required
-                    disabled={isSubmitting}
-                    value={formData.price_usd}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        'price_usd',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full pl-7 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold text-slate-900 disabled:opacity-60"
-                  />
-                </div>
-              </div>
-
-              {/* Price LKR */}
-              <div>
-                <label
-                  htmlFor="price-lkr"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Price (LKR)
-                </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-bold text-xs">
-                    Rs.
-                  </div>
-                  <input
-                    id="price-lkr"
-                    type="number"
-                    min={0}
-                    step={1}
-                    required
-                    disabled={isSubmitting}
-                    value={formData.price_lkr}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        'price_lkr',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold text-slate-900 disabled:opacity-60"
-                  />
-                </div>
+              {/* Dual Price Input (Master USD + Live/Unlocked LKR) */}
+              <div className="sm:col-span-2 pt-2 border-t border-slate-100">
+                <DualPriceInput
+                  priceUsd={formData.price_usd}
+                  priceLkr={formData.price_lkr}
+                  onChangeUsd={(val) => handleFieldChange('price_usd', val)}
+                  onChangeLkr={(val) => handleFieldChange('price_lkr', val)}
+                  disabled={isSubmitting}
+                  usdRequired={true}
+                />
               </div>
             </div>
           </div>

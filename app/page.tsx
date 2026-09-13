@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Currency, Experience } from '@/types/tourism';
+import { useCurrency } from '@/context/CurrencyContext';
 import Navbar from '@/components/home/Navbar';
 import Hero from '@/components/home/Hero';
 import PromoBanner from '@/components/home/PromoBanner';
@@ -15,7 +16,7 @@ import Footer from '@/components/home/Footer';
 import BookingModal from '@/components/home/BookingModal';
 
 export default function HomePage() {
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const { currency, setCurrency } = useCurrency();
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
   const [selectedDestination, setSelectedDestination] = useState<string | undefined>(undefined);

@@ -467,4 +467,69 @@ DROP POLICY IF EXISTS "Admin Delete Access (Vehicle Bucket)" ON storage.objects;
 CREATE POLICY "Admin Delete Access (Vehicle Bucket)" 
   ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'vehicle-images');
 
+-- ==========================================================
+-- 6. Create Banners Table (Text-First Promotional Cards)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS banners (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  badge_text TEXT DEFAULT 'Limited Seasonal Offer',
+  title TEXT NOT NULL,
+  description TEXT,
+  coupon_code TEXT, -- e.g. VIBELANKA15
+  button_text TEXT NOT NULL DEFAULT 'Claim Seasonal Offer',
+  button_link TEXT NOT NULL DEFAULT '/tours',
+  validity_text TEXT DEFAULT 'Valid for bookings made this month',
+  start_date DATE DEFAULT CURRENT_DATE,
+  end_date DATE,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to active, currently valid banners
+DROP POLICY IF EXISTS "Public Read Active Banners" ON banners;
+CREATE POLICY "Public Read Active Banners" ON banners
+  FOR SELECT TO anon, authenticated
+  USING (
+    is_active = true 
+    AND (start_date IS NULL OR start_date <= CURRENT_DATE)
+    AND (end_date IS NULL OR end_date >= CURRENT_DATE)
+  );
+
+-- Full authenticated admin access
+DROP POLICY IF EXISTS "Admin Full Access Banners" ON banners;
+CREATE POLICY "Admin Full Access Banners" ON banners
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+-- Seed initial promotional banner if empty
+INSERT INTO banners (
+  badge_text,
+  title,
+  description,
+  coupon_code,
+  button_text,
+  button_link,
+  validity_text,
+  start_date,
+  end_date,
+  is_active
+) 
+SELECT 
+  'Limited Seasonal Offer',
+  'Exclusive Summer Escape',
+  'Enjoy up to 15% off bespoke private chauffeured tours across the cultural triangle and southern coast.',
+  'VIBELANKA15',
+  'Claim Seasonal Offer',
+  '#tours',
+  'Valid for private bookings reserved this month',
+  CURRENT_DATE,
+  (CURRENT_DATE + INTERVAL '30 days')::date,
+  true
+WHERE NOT EXISTS (SELECT 1 FROM banners LIMIT 1);
+
+
 

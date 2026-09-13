@@ -3,8 +3,9 @@
 import React, { useState, useTransition, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { Lock, Mail, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Loader2, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import BrandLogo from '@/components/BrandLogo';
 
 function LoginForm() {
   const router = useRouter();
@@ -44,9 +45,10 @@ function LoginForm() {
         }
 
         // On successful authentication, redirect to /admin (or requested path)
-        const targetPath = redirectedFrom && redirectedFrom.startsWith('/admin')
-          ? redirectedFrom
-          : '/admin';
+        const targetPath =
+          redirectedFrom && redirectedFrom.startsWith('/admin')
+            ? redirectedFrom
+            : '/admin';
 
         router.push(targetPath);
         router.refresh();
@@ -57,98 +59,92 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100 to-slate-200 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-slate-50 to-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       {/* Return to website link */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md px-4 mb-4">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-4 mb-3">
         <Link
           href="/"
-          className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors gap-1.5"
+          className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-orange-600 transition-colors gap-1.5"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Back to TripVibe Lanka
+          <span>Back to TripVibe Lanka Website</span>
         </Link>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
-        {/* Header Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 mb-4">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Admin Portal
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Sign in to manage TripVibe Lanka tours, fleet & bookings
-          </p>
+        {/* Brand Header with authentic Logo */}
+        <div className="mb-6">
+          <BrandLogo variant="login" subtext="Operations & Tour Management" />
         </div>
 
-        {/* Card */}
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/60 rounded-2xl border border-slate-200/80 backdrop-blur-sm">
+        {/* Login Card */}
+        <div className="bg-white py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/70 rounded-3xl border border-slate-200/80 relative overflow-hidden">
+          {/* Subtle warm accent bar at top of card */}
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-[#FF6B00] to-sky-500" />
+
           {/* Error Message */}
           {errorMessage && (
-            <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200/80 flex items-start gap-3 text-red-800 text-sm animate-in fade-in duration-200">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 font-medium">{errorMessage}</div>
+            <div className="mb-6 p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-start gap-3 text-rose-800 text-xs animate-in fade-in duration-200">
+              <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium leading-relaxed">{errorMessage}</div>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4">
             {/* Email Input */}
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
               >
                 Admin Email
               </label>
-              <div className="relative rounded-xl shadow-sm">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
                   id="email"
-                  name="email"
                   type="email"
-                  autoComplete="email"
                   required
-                  disabled={isPending}
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@tripvibelanka.com"
-                  className="block w-full pl-10 pr-3.5 py-2.5 text-sm text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/60 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-              >
-                Password
-              </label>
-              <div className="relative rounded-xl shadow-sm">
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="password"
+                  className="block text-xs font-bold text-slate-700 uppercase tracking-wider"
+                >
+                  Password
+                </label>
+              </div>
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
                   required
-                  disabled={isPending}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="block w-full pl-10 pr-10 py-2.5 text-sm text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60"
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/60 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  tabIndex={-1}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
@@ -160,30 +156,30 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button in TripVibe Sunset Orange */}
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-md shadow-emerald-600/25 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-[#FF6B00] hover:from-amber-600 hover:to-orange-600 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all shadow-md shadow-orange-500/25 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Signing in...</span>
+                    <span>Signing in securely...</span>
                   </>
                 ) : (
-                  <span>Sign In to Admin</span>
+                  <span>Sign In to Admin Portal</span>
                 )}
               </button>
             </div>
           </form>
 
           {/* Security note */}
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
-              <Lock className="w-3 h-3 text-slate-400" />
-              Encrypted connection • Authorized personnel only
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+            <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Supabase SSR Session • Encrypted Access</span>
             </p>
           </div>
         </div>
@@ -196,8 +192,8 @@ export default function AdminLoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#FF6B00]" />
         </div>
       }
     >

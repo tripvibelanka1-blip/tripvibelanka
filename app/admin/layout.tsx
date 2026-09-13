@@ -19,6 +19,7 @@ import {
   CalendarCheck,
   Car,
   Megaphone,
+  MessageSquareText,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -97,6 +98,12 @@ export default function AdminLayout({
       icon: Megaphone,
       isActive: pathname.startsWith('/admin/banners'),
       badge: pathname === '/admin/banners/create' ? 'Creating' : undefined,
+    },
+    {
+      name: 'Customer Enquiries',
+      href: '/admin/enquiries',
+      icon: MessageSquareText,
+      isActive: pathname.startsWith('/admin/enquiries'),
     },
   ];
 
@@ -193,6 +200,9 @@ export default function AdminLayout({
     }
     if (pathname.startsWith('/admin/banners')) {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Promotional Banners' }];
+    }
+    if (pathname.startsWith('/admin/enquiries')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Customer Enquiries' }];
     }
     return [{ label: 'Admin', href: '/admin' }];
   };

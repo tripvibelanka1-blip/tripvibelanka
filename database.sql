@@ -546,4 +546,109 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM banners LIMIT 1);
 
 
+-- ==========================================================
+-- 7. CUSTOMER ENQUIRIES CRM MODULE
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS enquiries (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT, -- Primary contact or WhatsApp number
+  enquiry_type TEXT NOT NULL DEFAULT 'General' CHECK (enquiry_type IN ('General', 'Tour', 'Activity', 'Vehicle')),
+  reference_title TEXT, -- e.g. "7-Day Cultural Classic Tour" or "Yala Safari Experience"
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'unread' CHECK (status IN ('unread', 'in_progress', 'resolved')),
+  admin_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+-- Indexes for fast filtering
+CREATE INDEX IF NOT EXISTS idx_enquiries_status ON enquiries(status);
+CREATE INDEX IF NOT EXISTS idx_enquiries_created_at ON enquiries(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_enquiries_type ON enquiries(enquiry_type);
+
+-- Enable RLS
+ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
+
+-- Allow public to INSERT enquiries from website forms
+DROP POLICY IF EXISTS "Allow public insert enquiries" ON enquiries;
+CREATE POLICY "Allow public insert enquiries" ON enquiries
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated admin full access (select, update, delete)
+DROP POLICY IF EXISTS "Allow admin full access enquiries" ON enquiries;
+CREATE POLICY "Allow admin full access enquiries" ON enquiries
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+-- Seed initial enquiries for testing CRM inbox if empty
+INSERT INTO enquiries (
+  name,
+  email,
+  phone,
+  enquiry_type,
+  reference_title,
+  message,
+  status,
+  admin_notes,
+  created_at
+)
+SELECT 
+  'Elena Rostova',
+  'elena.rostova@example.com',
+  '+447911123456',
+  'Tour',
+  '7-Day Cultural Classic Circuit',
+  'Hello! We are planning a honeymoon trip for 2 people in November. Can we add a luxury treehouse stay in Ella and upgrade to a chauffeured Mercedes van?',
+  'unread',
+  NULL,
+  now() - interval '2 hours'
+WHERE NOT EXISTS (SELECT 1 FROM enquiries LIMIT 1);
+
+INSERT INTO enquiries (
+  name,
+  email,
+  phone,
+  enquiry_type,
+  reference_title,
+  message,
+  status,
+  admin_notes,
+  created_at
+)
+SELECT 
+  'David Miller',
+  'dmiller@travelcorp.au',
+  '+61412345678',
+  'Activity',
+  'Yala National Park Leopard Safari',
+  'Hi there, we want to book a private afternoon safari jeep for 4 adults. Does the price include national park entrance fees and tracker guide?',
+  'in_progress',
+  'Messaged on WhatsApp. Provided inclusion breakdown. Awaiting date confirmation.',
+  now() - interval '1 day'
+WHERE NOT EXISTS (SELECT 1 FROM enquiries WHERE email = 'dmiller@travelcorp.au');
+
+INSERT INTO enquiries (
+  name,
+  email,
+  phone,
+  enquiry_type,
+  reference_title,
+  message,
+  status,
+  admin_notes,
+  created_at
+)
+SELECT 
+  'Sarah Jenkins',
+  'sarah.j@outlook.com',
+  '+12025550199',
+  'General',
+  'Custom 14-Day Wildlife & Coast Itinerary',
+  'Inquiring about customized private chauffeur driver rates for two weeks starting from Colombo Airport. Looking forward to your itinerary suggestions.',
+  'resolved',
+  'Custom itinerary created and booked as TVL-2026-18920.',
+  now() - interval '3 days'
+WHERE NOT EXISTS (SELECT 1 FROM enquiries WHERE email = 'sarah.j@outlook.com');

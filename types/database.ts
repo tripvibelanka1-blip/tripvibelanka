@@ -208,6 +208,34 @@ export type BannerInsert = Omit<Banner, 'id' | 'created_at' | 'updated_at'> & {
 
 export type BannerUpdate = Partial<BannerInsert>;
 
+// ==========================================
+// 7. ENQUIRIES CRM MODULE TYPES
+// ==========================================
+export type EnquiryStatus = 'unread' | 'in_progress' | 'resolved';
+export type EnquiryType = 'General' | 'Tour' | 'Activity' | 'Vehicle';
+
+export interface Enquiry {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  enquiry_type: EnquiryType;
+  reference_title?: string | null;
+  message: string;
+  status: EnquiryStatus;
+  admin_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EnquiryInsert = Omit<Enquiry, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type EnquiryUpdate = Partial<EnquiryInsert>;
+
 export interface Database {
   public: {
     Tables: {
@@ -240,6 +268,11 @@ export interface Database {
         Row: Banner;
         Insert: BannerInsert;
         Update: BannerUpdate;
+      };
+      enquiries: {
+        Row: Enquiry;
+        Insert: EnquiryInsert;
+        Update: EnquiryUpdate;
       };
     };
   };

@@ -38,9 +38,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const normalizedPath = pathname.toLowerCase();
 
-  // Protect all /admin routes except /admin/login
-  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+  // Protect all /admin routes except /admin/login (case-insensitive protection)
+  if (normalizedPath.startsWith("/admin") && !normalizedPath.startsWith("/admin/login")) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/admin/login";
@@ -57,7 +58,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If already logged in and visiting /admin/login, redirect to /admin
-  if (pathname === "/admin/login" && user) {
+  if (normalizedPath === "/admin/login" && user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin";
     redirectUrl.searchParams.delete("redirectedFrom");

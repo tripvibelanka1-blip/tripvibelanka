@@ -97,6 +97,35 @@ export default function EditTourPage() {
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
+  // Delete modal states
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleDeleteTour = async () => {
+    setIsDeleting(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('tours')
+        .delete()
+        .eq('id', tourId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      router.push('/admin/tours');
+    } catch (err: unknown) {
+      console.error('[Delete Tour Error]:', err);
+      setErrorBanner(
+        err instanceof Error ? err.message : 'Failed to delete tour package.'
+      );
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // ----------------------------------------------------
   // Load Tour and Destinations on Mount
   // ----------------------------------------------------
@@ -557,7 +586,7 @@ export default function EditTourPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <Link
             href="/admin/tours"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors"
@@ -565,6 +594,16 @@ export default function EditTourPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Cancel</span>
           </Link>
+
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50/70 border border-rose-200/80 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer"
+            title="Delete Tour Package"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Delete</span>
+          </button>
 
           <button
             onClick={handleSubmit}
@@ -1105,7 +1144,7 @@ export default function EditTourPage() {
             <input
               ref={galleryInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
               disabled={isSubmitting || isUploadingGallery}
               onChange={handleGalleryUpload}
@@ -1212,6 +1251,62 @@ export default function EditTourPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Bottom Action Bar for Quick Submissions */}
+          <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <CheckCircle2 className="w-4 h-4 text-[#FF6B00]" />
+              <span>Modify details and sync changes with your live tour catalog.</span>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50/70 border border-rose-200/80 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer"
+                title="Delete Tour Package"
+              >
+                <Trash2 className="w-3.5 h-3.5 inline mr-1" />
+                <span>Delete</span>
+              </button>
+
+              <Link
+                href="/admin/tours"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-center"
+              >
+                Cancel
+              </Link>
+
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting || isUploadingImage || isUploadingGallery}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-[#FF6B00] hover:from-amber-600 hover:to-orange-600 active:scale-[0.99] rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating Tour Package...</span>
+                  </>
+                ) : isUploadingImage ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Uploading Cover...</span>
+                  </>
+                ) : isUploadingGallery ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Uploading Gallery...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Update Tour Package</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1323,7 +1418,7 @@ export default function EditTourPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               disabled={isSubmitting || isUploadingImage}
               onChange={handleCoverImageUpload}
               className="hidden"
@@ -1468,6 +1563,52 @@ export default function EditTourPage() {
           </div>
         </div>
       </form>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-slate-900">
+                Delete &quot;{formData.title}&quot;?
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Are you sure you want to permanently delete this tour package? This will remove all associated itinerary data and pricing schedules. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteTour}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete Tour Package</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

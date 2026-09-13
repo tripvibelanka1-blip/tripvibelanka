@@ -38,12 +38,28 @@ export type TourInsert = Omit<Tour, 'id' | 'created_at' | 'updated_at'> & {
 
 export type TourUpdate = Partial<TourInsert>;
 
-export interface DestinationRecord {
+export interface Destination {
   id: string;
   name: string;
   description: string | null;
+  cover_image: string | null;
+  gallery_images: string[];
+  popular_attractions: string[];
+  is_active: boolean;
   created_at?: string;
+  updated_at?: string;
 }
+
+// Backwards-compatible alias for existing imports
+export type DestinationRecord = Destination;
+
+export type DestinationInsert = Omit<Destination, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type DestinationUpdate = Partial<DestinationInsert>;
 
 export interface Database {
   public: {
@@ -54,9 +70,9 @@ export interface Database {
         Update: TourUpdate;
       };
       destinations: {
-        Row: DestinationRecord;
-        Insert: Omit<DestinationRecord, 'id' | 'created_at'> & { id?: string; created_at?: string };
-        Update: Partial<DestinationRecord>;
+        Row: Destination;
+        Insert: DestinationInsert;
+        Update: DestinationUpdate;
       };
     };
   };

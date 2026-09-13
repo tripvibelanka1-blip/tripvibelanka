@@ -14,6 +14,7 @@ import {
   Loader2,
   ChevronRight,
   PlusCircle,
+  MapPin,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -59,6 +60,13 @@ export default function AdminLayout({
       isActive: pathname.startsWith('/admin/tours'),
       badge: pathname === '/admin/tours/create' ? 'Creating' : undefined,
     },
+    {
+      name: 'Destinations',
+      href: '/admin/destinations',
+      icon: MapPin,
+      isActive: pathname.startsWith('/admin/destinations'),
+      badge: pathname === '/admin/destinations/create' ? 'Creating' : undefined,
+    },
   ];
 
   // Breadcrumbs generator
@@ -73,7 +81,7 @@ export default function AdminLayout({
         { label: 'Create Package' },
       ];
     }
-    if (pathname.includes('/edit')) {
+    if (pathname.startsWith('/admin/tours') && pathname.includes('/edit')) {
       return [
         { label: 'Admin', href: '/admin' },
         { label: 'Tours', href: '/admin/tours' },
@@ -82,6 +90,23 @@ export default function AdminLayout({
     }
     if (pathname.startsWith('/admin/tours')) {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Tours' }];
+    }
+    if (pathname === '/admin/destinations/create') {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Destinations', href: '/admin/destinations' },
+        { label: 'Create Destination' },
+      ];
+    }
+    if (pathname.startsWith('/admin/destinations') && pathname.includes('/edit')) {
+      return [
+        { label: 'Admin', href: '/admin' },
+        { label: 'Destinations', href: '/admin/destinations' },
+        { label: 'Edit Destination' },
+      ];
+    }
+    if (pathname.startsWith('/admin/destinations')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Destinations' }];
     }
     return [{ label: 'Admin', href: '/admin' }];
   };

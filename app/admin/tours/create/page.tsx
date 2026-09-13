@@ -1206,7 +1206,7 @@ export default function CreateTourPage() {
             <input
               ref={galleryInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
               disabled={isSubmitting || isUploadingGallery}
               onChange={handleGalleryUpload}
@@ -1337,6 +1337,52 @@ export default function CreateTourPage() {
               </div>
             )}
           </div>
+
+          {/* Bottom Action Bar for Quick Submissions */}
+          <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <CheckCircle2 className="w-4 h-4 text-[#FF6B00]" />
+              <span>Ready to submit? All details will be validated and synced to your database.</span>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <Link
+                href="/admin/tours"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-center"
+              >
+                Cancel
+              </Link>
+
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting || isUploadingImage || isUploadingGallery}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-[#FF6B00] hover:from-amber-600 hover:to-orange-600 active:scale-[0.99] rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Publishing Tour Package...</span>
+                  </>
+                ) : isUploadingImage ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Uploading Cover...</span>
+                  </>
+                ) : isUploadingGallery ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Uploading Gallery...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    <span>Publish Tour Package</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Right Sidebar (1/3 width on desktop) */}
@@ -1448,7 +1494,7 @@ export default function CreateTourPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               disabled={isSubmitting || isUploadingImage}
               onChange={handleCoverImageUpload}
               className="hidden"

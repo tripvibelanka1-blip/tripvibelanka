@@ -23,18 +23,14 @@ export async function compressImage(
 ): Promise<CompressionResult> {
   const originalSize = file.size;
 
-  // Don't compress SVGs or animated GIFs
-  if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
-    return {
-      file,
-      originalSize,
-      compressedSize: originalSize,
-      reductionPercentage: 0,
-    };
+  // Strict MIME type whitelist (block SVGs, scripts, executables, HTML)
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedMimeTypes.includes(file.type.toLowerCase())) {
+    throw new Error('Invalid file format. Only JPG, PNG, and WebP images are permitted.');
   }
 
   // If already under 120KB and is already webp, leave as-is
-  if (originalSize < 120 * 1024 && file.type === 'image/webp') {
+  if (originalSize < 120 * 1024 && file.type.toLowerCase() === 'image/webp') {
     return {
       file,
       originalSize,
@@ -43,7 +39,7 @@ export async function compressImage(
     };
   }
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
 
@@ -132,22 +128,14 @@ export async function compressImage(
         );
       };
 
-      img.onerror = () =>
-        resolve({
-          file,
-          originalSize,
-          compressedSize: originalSize,
-          reductionPercentage: 0,
-        });
+      img.onerror = () => {
+        reject(new Error('The selected file is corrupted or not a valid image.'));
+      };
     };
 
-    reader.onerror = () =>
-      resolve({
-        file,
-        originalSize,
-        compressedSize: originalSize,
-        reductionPercentage: 0,
-      });
+    reader.onerror = () => {
+      reject(new Error('Failed to read the selected file.'));
+    };
   });
 }
 

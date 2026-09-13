@@ -236,6 +236,40 @@ export type EnquiryInsert = Omit<Enquiry, 'id' | 'created_at' | 'updated_at'> & 
 
 export type EnquiryUpdate = Partial<EnquiryInsert>;
 
+// ==========================================
+// 8. SITE SETTINGS MODULE TYPES (Singleton)
+// ==========================================
+export interface SiteSettings {
+  id: number;
+  // Financials & Bookings
+  advance_percentage: number;
+  currency_buffer_percentage: number;
+  manual_exchange_rate: number | null;
+  is_manual_rate_enabled: boolean;
+  min_lead_time_days: number;
+
+  // Company Contacts
+  company_name: string;
+  company_email: string;
+  company_phone: string;
+  whatsapp_number: string;
+  office_address: string;
+
+  // Social Links
+  facebook_url: string;
+  instagram_url: string;
+  tiktok_url: string;
+  tripadvisor_url: string;
+
+  // Policies
+  cancellation_policy: string;
+  terms_conditions: string;
+
+  updated_at?: string;
+}
+
+export type SiteSettingsUpdate = Partial<Omit<SiteSettings, 'id' | 'updated_at'>>;
+
 export interface Database {
   public: {
     Tables: {
@@ -274,9 +308,15 @@ export interface Database {
         Insert: EnquiryInsert;
         Update: EnquiryUpdate;
       };
+      site_settings: {
+        Row: SiteSettings;
+        Insert: Partial<SiteSettings>;
+        Update: SiteSettingsUpdate;
+      };
     };
   };
 }
+
 
 
 

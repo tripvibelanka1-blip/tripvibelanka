@@ -20,6 +20,7 @@ import {
   Car,
   Megaphone,
   MessageSquareText,
+  Settings,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -104,6 +105,12 @@ export default function AdminLayout({
       href: '/admin/enquiries',
       icon: MessageSquareText,
       isActive: pathname.startsWith('/admin/enquiries'),
+    },
+    {
+      name: 'Global Settings',
+      href: '/admin/settings',
+      icon: Settings,
+      isActive: pathname.startsWith('/admin/settings'),
     },
   ];
 
@@ -203,6 +210,9 @@ export default function AdminLayout({
     }
     if (pathname.startsWith('/admin/enquiries')) {
       return [{ label: 'Admin', href: '/admin' }, { label: 'Customer Enquiries' }];
+    }
+    if (pathname.startsWith('/admin/settings')) {
+      return [{ label: 'Admin', href: '/admin' }, { label: 'Global Settings' }];
     }
     return [{ label: 'Admin', href: '/admin' }];
   };

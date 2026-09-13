@@ -652,3 +652,58 @@ SELECT
   'Custom itinerary created and booked as TVL-2026-18920.',
   now() - interval '3 days'
 WHERE NOT EXISTS (SELECT 1 FROM enquiries WHERE email = 'sarah.j@outlook.com');
+
+-- ==========================================================
+-- 8. GLOBAL SITE SETTINGS (Singleton Pattern)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS site_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  
+  -- Financials & Bookings (Section 7)
+  advance_percentage NUMERIC(5, 2) DEFAULT 20.00 NOT NULL,
+  currency_buffer_percentage NUMERIC(4, 2) DEFAULT 2.00 NOT NULL,
+  manual_exchange_rate NUMERIC(10, 2) DEFAULT NULL,
+  is_manual_rate_enabled BOOLEAN DEFAULT false,
+  min_lead_time_days INTEGER DEFAULT 1 NOT NULL,
+  
+  -- Company Contacts (Section 2 & 18)
+  company_name TEXT DEFAULT 'TripVibe Lanka',
+  company_email TEXT DEFAULT 'info@tripvibelanka.com',
+  company_phone TEXT DEFAULT '+94 77 000 0000',
+  whatsapp_number TEXT DEFAULT '+94770000000',
+  office_address TEXT DEFAULT 'Colombo, Sri Lanka',
+  
+  -- Social Media URLs (Section 2 & 18)
+  facebook_url TEXT DEFAULT 'https://facebook.com/tripvibelanka',
+  instagram_url TEXT DEFAULT 'https://instagram.com/tripvibelanka',
+  tiktok_url TEXT DEFAULT 'https://tiktok.com/@tripvibelanka',
+  tripadvisor_url TEXT DEFAULT 'https://tripadvisor.com',
+  
+  -- Policies (Section 18)
+  cancellation_policy TEXT DEFAULT 'Free cancellation up to 7 days before tour departure. 50% refund between 3 to 7 days. Non-refundable within 48 hours of scheduled departure.',
+  terms_conditions TEXT DEFAULT 'All bookings require an advance deposit to secure chauffeured vehicles and licensed guides. Remaining balance is payable in cash (USD / LKR) or card upon arrival.',
+  
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Insert default singleton row if not exists
+INSERT INTO site_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- Enable Row Level Security
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access (for checkout deposit, floating WhatsApp widget, footer contacts)
+DROP POLICY IF EXISTS "Allow public read site settings" ON site_settings;
+CREATE POLICY "Allow public read site settings" 
+ON site_settings FOR SELECT 
+TO anon, authenticated 
+USING (true);
+
+-- Allow authenticated admin full update access
+DROP POLICY IF EXISTS "Allow authenticated update site settings" ON site_settings;
+CREATE POLICY "Allow authenticated update site settings" 
+ON site_settings FOR UPDATE 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
+

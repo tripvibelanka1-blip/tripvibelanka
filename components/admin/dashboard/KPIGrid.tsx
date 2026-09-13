@@ -238,6 +238,12 @@ export default function KPIGrid({ metrics }: KPIGridProps) {
           >
             Banners ({catalog.activeBanners})
           </Link>
+          <Link
+            href="/admin/settings"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition-colors border border-slate-200/60"
+          >
+            Settings
+          </Link>
         </div>
       </div>
     </div>

@@ -17,11 +17,20 @@ export default async function AdminDestinationsPage() {
     redirect('/admin/login');
   }
 
-  // Fetch all destinations ordered alphabetically by name
-  const { data: destinations, error } = await supabase
-    .from('destinations')
-    .select('*')
-    .order('name', { ascending: true });
+  // Parallel fetch: destinations, tours, and activities for relational counts
+  const [destinationsRes, toursRes, activitiesRes] = await Promise.all([
+    supabase
+      .from('destinations')
+      .select('*')
+      .order('name', { ascending: true }),
+    supabase.from('tours').select('id, destination_id'),
+    supabase.from('activities').select('id, destination_id'),
+  ]);
+
+  const destinations = destinationsRes.data || [];
+  const tours = toursRes.data || [];
+  const activities = activitiesRes.data || [];
+  const error = destinationsRes.error;
 
   return (
     <div className="space-y-6">
@@ -62,7 +71,11 @@ export default async function AdminDestinationsPage() {
       )}
 
       {/* Interactive Destinations Table */}
-      <DestinationsTable initialDestinations={destinations || []} />
+      <DestinationsTable
+        initialDestinations={destinations}
+        linkedTours={tours}
+        linkedActivities={activities}
+      />
 
       {/* Bottom Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:px-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs">

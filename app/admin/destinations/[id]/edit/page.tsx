@@ -17,6 +17,8 @@ import {
   Loader2,
   MapPin,
   UploadCloud,
+  Compass,
+  Ticket,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { DestinationUpdate } from '@/types/database';
@@ -51,6 +53,8 @@ export default function EditDestinationPage() {
   const [formData, setFormData] = useState<DestinationFormData>(initialFormData);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [destinationNotFound, setDestinationNotFound] = useState<boolean>(false);
+  const [linkedTours, setLinkedTours] = useState<{ id: string; title: string; duration_days: number; price_usd: number; is_active: boolean }[]>([]);
+  const [linkedActivities, setLinkedActivities] = useState<{ id: string; title: string; duration: string | null; price: number; is_active: boolean }[]>([]);
 
   // Cover Image upload states
   const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
@@ -84,15 +88,33 @@ export default function EditDestinationPage() {
       setErrorBanner(null);
 
       try {
-        const { data, error } = await supabase
-          .from('destinations')
-          .select('*')
-          .eq('id', destinationId)
-          .single();
+        const [destRes, toursRes, activitiesRes] = await Promise.all([
+          supabase
+            .from('destinations')
+            .select('*')
+            .eq('id', destinationId)
+            .single(),
+          supabase
+            .from('tours')
+            .select('id, title, duration_days, price_usd, is_active')
+            .eq('destination_id', destinationId),
+          supabase
+            .from('activities')
+            .select('id, title, duration, price, is_active')
+            .eq('destination_id', destinationId),
+        ]);
 
-        if (error || !data) {
+        if (destRes.error || !destRes.data) {
           setDestinationNotFound(true);
           return;
+        }
+
+        const data = destRes.data;
+        if (toursRes.data) {
+          setLinkedTours(toursRes.data);
+        }
+        if (activitiesRes.data) {
+          setLinkedActivities(activitiesRes.data);
         }
 
         // Format popular attractions safely
@@ -810,6 +832,166 @@ export default function EditDestinationPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Section 4: Related Information & Linked Products */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">
+                    Related Information: Linked Tours & Experiences
+                  </h2>
+                  <p className="text-[11px] text-slate-500">
+                    Tours and activities linked to this destination via destination_id
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/admin/tours/create"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF6B00] hover:text-orange-700 hover:underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>New Tour</span>
+                </Link>
+                <span className="text-slate-300">•</span>
+                <Link
+                  href="/admin/activities/create"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF6B00] hover:text-orange-700 hover:underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>New Activity</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Linked Tours */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Compass className="w-3.5 h-3.5 text-[#FF6B00]" />
+                  <span>Linked Tour Packages ({linkedTours.length})</span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Categorized under {formData.name || 'this destination'}
+                </span>
+              </div>
+
+              {linkedTours.length > 0 ? (
+                <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden bg-slate-50/50">
+                  {linkedTours.map((tour) => (
+                    <div
+                      key={tour.id}
+                      className="p-3 flex items-center justify-between gap-3 hover:bg-orange-50/40 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 truncate">
+                          {tour.title}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {tour.duration_days} Days • ${tour.price_usd} USD
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            tour.is_active
+                              ? 'bg-orange-100 text-orange-900'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {tour.is_active ? 'Active' : 'Hidden'}
+                        </span>
+                        <Link
+                          href={`/admin/tours/${tour.id}/edit`}
+                          className="text-[11px] font-bold text-[#FF6B00] hover:underline"
+                        >
+                          Edit Tour
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
+                  No tour packages currently linked to this destination.{' '}
+                  <Link
+                    href="/admin/tours/create"
+                    className="text-[#FF6B00] font-bold hover:underline"
+                  >
+                    Assign a tour to {formData.name || 'this destination'}
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Linked Activities */}
+            <div className="space-y-2.5 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Ticket className="w-3.5 h-3.5 text-[#FF6B00]" />
+                  <span>Linked Activities & Experiences ({linkedActivities.length})</span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Regional excursions & day trips
+                </span>
+              </div>
+
+              {linkedActivities.length > 0 ? (
+                <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden bg-slate-50/50">
+                  {linkedActivities.map((act) => (
+                    <div
+                      key={act.id}
+                      className="p-3 flex items-center justify-between gap-3 hover:bg-orange-50/40 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 truncate">
+                          {act.title}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {act.duration || 'Flexible'} •{' '}
+                          {Number(act.price) > 0
+                            ? `$${Number(act.price).toFixed(2)} USD`
+                            : 'Free / Enquire'}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            act.is_active
+                              ? 'bg-orange-100 text-orange-900'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {act.is_active ? 'Active' : 'Hidden'}
+                        </span>
+                        <Link
+                          href={`/admin/activities/${act.id}/edit`}
+                          className="text-[11px] font-bold text-[#FF6B00] hover:underline"
+                        >
+                          Edit Activity
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-500">
+                  No activities currently linked to this destination.{' '}
+                  <Link
+                    href="/admin/activities/create"
+                    className="text-[#FF6B00] font-bold hover:underline"
+                  >
+                    Add an activity in {formData.name || 'this destination'}
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Bottom Action Bar for Quick Submissions */}

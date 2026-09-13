@@ -13,19 +13,27 @@ import {
   CheckCircle2,
   X,
   Compass,
+  Ticket,
+  Eye,
+  Images,
 } from 'lucide-react';
 import { Destination } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
 
 interface DestinationsTableProps {
   initialDestinations: Destination[];
+  linkedTours?: { id: string; destination_id: string | null }[];
+  linkedActivities?: { id: string; destination_id: string | null }[];
 }
 
 export default function DestinationsTable({
   initialDestinations,
+  linkedTours = [],
+  linkedActivities = [],
 }: DestinationsTableProps) {
   const [destinations, setDestinations] = useState<Destination[]>(initialDestinations);
   const [destToDelete, setDestToDelete] = useState<Destination | null>(null);
+  const [previewDest, setPreviewDest] = useState<Destination | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [feedbackToast, setFeedbackToast] = useState<{
@@ -112,7 +120,7 @@ export default function DestinationsTable({
                     Popular Attractions
                   </th>
                   <th scope="col" className="py-3.5 px-4">
-                    Gallery
+                    Linked Products
                   </th>
                   <th scope="col" className="py-3.5 px-4">
                     Status
@@ -126,6 +134,8 @@ export default function DestinationsTable({
                 {destinations.map((dest) => {
                   const attractions = dest.popular_attractions || [];
                   const gallery = dest.gallery_images || [];
+                  const toursCount = linkedTours.filter((t) => t.destination_id === dest.id).length;
+                  const activitiesCount = linkedActivities.filter((a) => a.destination_id === dest.id).length;
 
                   return (
                     <tr
@@ -143,21 +153,27 @@ export default function DestinationsTable({
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-300 bg-orange-50/50">
-                              <MapPin className="w-6 h-6 text-[#FF6B00]/40" />
+                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <MapPin className="w-6 h-6" />
                             </div>
                           )}
                         </div>
                       </td>
 
-                      {/* Name & Description */}
+                      {/* Title & Overview */}
                       <td className="py-4 px-4">
-                        <div className="font-bold text-slate-900 text-sm group-hover:text-orange-950 transition-colors">
+                        <div className="font-bold text-slate-900 text-sm max-w-sm sm:max-w-md line-clamp-1 group-hover:text-orange-950 transition-colors">
                           {dest.name}
                         </div>
                         {dest.description && (
-                          <div className="text-[11px] text-slate-500 line-clamp-1 max-w-sm mt-0.5">
+                          <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 max-w-sm">
                             {dest.description}
+                          </div>
+                        )}
+                        {gallery.length > 0 && (
+                          <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 mt-1">
+                            <Images className="w-3 h-3" />
+                            <span>{gallery.length} gallery photos</span>
                           </div>
                         )}
                       </td>
@@ -182,11 +198,33 @@ export default function DestinationsTable({
                         )}
                       </td>
 
-                      {/* Gallery Count */}
+                      {/* Linked Products (Tours & Activities) */}
                       <td className="py-4 px-4 whitespace-nowrap">
-                        <span className="text-[11px] text-slate-600 font-medium">
-                          {gallery.length} photo{gallery.length === 1 ? '' : 's'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg border ${
+                              toursCount > 0
+                                ? 'bg-orange-50 text-orange-900 border-orange-200/70'
+                                : 'bg-slate-100 text-slate-500 border-slate-200'
+                            }`}
+                            title={`${toursCount} Tours linked to ${dest.name}`}
+                          >
+                            <Compass className="w-3 h-3 text-[#FF6B00]" />
+                            <span>{toursCount} Tour{toursCount === 1 ? '' : 's'}</span>
+                          </span>
+
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-lg border ${
+                              activitiesCount > 0
+                                ? 'bg-amber-50 text-amber-900 border-amber-200/70'
+                                : 'bg-slate-100 text-slate-500 border-slate-200'
+                            }`}
+                            title={`${activitiesCount} Activities linked to ${dest.name}`}
+                          >
+                            <Ticket className="w-3 h-3 text-amber-600" />
+                            <span>{activitiesCount} Act{activitiesCount === 1 ? '' : 's'}</span>
+                          </span>
+                        </div>
                       </td>
 
                       {/* Active Status Badge */}
@@ -207,6 +245,17 @@ export default function DestinationsTable({
                       {/* Actions: Edit, Preview, Delete */}
                       <td className="py-4 pr-6 pl-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Quick Preview Button */}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDest(dest)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            title="Quick Preview"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
+                            <span className="hidden lg:inline">Preview</span>
+                          </button>
+
                           {/* Edit Button */}
                           <Link
                             href={`/admin/destinations/${dest.id}/edit`}
@@ -215,17 +264,6 @@ export default function DestinationsTable({
                           >
                             <Pencil className="w-3 h-3" />
                             <span>Edit</span>
-                          </Link>
-
-                          {/* Preview Button */}
-                          <Link
-                            href="/"
-                            target="_blank"
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-                            title="Preview on Website"
-                          >
-                            <span>Preview</span>
-                            <ExternalLink className="w-3 h-3 text-slate-400" />
                           </Link>
 
                           {/* Delete Button */}
@@ -279,7 +317,7 @@ export default function DestinationsTable({
             href="/admin/destinations/create"
             className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-[#FF6B00] hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-md shadow-orange-500/20 transition-all cursor-pointer"
           >
-            <span>+ Add New Destination</span>
+            <span>+ Add Destination</span>
           </Link>
         </div>
       )}
@@ -292,27 +330,23 @@ export default function DestinationsTable({
               <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-base font-bold text-slate-900">
-                  Delete Destination?
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900 leading-snug">
+                  Delete &quot;{destToDelete.name}&quot;?
                 </h3>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Are you sure you want to delete{' '}
-                  <strong className="text-slate-800 font-semibold">
-                    &ldquo;{destToDelete.name}&rdquo;
-                  </strong>
-                  ? Any tour packages linked to this destination will have their destination field unlinked.
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Are you sure you want to delete this destination? Tour packages and activities linked to this destination will have their destination unlinked (set to null). This action cannot be undone.
                 </p>
               </div>
             </div>
 
             {deleteError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
                 {deleteError}
               </div>
             )}
 
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 disabled={isDeleting}
@@ -320,28 +354,144 @@ export default function DestinationsTable({
                   setDestToDelete(null);
                   setDeleteError(null);
                 }}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
               </button>
+
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={handleDeleteConfirm}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.99] rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.99] rounded-xl shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isDeleting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Deleting...</span>
+                    <span>Deleting Destination...</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete Destination</span>
+                    <span>Delete Permanently</span>
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Preview Modal */}
+      {previewDest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#FF6B00]" />
+                <h3 className="text-sm font-bold text-slate-900">
+                  Destination Overview
+                </h3>
+              </div>
+              <button
+                onClick={() => setPreviewDest(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {previewDest.cover_image && (
+              <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewDest.cover_image}
+                  alt={previewDest.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-base font-black text-slate-900">
+                  {previewDest.name}
+                </h4>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-950 border border-orange-200/80">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]" />
+                  {previewDest.is_active !== false ? 'Active' : 'Hidden'}
+                </span>
+              </div>
+
+              {previewDest.description && (
+                <p className="text-xs text-slate-600 leading-relaxed mt-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                  {previewDest.description}
+                </p>
+              )}
+            </div>
+
+            {/* Attractions */}
+            {previewDest.popular_attractions && previewDest.popular_attractions.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Popular Landmarks ({previewDest.popular_attractions.length})</span>
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {previewDest.popular_attractions.map((att, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                    >
+                      {att}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Relational Linked Products */}
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              <div className="p-3 bg-orange-50/50 rounded-xl border border-orange-100 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 text-[#FF6B00] flex items-center justify-center flex-shrink-0">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {linkedTours.filter((t) => t.destination_id === previewDest.id).length} Tours
+                  </div>
+                  <div className="text-[10px] text-slate-500">Linked packages</div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                  <Ticket className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {linkedActivities.filter((a) => a.destination_id === previewDest.id).length} Activities
+                  </div>
+                  <div className="text-[10px] text-slate-500">Linked experiences</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPreviewDest(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <Link
+                href={`/admin/destinations/${previewDest.id}/edit`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 via-orange-500 to-[#FF6B00] hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-md shadow-orange-500/20 transition-all"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Edit Destination</span>
+              </Link>
             </div>
           </div>
         </div>

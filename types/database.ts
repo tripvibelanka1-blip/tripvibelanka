@@ -38,6 +38,13 @@ export type TourInsert = Omit<Tour, 'id' | 'created_at' | 'updated_at'> & {
 
 export type TourUpdate = Partial<TourInsert>;
 
+export interface DestinationRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at?: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -45,6 +52,11 @@ export interface Database {
         Row: Tour;
         Insert: TourInsert;
         Update: TourUpdate;
+      };
+      destinations: {
+        Row: DestinationRecord;
+        Insert: Omit<DestinationRecord, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<DestinationRecord>;
       };
     };
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -19,9 +19,10 @@ import {
   Image as ImageIcon,
   Loader2,
   MapPin,
+  UploadCloud,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
-import { TourInsert, TourItineraryItem } from '@/types/database';
+import { TourInsert, TourItineraryItem, DestinationRecord } from '@/types/database';
 
 interface TourFormData {
   title: string;
@@ -83,11 +84,49 @@ const initialFormData: TourFormData = {
 
 export default function CreateTourPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [formData, setFormData] = useState<TourFormData>(initialFormData);
+  const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState<boolean>(true);
+
+  // Storage upload states
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Form submission states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [showJsonPreview, setShowJsonPreview] = useState<boolean>(false);
+
+  // ----------------------------------------------------
+  // Task 8: Fetch Destinations on Mount
+  // ----------------------------------------------------
+  useEffect(() => {
+    async function fetchDestinations() {
+      setIsLoadingDestinations(true);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('destinations')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('[Destinations Fetch Error]:', error);
+        } else if (data) {
+          setDestinations(data);
+        }
+      } catch (err) {
+        console.error('[Unexpected Destinations Error]:', err);
+      } finally {
+        setIsLoadingDestinations(false);
+      }
+    }
+
+    fetchDestinations();
+  }, []);
 
   // Field change handler for primitive fields
   const handleFieldChange = (
@@ -98,6 +137,74 @@ export default function CreateTourPage() {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // ----------------------------------------------------
+  // Task 9: Storage File Upload to 'tour-images' bucket
+  // ----------------------------------------------------
+  const handleCoverImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image size exceeds 5MB limit. Please choose a smaller file.');
+      return;
+    }
+
+    setUploadError(null);
+    setIsUploadingImage(true);
+
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const cleanFileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 9)}.${fileExt}`;
+      const filePath = `covers/${cleanFileName}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('tour-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadErr) {
+        console.error('[Storage Upload Error]:', uploadErr);
+        setUploadError(`Upload failed: ${uploadErr.message}`);
+        setIsUploadingImage(false);
+        return;
+      }
+
+      // Retrieve public URL from Supabase Storage
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('tour-images').getPublicUrl(filePath);
+
+      setFormData((prev) => ({
+        ...prev,
+        cover_image: publicUrl,
+      }));
+    } catch (err: unknown) {
+      console.error('[Unexpected Storage Error]:', err);
+      setUploadError(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred during image upload.'
+      );
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setFormData((prev) => ({ ...prev, cover_image: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // ----------------------------------------------------
@@ -204,12 +311,12 @@ export default function CreateTourPage() {
     if (formData.itinerary.length <= 1) return;
     const filtered = formData.itinerary
       .filter((_, i) => i !== index)
-      .map((item, idx) => ({ ...item, day: idx + 1 })); // renumber days consecutively
+      .map((item, idx) => ({ ...item, day: idx + 1 }));
     setFormData((prev) => ({ ...prev, itinerary: filtered }));
   };
 
   // ----------------------------------------------------
-  // Task 7: Submit Tour to Supabase
+  // Form Submit: Insert to Supabase public.tours
   // ----------------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,6 +333,11 @@ export default function CreateTourPage() {
     if (formData.duration_days <= 0) {
       setErrorBanner('Duration days must be at least 1.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (isUploadingImage) {
+      setErrorBanner('Please wait for the cover image upload to finish before saving.');
       return;
     }
 
@@ -259,10 +371,9 @@ export default function CreateTourPage() {
         }));
 
       // Prepare payload matching the public.tours table schema:
-      // Note: destination_id is UUID in DB, mock cover_image & gallery_images as requested
       const payload: TourInsert = {
         title: formData.title.trim(),
-        destination_id: null,
+        destination_id: formData.destination_id ? formData.destination_id : null,
         duration_days: Number(formData.duration_days) || 0,
         duration_nights: Number(formData.duration_nights) || 0,
         price_usd: Number(formData.price_usd) || 0,
@@ -272,13 +383,13 @@ export default function CreateTourPage() {
         included: cleanedIncluded,
         excluded: cleanedExcluded,
         itinerary: cleanedItinerary,
-        cover_image: null, // Mocked as null for now
-        gallery_images: [], // Mocked as empty array for now
+        cover_image: formData.cover_image ? formData.cover_image : null,
+        gallery_images: formData.gallery_images || [],
         is_featured: Boolean(formData.is_featured),
         is_active: Boolean(formData.is_active),
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('tours')
         .insert([payload])
         .select()
@@ -289,7 +400,7 @@ export default function CreateTourPage() {
         setErrorBanner(
           `Failed to save tour: ${error.message}${
             error.message.includes('relation "public.tours" does not exist')
-              ? ' — Please run the database.sql migration in Supabase SQL editor.'
+              ? ' — Please run the database.sql migration in your Supabase SQL editor.'
               : ''
           }`
         );
@@ -302,7 +413,7 @@ export default function CreateTourPage() {
         `Tour "${formData.title}" created successfully! Redirecting to tours listing...`
       );
 
-      // Brief delay so user sees the success toast before redirect
+      // Brief delay so user sees success notification before redirect
       setTimeout(() => {
         router.push('/admin/tours');
         router.refresh();
@@ -345,7 +456,7 @@ export default function CreateTourPage() {
             Create Tour Package
           </h1>
           <p className="text-xs text-slate-500">
-            Configure travel highlights, day-by-day itinerary, pricing, and visibility status.
+            Configure destinations, travel highlights, day-by-day itinerary, pricing, and live storage media.
           </p>
         </div>
 
@@ -371,13 +482,18 @@ export default function CreateTourPage() {
 
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploadingImage}
             className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span>Saving to Supabase...</span>
+              </>
+            ) : isUploadingImage ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Uploading Image...</span>
               </>
             ) : (
               <>
@@ -399,7 +515,7 @@ export default function CreateTourPage() {
             <div>
               <div className="font-bold">{successBanner}</div>
               <div className="text-emerald-700 mt-0.5">
-                Record inserted into <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">public.tours</code>.
+                Record saved to <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">public.tours</code> with connected destination & storage assets.
               </div>
             </div>
           </div>
@@ -460,7 +576,7 @@ export default function CreateTourPage() {
                   Basic Tour Information
                 </h2>
                 <p className="text-[11px] text-slate-500">
-                  Primary title, region, and marketing overview
+                  Primary title, region destination, and marketing overview
                 </p>
               </div>
             </div>
@@ -485,32 +601,41 @@ export default function CreateTourPage() {
               />
             </div>
 
-            {/* Destination (Temporary Text Input) */}
+            {/* Destination Select Dropdown (Task 8) */}
             <div>
               <label
-                htmlFor="destination-input"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                htmlFor="destination-select"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between"
               >
-                Destination (Location / Region)
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  Primary Destination
+                </span>
+                {isLoadingDestinations && (
+                  <span className="text-[11px] font-normal text-slate-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Fetching destinations...
+                  </span>
+                )}
               </label>
               <div className="relative rounded-xl shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <input
-                  id="destination-input"
-                  type="text"
-                  disabled={isSubmitting}
+                <select
+                  id="destination-select"
+                  disabled={isSubmitting || isLoadingDestinations}
                   value={formData.destination_id}
-                  onChange={(e) =>
-                    handleFieldChange('destination_id', e.target.value)
-                  }
-                  placeholder="e.g. Sigiriya, Kandy, Ella, Galle (Temporary text)"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60"
-                />
+                  onChange={(e) => handleFieldChange('destination_id', e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  <option value="">-- Select a Destination (Optional) --</option>
+                  {destinations.map((dest) => (
+                    <option key={dest.id} value={dest.id}>
+                      {dest.name} {dest.description ? `— ${dest.description}` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               <p className="mt-1 text-[11px] text-slate-400">
-                Temporary text input (stored as null in database until destinations table UUID is linked)
+                Connected to Supabase <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">public.destinations</code> table.
               </p>
             </div>
 
@@ -979,49 +1104,118 @@ export default function CreateTourPage() {
             </div>
           </div>
 
-          {/* Media & Images (Mocked as null/empty for now) */}
+          {/* Task 9: Real Supabase Storage Upload for Cover Image */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-2 border-b border-slate-100 flex items-center justify-between">
-              <span>Media & Imagery</span>
-              <span className="text-[10px] text-slate-400 font-normal">Mocked for now</span>
-            </h3>
-
-            <div>
-              <label
-                htmlFor="cover-image"
-                className="block text-xs font-semibold text-slate-700 mb-1"
-              >
-                Cover Image URL (Optional)
-              </label>
-              <div className="relative rounded-xl shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <ImageIcon className="w-3.5 h-3.5" />
-                </div>
-                <input
-                  id="cover-image"
-                  type="url"
-                  disabled={isSubmitting}
-                  value={formData.cover_image}
-                  onChange={(e) => handleFieldChange('cover_image', e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-60"
-                />
-              </div>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Tour Cover Image
+              </h3>
+              <span className="text-[10px] font-mono font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                tour-images bucket
+              </span>
             </div>
 
+            {uploadError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between">
+                <span>{uploadError}</span>
+                <button
+                  type="button"
+                  onClick={() => setUploadError(null)}
+                  className="text-rose-500 hover:text-rose-800"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Hidden native file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              disabled={isSubmitting || isUploadingImage}
+              onChange={handleCoverImageUpload}
+              className="hidden"
+              id="cover-file-upload"
+            />
+
             {formData.cover_image ? (
-              <div className="rounded-xl overflow-hidden border border-slate-200 aspect-video relative bg-slate-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={formData.cover_image}
-                  alt="Cover preview"
-                  className="w-full h-full object-cover"
-                />
+              <div className="space-y-3">
+                <div className="rounded-xl overflow-hidden border border-slate-200 aspect-video relative bg-slate-100 group shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formData.cover_image}
+                    alt="Tour cover preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 text-xs font-bold bg-white text-slate-900 rounded-lg shadow hover:bg-slate-100 transition-colors"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoverImage}
+                      className="p-1.5 text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow transition-colors"
+                      title="Remove image"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="truncate max-w-[200px]" title={formData.cover_image}>
+                    {formData.cover_image.split('/').pop()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoverImage}
+                    className="text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-slate-400 text-xs">
-                File uploads will be added later; mocked with null/empty array.
-              </div>
+              <label
+                htmlFor="cover-file-upload"
+                className={`
+                  rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/20
+                  p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5
+                  ${isUploadingImage ? 'pointer-events-none opacity-70 bg-slate-50' : ''}
+                `}
+              >
+                {isUploadingImage ? (
+                  <>
+                    <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                    <span className="text-xs font-bold text-slate-700">
+                      Uploading to Supabase Storage...
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      Generating public CDN URL
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-emerald-600">
+                        Click to upload cover image
+                      </span>
+                      <span className="text-xs text-slate-500"> or drag and drop</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">
+                      PNG, JPG, WEBP up to 5MB
+                    </span>
+                  </>
+                )}
+              </label>
             )}
           </div>
 
@@ -1035,6 +1229,17 @@ export default function CreateTourPage() {
             </h3>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              {formData.cover_image && (
+                <div className="aspect-video w-full rounded-lg overflow-hidden relative bg-slate-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formData.cover_image}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-900 truncate">
                   {formData.title || 'Untitled Tour'}
@@ -1045,6 +1250,16 @@ export default function CreateTourPage() {
                   </span>
                 )}
               </div>
+
+              {formData.destination_id && (
+                <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  <span>
+                    {destinations.find((d) => d.id === formData.destination_id)?.name ||
+                      'Selected Destination'}
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-xs text-slate-600">
                 <span>

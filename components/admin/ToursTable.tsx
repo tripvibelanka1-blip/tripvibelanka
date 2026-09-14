@@ -161,10 +161,27 @@ export default function ToursTable({
 
                       {/* Title & Destination */}
                       <td className="py-4 px-4">
-                        <div className="font-bold text-slate-900 text-sm max-w-sm sm:max-w-md line-clamp-1 group-hover:text-orange-950 transition-colors">
-                          {tour.title}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-sm max-w-sm sm:max-w-md line-clamp-1 group-hover:text-orange-950 transition-colors">
+                            {tour.title}
+                          </span>
+                          {tour.display_order !== undefined && tour.display_order !== null && tour.display_order > 0 && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200" title={`Homepage Priority: #${tour.display_order}`}>
+                              #{tour.display_order}
+                            </span>
+                          )}
                         </div>
+                        {tour.tagline && (
+                          <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 max-w-sm">
+                            {tour.tagline}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          {tour.category && (
+                            <span className="inline-flex items-center text-[10px] font-bold text-orange-800 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg">
+                              {tour.category}
+                            </span>
+                          )}
                           {destinationName && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg">
                               <MapPin className="w-3 h-3 text-[#FF6B00]" />
@@ -174,7 +191,7 @@ export default function ToursTable({
                           {tour.is_featured && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg">
                               <Sparkles className="w-2.5 h-2.5 text-amber-500" />
-                              Featured
+                              Curated
                             </span>
                           )}
                           {tour.gallery_images &&

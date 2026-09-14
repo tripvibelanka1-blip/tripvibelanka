@@ -24,6 +24,10 @@ import { compressImage } from '@/utils/imageCompression';
 
 interface DestinationFormData {
   name: string;
+  district: string;
+  tag: string;
+  best_time_to_visit: string;
+  display_order: number;
   description: string;
   popular_attractions: string[];
   cover_image: string;
@@ -33,6 +37,10 @@ interface DestinationFormData {
 
 const initialFormData: DestinationFormData = {
   name: '',
+  district: '',
+  tag: '',
+  best_time_to_visit: '',
+  display_order: 1,
   description: '',
   popular_attractions: [''],
   cover_image: '',
@@ -66,7 +74,7 @@ export default function CreateDestinationPage() {
   // Field change handler
   const handleFieldChange = (
     field: keyof DestinationFormData,
-    value: string | boolean
+    value: string | boolean | number
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -263,6 +271,10 @@ export default function CreateDestinationPage() {
 
       const payload: DestinationInsert = {
         name: formData.name.trim(),
+        district: formData.district.trim() || null,
+        tag: formData.tag.trim() || null,
+        best_time_to_visit: formData.best_time_to_visit.trim() || null,
+        display_order: Number(formData.display_order) || 0,
         description: formData.description.trim() || null,
         popular_attractions: cleanedAttractions,
         cover_image: formData.cover_image || null,
@@ -408,24 +420,83 @@ export default function CreateDestinationPage() {
               </div>
             </div>
 
-            {/* Destination Name */}
-            <div>
-              <label
-                htmlFor="dest-name"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-              >
-                Destination Name <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="dest-name"
-                type="text"
-                required
-                disabled={isSubmitting}
-                value={formData.name}
-                onChange={(e) => handleFieldChange('name', e.target.value)}
-                placeholder="e.g. Ella, Kandy, Sigiriya, Mirissa"
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
-              />
+            {/* Name & District Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="dest-name"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Destination Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="dest-name"
+                  type="text"
+                  required
+                  disabled={isSubmitting}
+                  value={formData.name}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  placeholder="e.g. Sigiriya & Cultural Triangle"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="dest-district"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  District / Region
+                </label>
+                <input
+                  id="dest-district"
+                  type="text"
+                  disabled={isSubmitting}
+                  value={formData.district}
+                  onChange={(e) => handleFieldChange('district', e.target.value)}
+                  placeholder="e.g. Matale District"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Tag Badge & Best Season Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="dest-tag"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Card Tag / Badge
+                </label>
+                <input
+                  id="dest-tag"
+                  type="text"
+                  disabled={isSubmitting}
+                  value={formData.tag}
+                  onChange={(e) => handleFieldChange('tag', e.target.value)}
+                  placeholder="e.g. 8th Wonder of the World"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="dest-season"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Best Time to Visit
+                </label>
+                <input
+                  id="dest-season"
+                  type="text"
+                  disabled={isSubmitting}
+                  value={formData.best_time_to_visit}
+                  onChange={(e) => handleFieldChange('best_time_to_visit', e.target.value)}
+                  placeholder="e.g. Dec – Apr & Jul – Sep"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
             </div>
 
             {/* Description */}
@@ -744,6 +815,28 @@ export default function CreateDestinationPage() {
                   `}
                 />
               </button>
+            </div>
+
+            {/* Display Order */}
+            <div className="pt-3 border-t border-slate-100">
+              <label
+                htmlFor="dest-order"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1"
+              >
+                Homepage Display Order
+              </label>
+              <p className="text-[11px] text-slate-500 mb-1.5">
+                Top 4 destinations with lowest numbers (e.g. 1, 2, 3, 4) appear on the homepage bento grid.
+              </p>
+              <input
+                id="dest-order"
+                type="number"
+                min={0}
+                disabled={isSubmitting}
+                value={formData.display_order}
+                onChange={(e) => handleFieldChange('display_order', parseInt(e.target.value) || 0)}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+              />
             </div>
           </div>
 

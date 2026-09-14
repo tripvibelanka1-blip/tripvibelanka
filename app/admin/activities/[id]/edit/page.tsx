@@ -29,6 +29,9 @@ import { useCurrency } from '@/context/CurrencyContext';
 
 interface ActivityFormData {
   title: string;
+  category: string;
+  location: string;
+  display_order: number;
   destination_id: string;
   duration: string;
   price: number;
@@ -39,8 +42,21 @@ interface ActivityFormData {
   is_active: boolean;
 }
 
+const ACTIVITY_CATEGORIES = [
+  'Wildlife & Nature',
+  'Adventure & Trekking',
+  'Cultural & Sacred',
+  'Culinary & Heritage',
+  'Marine Adventure',
+  'Wellness & Ayurveda',
+  'Scenic & Photography',
+];
+
 const initialFormData: ActivityFormData = {
   title: '',
+  category: 'Wildlife & Nature',
+  location: '',
+  display_order: 0,
   destination_id: '',
   duration: '',
   price: 0,
@@ -119,6 +135,9 @@ export default function EditActivityPage() {
 
         setFormData({
           title: data.title || '',
+          category: data.category || 'Wildlife & Nature',
+          location: data.location || '',
+          display_order: Number(data.display_order) || 0,
           destination_id: data.destination_id || '',
           duration: data.duration || '',
           price: Number(data.price) || 0,
@@ -312,6 +331,9 @@ export default function EditActivityPage() {
     try {
       const payload: ActivityUpdate = {
         title: formData.title.trim(),
+        category: formData.category.trim() || 'Wildlife & Nature',
+        location: formData.location.trim() || null,
+        display_order: Number(formData.display_order) || 0,
         destination_id: formData.destination_id || null,
         duration: formData.duration.trim() || null,
         price: Number(formData.price) || 0,
@@ -573,6 +595,64 @@ export default function EditActivityPage() {
                 placeholder="e.g. Yala National Park Leopard Safari, Sigiriya Rock Fortress Climb"
                 className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
               />
+            </div>
+
+            {/* Category & Specific Location */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Category */}
+              <div>
+                <label
+                  htmlFor="act-category"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Category
+                </label>
+                <div className="relative">
+                  <input
+                    id="act-category"
+                    list="category-suggestions"
+                    type="text"
+                    disabled={isSubmitting}
+                    value={formData.category}
+                    onChange={(e) => handleFieldChange('category', e.target.value)}
+                    placeholder="e.g. Wildlife & Nature"
+                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-medium disabled:opacity-60"
+                  />
+                  <datalist id="category-suggestions">
+                    {ACTIVITY_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Shown as the category badge on the homepage card
+                </p>
+              </div>
+
+              {/* Excursion Location Spot */}
+              <div>
+                <label
+                  htmlFor="act-location"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Location / Spot <span className="text-[10px] font-normal lowercase text-slate-400">(optional)</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="act-location"
+                    type="text"
+                    disabled={isSubmitting}
+                    value={formData.location}
+                    onChange={(e) => handleFieldChange('location', e.target.value)}
+                    placeholder="e.g. Yala National Park, Mirissa Marina"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-medium"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Defaults to selected destination region if left blank
+                </p>
+              </div>
             </div>
 
             {/* Destination Selection */}
@@ -963,6 +1043,32 @@ export default function EditActivityPage() {
                   `}
                 />
               </button>
+            </div>
+
+            {/* Display Order */}
+            <div className="pt-3 border-t border-slate-100">
+              <label
+                htmlFor="act-display-order"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+              >
+                Homepage Display Order
+              </label>
+              <input
+                id="act-display-order"
+                type="number"
+                min="0"
+                step="1"
+                disabled={isSubmitting}
+                value={formData.display_order}
+                onChange={(e) =>
+                  handleFieldChange('display_order', parseInt(e.target.value, 10) || 0)
+                }
+                placeholder="0"
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-bold disabled:opacity-60"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Lower numbers appear first on the home page slider (1, 2, 3...)
+              </p>
             </div>
           </div>
 

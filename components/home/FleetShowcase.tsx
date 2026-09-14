@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Currency, FleetVehicle } from '@/types/tourism';
 import { FLEET_VEHICLES } from '@/data/mockData';
 import { useCurrency } from '@/context/CurrencyContext';
-import { Users, Briefcase, Sparkles, CheckCircle2, ArrowUpRight, Shield } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { Users, Briefcase, CheckCircle2, ArrowUpRight } from 'lucide-react';
 
 interface FleetShowcaseProps {
   currency: Currency;
@@ -15,16 +16,123 @@ interface FleetShowcaseProps {
 export default function FleetShowcase({ currency, onSelectVehicle }: FleetShowcaseProps) {
   const { exchangeRate } = useCurrency();
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Sedans' | 'Vans' | 'Mini Buses'>('All');
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>(FLEET_VEHICLES);
 
-  const filteredVehicles = selectedCategory === 'All'
-    ? FLEET_VEHICLES
-    : FLEET_VEHICLES.filter((v) => v.category === selectedCategory);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLiveVehicles() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.warn('[FleetShowcase] Supabase notice:', error.message);
+          return;
+        }
+
+        if (isMounted && data && data.length > 0) {
+          const mapped: FleetVehicle[] = data.map((v) => {
+            // Map category code to frontend tab category
+            const rawCat = (v.category || '').toLowerCase();
+            let cat: 'Sedans' | 'Vans' | 'Mini Buses' = 'Sedans';
+            if (rawCat === 'van' || rawCat === 'vans') {
+              cat = 'Vans';
+            } else if (rawCat === 'mini_bus' || rawCat === 'bus' || rawCat === 'mini buses') {
+              cat = 'Mini Buses';
+            } else if (rawCat === 'sedan' || rawCat === 'sedans' || rawCat === 'luxury') {
+              cat = 'Sedans';
+            }
+
+            const priceUsd = Number(v.price_per_day_usd) || 0;
+            const priceLkr =
+              Number(v.price_per_day_lkr) ||
+              Math.round(priceUsd * (exchangeRate || 310));
+
+            const passCount = Number(v.passenger_capacity) || 3;
+            const bagCount = Number(v.luggage_capacity) || 2;
+
+            const passText =
+              v.passengers_text?.trim() ||
+              (passCount <= 3 ? `1 - ${passCount} Passengers` : `${passCount} Passengers`);
+
+            const lugText =
+              v.luggage_text?.trim() || `${bagCount} Luggage Bags`;
+
+            const defRecommended =
+              cat === 'Sedans'
+                ? 'Couples, solo travelers & executive business trips'
+                : cat === 'Vans'
+                ? 'Families, small groups & travelers with bulky luggage'
+                : 'Extended families, tour groups & retreat parties';
+
+            const featList =
+              Array.isArray(v.features) && v.features.length > 0
+                ? (v.features as string[])
+                : [
+                    'Dual-Zone Climate A/C',
+                    'Complimentary 4G Wi-Fi',
+                    'Leather Ergonomic Seats',
+                    'Bottled Mineral Water',
+                  ];
+
+            const coverImg =
+              v.cover_image ||
+              (Array.isArray(v.gallery_images) && v.gallery_images.length > 0
+                ? v.gallery_images[0]
+                : 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80');
+
+            return {
+              id: v.id,
+              name: v.name,
+              category: cat,
+              passengers: passText,
+              luggage: lugText,
+              features: featList,
+              image: coverImg,
+              pricePerDayUSD: priceUsd,
+              pricePerDayLKR: priceLkr,
+              recommendedFor: v.recommended_for?.trim() || defRecommended,
+            };
+          });
+
+          if (mapped.length < 3) {
+            const existingNames = new Set(mapped.map((m) => m.name.toLowerCase()));
+            const complementary = FLEET_VEHICLES.filter(
+              (mock) => !existingNames.has(mock.name.toLowerCase())
+            );
+            setVehicles([...mapped, ...complementary]);
+          } else {
+            setVehicles(mapped);
+          }
+        }
+      } catch (err) {
+        console.warn('[FleetShowcase] Error loading vehicles:', err);
+      }
+    }
+
+    loadLiveVehicles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [exchangeRate]);
+
+  const filteredVehicles =
+    selectedCategory === 'All'
+      ? vehicles
+      : vehicles.filter((v) => v.category === selectedCategory);
 
   const formatPrice = (v: FleetVehicle) => {
     if (currency === 'USD') {
       return `$${v.pricePerDayUSD}`;
     }
-    const lkr = Math.round(v.pricePerDayUSD * exchangeRate);
+    const lkr = v.pricePerDayLKR || Math.round(v.pricePerDayUSD * exchangeRate);
     return `Rs. ${lkr.toLocaleString()}`;
   };
 

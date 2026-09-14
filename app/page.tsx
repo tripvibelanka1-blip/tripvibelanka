@@ -21,24 +21,34 @@ export default function HomePage() {
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
   const [selectedDestination, setSelectedDestination] = useState<string | undefined>(undefined);
   const [appliedCouponCode, setAppliedCouponCode] = useState<string | undefined>(undefined);
+  const [selectedAddonId, setSelectedAddonId] = useState<string | undefined>(undefined);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(undefined);
 
   const handleOpenBooking = (packageId?: string, couponCode?: string) => {
     setSelectedPackageId(packageId);
     setAppliedCouponCode(couponCode);
+    setSelectedAddonId(undefined);
+    setSelectedVehicleId(undefined);
     setIsBookingOpen(true);
   };
 
   const handleSelectDestination = (destName: string) => {
     setSelectedDestination(destName);
+    setSelectedAddonId(undefined);
+    setSelectedVehicleId(undefined);
     setIsBookingOpen(true);
   };
 
   const handleSelectExperience = (exp: Experience) => {
     setSelectedDestination(exp.location);
+    setSelectedAddonId(exp.id);
+    setSelectedVehicleId(undefined);
     setIsBookingOpen(true);
   };
 
   const handleSelectVehicle = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
+    setSelectedAddonId(undefined);
     setIsBookingOpen(true);
   };
 
@@ -100,6 +110,8 @@ export default function HomePage() {
         initialPackageId={selectedPackageId}
         initialDestination={selectedDestination}
         initialCouponCode={appliedCouponCode}
+        initialAddonId={selectedAddonId}
+        initialVehicleId={selectedVehicleId}
       />
     </div>
   );

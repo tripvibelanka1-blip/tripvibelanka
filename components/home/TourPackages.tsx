@@ -1,32 +1,151 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Currency, TourPackage } from '@/types/tourism';
+import { Currency } from '@/types/tourism';
 import { TOUR_PACKAGES } from '@/data/mockData';
 import { useCurrency } from '@/context/CurrencyContext';
-import { Clock, Star, MapPin, CheckCircle2, ArrowUpRight, Sparkles } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { Clock, CheckCircle2, ArrowUpRight, MapPin } from 'lucide-react';
 
 interface TourPackagesProps {
   currency: Currency;
   onSelectPackage: (packageId: string) => void;
 }
 
+interface TourCardItem {
+  id: string;
+  title: string;
+  tagline: string;
+  duration: string;
+  image: string;
+  category: string;
+  featured?: boolean;
+  locations: string[];
+  highlights: string[];
+  priceUSD: number;
+  priceLKR: number;
+}
+
 export default function TourPackages({ currency, onSelectPackage }: TourPackagesProps) {
   const { exchangeRate } = useCurrency();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [packages, setPackages] = useState<TourCardItem[]>(TOUR_PACKAGES);
 
   const categories = ['All', 'Cultural', 'Wildlife', 'Coastal', 'Hill Country'];
 
-  const filteredPackages = selectedCategory === 'All'
-    ? TOUR_PACKAGES
-    : TOUR_PACKAGES.filter((p) => p.category === selectedCategory || (selectedCategory === 'Cultural' && p.category === 'Signature'));
+  useEffect(() => {
+    let isMounted = true;
 
-  const formatPrice = (pkg: TourPackage) => {
+    async function loadActiveTours() {
+      try {
+        const supabase = createClient();
+
+        // Query active tours ordered by display_order then recency
+        let queryRes = await supabase
+          .from('tours')
+          .select('*, destinations(name)')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        // Resilient fallback if display_order or category column isn't migrated yet
+        if (queryRes.error) {
+          queryRes = await supabase
+            .from('tours')
+            .select('*, destinations(name)')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
+        }
+
+        const data = queryRes.data;
+
+        if (isMounted && data && data.length > 0) {
+          const mappedDb: TourCardItem[] = data.map((item) => {
+            const rawHighlights = item.highlights;
+            const highlightsList: string[] = Array.isArray(rawHighlights)
+              ? (rawHighlights as string[]).filter((h) => typeof h === 'string' && h.trim().length > 0)
+              : [];
+
+            const rawLocations = item.locations;
+            let locationsList: string[] = [];
+            if (Array.isArray(rawLocations) && rawLocations.length > 0) {
+              locationsList = (rawLocations as string[]).filter((loc) => typeof loc === 'string' && loc.trim().length > 0);
+            } else if (item.destinations && (item.destinations as { name?: string }).name) {
+              locationsList = [(item.destinations as { name: string }).name];
+            } else {
+              locationsList = ['All Island Tour'];
+            }
+
+            const cover =
+              item.cover_image ||
+              (Array.isArray(item.gallery_images) && item.gallery_images.length > 0
+                ? (item.gallery_images[0] as string)
+                : 'https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=800&q=80');
+
+            const durationNights = item.duration_nights || 0;
+            const durationText =
+              durationNights > 0
+                ? `${item.duration_days} Days / ${durationNights} Nights`
+                : `${item.duration_days} Day Tour`;
+
+            return {
+              id: item.id,
+              title: item.title,
+              tagline: item.tagline || item.description || 'Private luxury chauffeured tour with licensed guides.',
+              duration: durationText,
+              image: cover,
+              category: item.category || 'Cultural',
+              featured: Boolean(item.is_featured),
+              locations: locationsList,
+              highlights:
+                highlightsList.length > 0
+                  ? highlightsList
+                  : ['Executive AC vehicle & driver guide', 'Handpicked luxury stays', 'Private scenic excursions'],
+              priceUSD: Number(item.price_usd) || 0,
+              priceLKR: Number(item.price_lkr) || 0,
+            };
+          });
+
+          // If database has 3 or more, display database tours exclusively
+          if (mappedDb.length >= 3) {
+            setPackages(mappedDb);
+          } else {
+            // Merge database tours with mock tours without duplicate titles
+            const dbTitles = new Set(mappedDb.map((t) => t.title.toLowerCase()));
+            const remainingMocks = TOUR_PACKAGES.filter(
+              (m) => !dbTitles.has(m.title.toLowerCase())
+            );
+            setPackages([...mappedDb, ...remainingMocks]);
+          }
+        }
+      } catch (err) {
+        console.warn('[TourPackages] Error loading live tours, using resilient fallback:', err);
+      }
+    }
+
+    loadActiveTours();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredPackages = selectedCategory === 'All'
+    ? packages
+    : packages.filter((p) => {
+        const cat = (p.category || '').toLowerCase();
+        const sel = selectedCategory.toLowerCase();
+        if (cat === sel) return true;
+        if (sel === 'cultural' && cat === 'signature') return true;
+        return false;
+      });
+
+  const formatPrice = (pkg: TourCardItem) => {
     if (currency === 'USD') {
       return `$${pkg.priceUSD.toLocaleString()}`;
     }
-    const lkr = Math.round(pkg.priceUSD * exchangeRate);
+    const lkr = pkg.priceLKR > 0 ? pkg.priceLKR : Math.round(pkg.priceUSD * exchangeRate);
     return `Rs. ${lkr.toLocaleString()}`;
   };
 

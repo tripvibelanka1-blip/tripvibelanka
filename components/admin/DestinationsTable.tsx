@@ -162,9 +162,34 @@ export default function DestinationsTable({
 
                       {/* Title & Overview */}
                       <td className="py-4 px-4">
-                        <div className="font-bold text-slate-900 text-sm max-w-sm sm:max-w-md line-clamp-1 group-hover:text-orange-950 transition-colors">
-                          {dest.name}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-sm max-w-sm sm:max-w-md line-clamp-1 group-hover:text-orange-950 transition-colors">
+                            {dest.name}
+                          </span>
+                          {dest.display_order !== undefined && dest.display_order !== null && dest.display_order > 0 && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200" title={`Homepage Display Priority: #${dest.display_order}`}>
+                              #{dest.display_order}
+                            </span>
+                          )}
                         </div>
+                        {(dest.district || dest.tag) && (
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            {dest.district && (
+                              <span className="text-[11px] font-medium text-amber-600 flex items-center gap-0.5">
+                                <MapPin className="w-2.5 h-2.5" />
+                                {dest.district}
+                              </span>
+                            )}
+                            {dest.district && dest.tag && (
+                              <span className="text-slate-300 text-[10px]">•</span>
+                            )}
+                            {dest.tag && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                {dest.tag}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {dest.description && (
                           <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 max-w-sm">
                             {dest.description}

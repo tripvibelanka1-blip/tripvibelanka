@@ -22,6 +22,7 @@ export default async function AdminVehiclesPage() {
   const { data: vehicles, error } = await supabase
     .from('vehicles')
     .select('*')
+    .order('display_order', { ascending: true })
     .order('created_at', { ascending: false });
 
   return (

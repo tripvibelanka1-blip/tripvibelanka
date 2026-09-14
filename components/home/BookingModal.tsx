@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Currency, TourPackage } from '@/types/tourism';
+import { Currency, TourPackage, Experience, FleetVehicle } from '@/types/tourism';
 import { TOUR_PACKAGES, FLEET_VEHICLES, EXPERIENCES, DESTINATIONS } from '@/data/mockData';
 import { useCurrency } from '@/context/CurrencyContext';
 import {
@@ -21,6 +21,7 @@ import {
 import { validateCouponCode, CouponValidationResult } from '@/app/admin/banners/actions';
 import { submitBookingWithCurrencyLock } from '@/lib/supabase/booking-actions';
 import { Booking } from '@/types/database';
+import { createClient } from '@/utils/supabase/client';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ interface BookingModalProps {
   initialPackageId?: string;
   initialDestination?: string;
   initialCouponCode?: string;
+  initialAddonId?: string;
+  initialVehicleId?: string;
 }
 
 export default function BookingModal({
@@ -38,16 +41,21 @@ export default function BookingModal({
   initialPackageId,
   initialDestination,
   initialCouponCode,
+  initialAddonId,
+  initialVehicleId,
 }: BookingModalProps) {
   const { exchangeRate } = useCurrency();
   const [step, setStep] = useState(1);
   const [selectedDestination, setSelectedDestination] = useState<string>(initialDestination || 'All Island Tour');
   const [selectedPackageId, setSelectedPackageId] = useState<string>(initialPackageId || TOUR_PACKAGES[0].id);
+  const [tourPackages, setTourPackages] = useState<TourPackage[]>(TOUR_PACKAGES);
+  const [experiencesList, setExperiencesList] = useState<Experience[]>(EXPERIENCES);
+  const [vehiclesList, setVehiclesList] = useState<FleetVehicle[]>(FLEET_VEHICLES);
   const [startDate, setStartDate] = useState<string>('');
   const [duration, setDuration] = useState<string>('7 Days');
   const [guests, setGuests] = useState<number>(2);
-  const [selectedVehicle, setSelectedVehicle] = useState<string>('luxury-sedan');
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<string>(initialVehicleId || 'luxury-sedan');
+  const [selectedAddons, setSelectedAddons] = useState<string[]>(initialAddonId ? [initialAddonId] : []);
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
@@ -64,6 +72,148 @@ export default function BookingModal({
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchToursForModal() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('tours')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (isMounted && data && data.length > 0) {
+          const mapped: TourPackage[] = data.map((t) => ({
+            id: t.id,
+            title: t.title,
+            tagline: t.tagline || t.description || '',
+            duration:
+              (t.duration_nights || 0) > 0
+                ? `${t.duration_days} Days / ${t.duration_nights} Nights`
+                : `${t.duration_days} Day Tour`,
+            highlights: Array.isArray(t.highlights) ? (t.highlights as string[]) : [],
+            priceUSD: Number(t.price_usd) || 0,
+            priceLKR: Number(t.price_lkr) || 0,
+            rating: 5.0,
+            reviewsCount: 1,
+            image:
+              t.cover_image ||
+              'https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=800&q=80',
+            category: (t.category as 'All' | 'Cultural' | 'Wildlife' | 'Coastal' | 'Hill Country' | 'Signature') || 'Cultural',
+            locations: Array.isArray(t.locations) ? (t.locations as string[]) : [],
+            itinerary: [],
+          }));
+          setTourPackages([...mapped, ...TOUR_PACKAGES]);
+        }
+      } catch (err) {
+        console.warn('[BookingModal] using fallback packages:', err);
+      }
+    }
+
+    async function fetchActivitiesForModal() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('activities')
+          .select('*, destination:destinations(name)')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        if (isMounted && data && data.length > 0) {
+          const mapped: Experience[] = data.map((act) => ({
+            id: act.id,
+            title: act.title,
+            duration: act.duration || 'Half Day Excursion',
+            category: act.category || 'Wildlife & Nature',
+            priceUSD: Number(act.price) || 0,
+            priceLKR:
+              Number(act.price_lkr) ||
+              Math.round((Number(act.price) || 0) * (exchangeRate || 310)),
+            image:
+              act.cover_image ||
+              'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=800&q=80',
+            description: act.description || '',
+            location: act.location || act.destination?.name || 'Sri Lanka',
+          }));
+          const existingIds = new Set(mapped.map((m) => m.id));
+          const complementary = EXPERIENCES.filter((mock) => !existingIds.has(mock.id));
+          setExperiencesList([...mapped, ...complementary]);
+        }
+      } catch (err) {
+        console.warn('[BookingModal] using fallback experiences:', err);
+      }
+    }
+
+    async function fetchVehiclesForModal() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        if (isMounted && data && data.length > 0) {
+          const mapped: FleetVehicle[] = data.map((v) => {
+            const rawCat = (v.category || '').toLowerCase();
+            let cat: 'Sedans' | 'Vans' | 'Mini Buses' = 'Sedans';
+            if (rawCat === 'van' || rawCat === 'vans') cat = 'Vans';
+            else if (rawCat === 'mini_bus' || rawCat === 'bus' || rawCat === 'mini buses') cat = 'Mini Buses';
+            else if (rawCat === 'sedan' || rawCat === 'sedans' || rawCat === 'luxury') cat = 'Sedans';
+
+            const passCount = Number(v.passenger_capacity) || 3;
+            const bagCount = Number(v.luggage_capacity) || 2;
+
+            return {
+              id: v.id,
+              name: v.name,
+              category: cat,
+              passengers: v.passengers_text?.trim() || `${passCount} Passengers`,
+              luggage: v.luggage_text?.trim() || `${bagCount} Luggage Bags`,
+              features: Array.isArray(v.features) && v.features.length > 0 ? (v.features as string[]) : [],
+              image:
+                v.cover_image ||
+                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
+              pricePerDayUSD: Number(v.price_per_day_usd) || 0,
+              pricePerDayLKR:
+                Number(v.price_per_day_lkr) ||
+                Math.round((Number(v.price_per_day_usd) || 0) * (exchangeRate || 310)),
+              recommendedFor: v.recommended_for || '',
+            };
+          });
+          const existingIds = new Set(mapped.map((m) => m.id));
+          const complementary = FLEET_VEHICLES.filter((mock) => !existingIds.has(mock.id));
+          setVehiclesList([...mapped, ...complementary]);
+        }
+      } catch (err) {
+        console.warn('[BookingModal] using fallback vehicles:', err);
+      }
+    }
+
+    fetchToursForModal();
+    fetchActivitiesForModal();
+    fetchVehiclesForModal();
+    return () => {
+      isMounted = false;
+    };
+  }, [exchangeRate]);
+
+  useEffect(() => {
+    if (initialVehicleId) {
+      setSelectedVehicle(initialVehicleId);
+      setStep(4);
+    }
+  }, [initialVehicleId]);
+
+  useEffect(() => {
+    if (initialAddonId) {
+      setSelectedAddons((prev) => (prev.includes(initialAddonId) ? prev : [...prev, initialAddonId]));
+    }
+  }, [initialAddonId]);
 
   useEffect(() => {
     if (initialPackageId) {
@@ -84,7 +234,7 @@ export default function BookingModal({
 
   if (!isOpen) return null;
 
-  const currentPkg = TOUR_PACKAGES.find((p) => p.id === selectedPackageId) || TOUR_PACKAGES[0];
+  const currentPkg = tourPackages.find((p) => p.id === selectedPackageId) || tourPackages[0];
   const currentVehicle = FLEET_VEHICLES.find((v) => v.id === selectedVehicle) || FLEET_VEHICLES[0];
 
   const toggleAddon = (expId: string) => {
@@ -108,7 +258,7 @@ export default function BookingModal({
   const calculateSubtotalUsd = () => {
     const base = currentPkg.priceUSD * guests;
     const addonsTotal = selectedAddons.reduce((acc, expId) => {
-      const exp = EXPERIENCES.find((e) => e.id === expId);
+      const exp = experiencesList.find((e) => e.id === expId);
       return acc + (exp ? exp.priceUSD * guests : 0);
     }, 0);
     return base + addonsTotal;
@@ -190,7 +340,7 @@ export default function BookingModal({
           couponCode: appliedCoupon?.isValid ? appliedCoupon.couponCode : null,
           discountAmount: discountAmount,
           selectedActivities: selectedAddons.map((id) => {
-            const exp = EXPERIENCES.find((e) => e.id === id);
+            const exp = experiencesList.find((e) => e.id === id);
             return {
               activity_id: id,
               title: exp?.title || id,
@@ -321,7 +471,7 @@ export default function BookingModal({
                     Select your preferred private tour package
                   </h4>
                   <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                    {TOUR_PACKAGES.map((pkg) => (
+                    {tourPackages.map((pkg) => (
                       <div
                         key={pkg.id}
                         onClick={() => setSelectedPackageId(pkg.id)}
@@ -416,7 +566,7 @@ export default function BookingModal({
                     Choose your chauffeur vehicle category
                   </h4>
                   <div className="space-y-3">
-                    {FLEET_VEHICLES.map((veh) => (
+                    {vehiclesList.map((veh) => (
                       <div
                         key={veh.id}
                         onClick={() => setSelectedVehicle(veh.id)}
@@ -453,7 +603,7 @@ export default function BookingModal({
                     <span className="text-xs text-slate-500">Optional</span>
                   </div>
                   <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                    {EXPERIENCES.map((exp) => (
+                    {experiencesList.map((exp) => (
                       <div
                         key={exp.id}
                         onClick={() => toggleAddon(exp.id)}

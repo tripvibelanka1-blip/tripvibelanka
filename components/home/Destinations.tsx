@@ -1,15 +1,126 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { DESTINATIONS } from '@/data/mockData';
-import { MapPin, Calendar, ArrowUpRight, Sparkles } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { Destination as DbDestination } from '@/types/database';
+import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 
 interface DestinationsProps {
   onSelectDestination: (destName: string) => void;
+  initialDestinations?: DbDestination[];
 }
 
-export default function Destinations({ onSelectDestination }: DestinationsProps) {
+interface DestinationCardItem {
+  id: string;
+  name: string;
+  district: string;
+  tag: string;
+  description: string;
+  image: string;
+  highlights: string[];
+  bestTimeToVisit: string;
+  bentoSpan: string;
+}
+
+// Helper to determine bento grid span for 4 cards (2-1-1-2 grid layout)
+const getBentoSpan = (index: number): string => {
+  return index === 0 || index === 3 ? 'col-span-1 md:col-span-2' : 'col-span-1';
+};
+
+const DEFAULT_FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1200&q=80';
+
+export default function Destinations({
+  onSelectDestination,
+  initialDestinations,
+}: DestinationsProps) {
+  // Initialize with mock destinations to ensure instant zero-CLS first paint
+  const [destinations, setDestinations] = useState<DestinationCardItem[]>(DESTINATIONS);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadActiveDestinations() {
+      try {
+        const supabase = createClient();
+
+        // Query active destinations ordered by display_order then recency
+        let queryRes = await supabase
+          .from('destinations')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false })
+          .limit(4);
+
+        // Resilient fallback if display_order column isn't migrated yet
+        if (queryRes.error) {
+          queryRes = await supabase
+            .from('destinations')
+            .select('*')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(4);
+        }
+
+        const data = queryRes.data;
+
+        if (isMounted && data && data.length > 0) {
+          const mappedDb: DestinationCardItem[] = data.map((item, idx) => {
+            const rawAttractions = item.popular_attractions;
+            const highlightsList: string[] = Array.isArray(rawAttractions)
+              ? (rawAttractions as string[]).filter((h) => typeof h === 'string' && h.trim().length > 0)
+              : [];
+
+            const cover =
+              item.cover_image ||
+              (Array.isArray(item.gallery_images) && item.gallery_images.length > 0
+                ? (item.gallery_images[0] as string)
+                : DEFAULT_FALLBACK_IMAGE);
+
+            return {
+              id: item.id,
+              name: item.name,
+              district: item.district || 'Sri Lanka',
+              tag: item.tag || 'Popular Destination',
+              description: item.description || 'Explore the breathtaking landscapes and cultural heritage.',
+              image: cover,
+              highlights: highlightsList.length > 0 ? highlightsList : ['Scenic Views', 'Cultural Heritage', 'Iconic Landmarks'],
+              bestTimeToVisit: item.best_time_to_visit || 'Year-round',
+              bentoSpan: getBentoSpan(idx),
+            };
+          });
+
+          // If database has 4 or more, display top 4 exclusively
+          if (mappedDb.length >= 4) {
+            setDestinations(mappedDb.slice(0, 4));
+          } else {
+            // If database has 1-3 destinations, prepend them and fill remaining slots from mockData
+            const dbNames = new Set(mappedDb.map((d) => d.name.toLowerCase()));
+            const remainingMocks = DESTINATIONS.filter(
+              (m) => !dbNames.has(m.name.toLowerCase())
+            );
+            const combined = [...mappedDb, ...remainingMocks].slice(0, 4).map((item, idx) => ({
+              ...item,
+              bentoSpan: getBentoSpan(idx),
+            }));
+            setDestinations(combined);
+          }
+        }
+      } catch (err) {
+        console.warn('[Destinations] Error loading live destinations, using resilient fallback:', err);
+      }
+    }
+
+    loadActiveDestinations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialDestinations]);
+
   return (
     <section id="destinations" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Section Header: Clean Vertical Stack */}
@@ -22,9 +133,9 @@ export default function Destinations({ onSelectDestination }: DestinationsProps)
         </p>
       </div>
 
-      {/* Bento Grid (4 Cards) */}
+      {/* Bento Grid (Top 4 Cards) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {DESTINATIONS.map((dest) => (
+        {destinations.map((dest) => (
           <div
             key={dest.id}
             onClick={() => onSelectDestination(dest.name)}
@@ -40,7 +151,7 @@ export default function Destinations({ onSelectDestination }: DestinationsProps)
             />
 
             {/* Dark Gradient Overlay for optimal legibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/20 pointer-events-none" />
 
             {/* Top Row: Tag badge + Arrow Icon */}
             <div className="relative z-10 flex items-center justify-between">

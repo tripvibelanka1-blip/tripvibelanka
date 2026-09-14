@@ -72,7 +72,8 @@ export default function VehiclesTable({ initialVehicles }: VehiclesTableProps) {
         const matchesPlate = v.license_plate?.toLowerCase().includes(q);
         const matchesCategory = v.category?.toLowerCase().includes(q);
         const matchesDesc = v.description?.toLowerCase().includes(q);
-        if (!matchesName && !matchesPlate && !matchesCategory && !matchesDesc) {
+        const matchesRec = v.recommended_for?.toLowerCase().includes(q);
+        if (!matchesName && !matchesPlate && !matchesCategory && !matchesDesc && !matchesRec) {
           return false;
         }
       }
@@ -304,9 +305,21 @@ export default function VehiclesTable({ initialVehicles }: VehiclesTableProps) {
                         </div>
 
                         <div>
-                          <div className="font-bold text-slate-900 group-hover:text-[#FF6B00] transition-colors">
-                            {vehicle.name}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-900 group-hover:text-[#FF6B00] transition-colors">
+                              {vehicle.name}
+                            </span>
+                            {vehicle.display_order !== null && vehicle.display_order !== undefined && vehicle.display_order > 0 && (
+                              <span className="text-[9px] font-bold bg-orange-100/70 text-orange-900 border border-orange-200/60 px-1.5 py-0.2 rounded">
+                                Rank #{vehicle.display_order}
+                              </span>
+                            )}
                           </div>
+                          {vehicle.recommended_for && (
+                            <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 max-w-xs">
+                              {vehicle.recommended_for}
+                            </div>
+                          )}
                           {vehicle.license_plate && (
                             <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded mt-0.5 inline-block">
                               {vehicle.license_plate}

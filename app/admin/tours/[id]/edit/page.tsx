@@ -29,6 +29,10 @@ import DualPriceInput from '@/components/admin/DualPriceInput';
 
 interface TourFormData {
   title: string;
+  category: string;
+  tagline: string;
+  locations_input: string;
+  display_order: number;
   destination_id: string;
   duration_days: number;
   duration_nights: number;
@@ -47,6 +51,10 @@ interface TourFormData {
 
 const defaultFormData: TourFormData = {
   title: '',
+  category: 'Cultural',
+  tagline: '',
+  locations_input: '',
+  display_order: 1,
   destination_id: '',
   duration_days: 1,
   duration_nights: 0,
@@ -158,8 +166,16 @@ export default function EditTourPage() {
         }
 
         const tour = tourRes.data;
+        const locationsList = Array.isArray(tour.locations)
+          ? (tour.locations as string[]).join(', ')
+          : '';
+
         setFormData({
           title: tour.title || '',
+          category: tour.category || 'Cultural',
+          tagline: tour.tagline || '',
+          locations_input: locationsList,
+          display_order: tour.display_order ?? 1,
           destination_id: tour.destination_id || '',
           duration_days: tour.duration_days ?? 1,
           duration_nights: tour.duration_nights ?? 0,
@@ -503,8 +519,19 @@ export default function EditTourPage() {
           details: item.details.trim(),
         }));
 
+      const cleanedLocations = formData.locations_input
+        ? formData.locations_input
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
       const payload: TourUpdate = {
         title: formData.title.trim(),
+        category: formData.category || 'Cultural',
+        tagline: formData.tagline.trim() || null,
+        locations: cleanedLocations,
+        display_order: Number(formData.display_order) || 0,
         destination_id: formData.destination_id ? formData.destination_id : null,
         duration_days: Number(formData.duration_days) || 0,
         duration_nights: Number(formData.duration_nights) || 0,
@@ -702,24 +729,87 @@ export default function EditTourPage() {
               </div>
             </div>
 
-            {/* Tour Title */}
-            <div>
-              <label
-                htmlFor="edit-tour-title"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-              >
-                Tour Title <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="edit-tour-title"
-                type="text"
-                required
-                disabled={isSubmitting}
-                value={formData.title}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
-                placeholder="e.g. 7-Day Wonders of Ceylon & Coastal Retreat"
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
-              />
+            {/* Tour Title & Category Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="edit-tour-title"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Tour Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="edit-tour-title"
+                  type="text"
+                  required
+                  disabled={isSubmitting}
+                  value={formData.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  placeholder="e.g. Classical Heritage & Wildlife Odyssey"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-tour-category"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Category Filter
+                </label>
+                <select
+                  id="edit-tour-category"
+                  disabled={isSubmitting}
+                  value={formData.category}
+                  onChange={(e) => handleFieldChange('category', e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-medium text-slate-800"
+                >
+                  <option value="Cultural">Cultural</option>
+                  <option value="Wildlife">Wildlife</option>
+                  <option value="Coastal">Coastal</option>
+                  <option value="Hill Country">Hill Country</option>
+                  <option value="Signature">Signature</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tagline & Locations Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="edit-tour-tagline"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Marketing Tagline / Subtitle
+                </label>
+                <input
+                  id="edit-tour-tagline"
+                  type="text"
+                  disabled={isSubmitting}
+                  value={formData.tagline}
+                  onChange={(e) => handleFieldChange('tagline', e.target.value)}
+                  placeholder="e.g. The definitive circuit blending ancient wonders with untamed wildlife."
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-tour-locations"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Route Locations (Comma Separated)
+                </label>
+                <input
+                  id="edit-tour-locations"
+                  type="text"
+                  disabled={isSubmitting}
+                  value={formData.locations_input}
+                  onChange={(e) => handleFieldChange('locations_input', e.target.value)}
+                  placeholder="e.g. Colombo, Sigiriya, Kandy, Yala, Galle"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+                />
+              </div>
             </div>
 
             {/* Custom Destination Select */}
@@ -1330,10 +1420,10 @@ export default function EditTourPage() {
                       formData.is_featured ? 'text-amber-500' : 'text-slate-400'
                     }`}
                   />
-                  Featured Tour
+                  Featured Tour ("Curated" Badge)
                 </label>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Showcase on the homepage curated recommendations
+                  Displays a prominent Curated badge on the homepage card
                 </p>
               </div>
               <button
@@ -1356,6 +1446,28 @@ export default function EditTourPage() {
                   `}
                 />
               </button>
+            </div>
+
+            {/* Display Order Priority */}
+            <div className="pt-3 border-t border-slate-100">
+              <label
+                htmlFor="edit-tour-order"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1"
+              >
+                Display Order Priority
+              </label>
+              <p className="text-[11px] text-slate-500 mb-1.5">
+                Lowest numbers (e.g. 1, 2, 3) appear first on the homepage tours list.
+              </p>
+              <input
+                id="edit-tour-order"
+                type="number"
+                min={0}
+                disabled={isSubmitting}
+                value={formData.display_order}
+                onChange={(e) => handleFieldChange('display_order', parseInt(e.target.value) || 0)}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60"
+              />
             </div>
           </div>
 

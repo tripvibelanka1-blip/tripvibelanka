@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Currency, Experience } from '@/types/tourism';
 import { EXPERIENCES } from '@/data/mockData';
 import { useCurrency } from '@/context/CurrencyContext';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Sparkles, Plus } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from 'lucide-react';
 
 interface ExperiencesProps {
   currency: Currency;
@@ -17,6 +18,76 @@ export default function Experiences({ currency, onSelectExperience }: Experience
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [experiences, setExperiences] = useState<Experience[]>(EXPERIENCES);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLiveExperiences() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('activities')
+          .select('*, destination:destinations(name)')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.warn('[Experiences] Supabase query notice:', error.message);
+          return;
+        }
+
+        if (isMounted && data && data.length > 0) {
+          const mapped: Experience[] = data.map((act) => {
+            const destName = act.destination?.name || 'Sri Lanka';
+            const loc = act.location?.trim() || destName;
+            const priceNum = Number(act.price) || 0;
+            const priceLkrNum =
+              Number(act.price_lkr) || Math.round(priceNum * (exchangeRate || 310));
+            const img =
+              act.cover_image ||
+              (Array.isArray(act.gallery_images) && act.gallery_images.length > 0
+                ? act.gallery_images[0]
+                : 'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=800&q=80');
+
+            return {
+              id: act.id,
+              title: act.title,
+              duration: act.duration || 'Half Day Excursion',
+              category: act.category || 'Wildlife & Nature',
+              priceUSD: priceNum,
+              priceLKR: priceLkrNum,
+              image: img,
+              description:
+                act.description ||
+                'Experience the authentic charm and natural splendor of Sri Lanka with our bespoke local guides.',
+              location: loc,
+            };
+          });
+
+          // If fewer than 4 live experiences exist, complement with mock items to keep carousel lush
+          if (mapped.length < 4) {
+            const existingTitles = new Set(mapped.map((m) => m.title.toLowerCase()));
+            const complementary = EXPERIENCES.filter(
+              (mock) => !existingTitles.has(mock.title.toLowerCase())
+            );
+            setExperiences([...mapped, ...complementary]);
+          } else {
+            setExperiences(mapped);
+          }
+        }
+      } catch (err) {
+        console.warn('[Experiences] Error fetching live activities:', err);
+      }
+    }
+
+    loadLiveExperiences();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [exchangeRate]);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -40,7 +111,7 @@ export default function Experiences({ currency, onSelectExperience }: Experience
     if (currency === 'USD') {
       return `$${exp.priceUSD}`;
     }
-    const lkr = Math.round(exp.priceUSD * exchangeRate);
+    const lkr = exp.priceLKR || Math.round(exp.priceUSD * exchangeRate);
     return `Rs. ${lkr.toLocaleString()}`;
   };
 
@@ -92,7 +163,7 @@ export default function Experiences({ currency, onSelectExperience }: Experience
         onScroll={checkScroll}
         className="flex gap-6 overflow-x-auto hide-scrollbar pb-6 pt-2 snap-x snap-mandatory -mx-4 px-4 sm:-mx-6 sm:px-6"
       >
-        {EXPERIENCES.map((exp) => (
+        {experiences.map((exp) => (
           <div
             key={exp.id}
             className="snap-start shrink-0 w-[85vw] sm:w-[340px] lg:w-[360px] bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"

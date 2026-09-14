@@ -6,6 +6,10 @@
 CREATE TABLE IF NOT EXISTS destinations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
+  district TEXT,
+  tag TEXT,
+  best_time_to_visit TEXT,
+  display_order INTEGER DEFAULT 0,
   description TEXT,
   cover_image TEXT,
   gallery_images JSONB DEFAULT '[]'::jsonb, -- Array of image URLs
@@ -16,6 +20,10 @@ CREATE TABLE IF NOT EXISTS destinations (
 );
 
 -- Ensure newly added columns exist if table was already created earlier
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS tag TEXT;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS best_time_to_visit TEXT;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
 ALTER TABLE destinations ADD COLUMN IF NOT EXISTS cover_image TEXT;
 ALTER TABLE destinations ADD COLUMN IF NOT EXISTS gallery_images JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE destinations ADD COLUMN IF NOT EXISTS popular_attractions JSONB DEFAULT '[]'::jsonb;
@@ -52,6 +60,10 @@ ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS tours (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
+  category TEXT DEFAULT 'Cultural',
+  tagline TEXT,
+  locations JSONB DEFAULT '[]'::jsonb, -- Array of string route locations e.g. ["Colombo", "Sigiriya", "Kandy"]
+  display_order INTEGER DEFAULT 0,
   destination_id UUID REFERENCES destinations(id) ON DELETE SET NULL,
   duration_days INTEGER NOT NULL DEFAULT 1,
   duration_nights INTEGER NOT NULL DEFAULT 0,
@@ -69,6 +81,14 @@ CREATE TABLE IF NOT EXISTS tours (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure newly added columns exist if table was already created earlier
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Cultural';
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS tagline TEXT;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS locations JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- Enable Row Level Security (RLS) on Tours
 ALTER TABLE tours ENABLE ROW LEVEL SECURITY;
@@ -232,6 +252,9 @@ USING (bucket_id = 'destination-images');
 CREATE TABLE IF NOT EXISTS activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
+  category TEXT DEFAULT 'Wildlife & Nature',
+  location TEXT,
+  display_order INTEGER DEFAULT 0,
   destination_id UUID REFERENCES destinations(id) ON DELETE SET NULL,
   duration TEXT,
   price NUMERIC(10, 2) DEFAULT 0.00, -- Primary Price in USD
@@ -245,7 +268,11 @@ CREATE TABLE IF NOT EXISTS activities (
 );
 
 -- Ensure newly added columns exist if table was already created
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Wildlife & Nature';
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
 ALTER TABLE activities ADD COLUMN IF NOT EXISTS price_lkr NUMERIC(12, 2) DEFAULT 0.00;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- Enable RLS
 ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
@@ -707,3 +734,421 @@ TO authenticated
 USING (true) 
 WITH CHECK (true);
 
+-- ==========================================================
+-- 19. Migration: Destinations Extra Fields & Top 4 Seed
+-- ==========================================================
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS tag TEXT;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS best_time_to_visit TEXT;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+
+-- Optional: Seed/Update top 4 destinations if desired
+INSERT INTO destinations (name, district, tag, best_time_to_visit, display_order, description, cover_image, popular_attractions, is_active)
+VALUES
+(
+  'Sigiriya & Cultural Triangle',
+  'Matale District',
+  '8th Wonder of the World',
+  'Dec – Apr & Jul – Sep',
+  1,
+  'Marvel at the ancient sky citadel carved into a 200m monolithic rock, surrounded by terraced water gardens, lion claw staircases, and historic frescoes.',
+  'https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1200&q=80',
+  '["Lion Rock Citadel", "Pidurangala Sunrise", "Dambulla Cave Temple", "Minneriya Elephant Gathering"]'::jsonb,
+  true
+),
+(
+  'Ella & The Central Highlands',
+  'Badulla District',
+  'Misty Alpine Escapes',
+  'Jan – May',
+  2,
+  'Immerse in dramatic mountain passes, the iconic Nine Arch Demodara viaduct, cascading Ravana Falls, and lush tea factory estates.',
+  'https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1000&q=80',
+  '["Nine Arch Bridge", "Little Adam''s Peak", "Ravana Waterfalls", "Ceylon Tea Tasting"]'::jsonb,
+  true
+),
+(
+  'Kandy Kingdom',
+  'Central Province',
+  'Sacred Heritage & Royalty',
+  'Year-round (Esala Perahera in Aug)',
+  3,
+  'Sri Lanka''s last royal kingdom nestled beside serene Kandy Lake, home to the Sacred Relic of the Tooth and Peradeniya Botanical Gardens.',
+  'https://images.unsplash.com/photo-1588598198321-9735fd52455b?auto=format&fit=crop&w=1000&q=80',
+  '["Temple of the Tooth", "Royal Botanical Gardens", "Kandy Lake Walk", "Traditional Fire Dance"]'::jsonb,
+  true
+),
+(
+  'Mirissa & Southern Coast',
+  'Matara District',
+  'Turquoise Seas & Palm Hills',
+  'Nov – Apr',
+  4,
+  'Famed for iconic Coconut Tree Hill, serene crescent beaches, vibrant beachside seafood dining, and ethical blue whale watching charters.',
+  'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=1200&q=80',
+  '["Coconut Tree Hill", "Blue Whale Watching", "Secret Beach Cove", "Galle Dutch Fort Nearby"]'::jsonb,
+  true
+)
+ON CONFLICT DO NOTHING;
+
+-- ==========================================================
+-- 20. Migration: Tours Extra Fields & Signature Tours Seed
+-- ==========================================================
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Cultural';
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS tagline TEXT;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS locations JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+
+-- Optional: Seed top signature tours if desired
+INSERT INTO tours (
+  title,
+  category,
+  tagline,
+  locations,
+  duration_days,
+  duration_nights,
+  price_usd,
+  price_lkr,
+  description,
+  highlights,
+  cover_image,
+  is_featured,
+  is_active,
+  display_order
+)
+VALUES
+(
+  'Classical Heritage & Wildlife Odyssey',
+  'Cultural',
+  'The definitive Sri Lankan circuit blending ancient wonders with untamed wildlife.',
+  '["Colombo", "Sigiriya", "Kandy", "Yala", "Galle"]'::jsonb,
+  7,
+  6,
+  890.00,
+  275900.00,
+  'Experience Sri Lanka''s timeless highlights from ancient rock citadels to wild elephant and leopard safaris.',
+  '["Private sunrise ascent of Sigiriya Rock Fortress", "VIP blessings at Kandy Temple of the Sacred Tooth", "Private 4x4 open-top jeep safari in Yala National Park", "Sunset stroll along the cobblestones of UNESCO Galle Fort"]'::jsonb,
+  'https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=800&q=80',
+  true,
+  true,
+  1
+),
+(
+  'The Grand Sri Lanka Private Discovery',
+  'Signature',
+  'An all-encompassing private chauffeur expedition spanning mountains, coastlines, and history.',
+  '["Sigiriya", "Polonnaruwa", "Kandy", "Nuwara Eliya", "Ella", "Yala", "Mirissa"]'::jsonb,
+  10,
+  9,
+  1420.00,
+  440200.00,
+  'Our most prestigious bespoke voyage across the Pearl of the Indian Ocean in executive vehicle comfort.',
+  '["First-class observation carriage train through cloud forests", "Private tea masterclass at an active colonial plantation", "Two safari game drives in Yala and Udawalawe", "Exclusive sunset yacht charter along the southern coast"]'::jsonb,
+  'https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=800&q=80',
+  true,
+  true,
+  2
+),
+(
+  'Highland Mist & Ceylon Tea Trails',
+  'Hill Country',
+  'Indulge in cool mountain air, emerald estates, and colonial elegance.',
+  '["Kandy", "Nuwara Eliya", "Ella", "Haputale"]'::jsonb,
+  5,
+  4,
+  680.00,
+  210800.00,
+  'Traverse the verdant peaks of Sri Lanka''s tea heartland with visits to cascading waterfalls and colonial estates.',
+  '["Heritage luxury bungalow stay in the tea hills", "Scenic train ride over Nine Arch Demodara Bridge", "Trek to Little Adam''s Peak & Ravana Falls", "Authentic artisanal Ceylon tea tasting experience"]'::jsonb,
+  'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80',
+  false,
+  true,
+  3
+),
+(
+  'Southern Sands, Whales & Coastal Forts',
+  'Coastal',
+  'Turquoise Indian Ocean waters, golden palms, and historic ramparts.',
+  '["Bentota", "Mirissa", "Weligama", "Galle"]'::jsonb,
+  4,
+  3,
+  560.00,
+  173600.00,
+  'A coastal getaway featuring whale watching, surfing bays, and the atmospheric lanes of Galle Fort.',
+  '["Private blue whale watching excursion at dawn", "Sunset cocktails at Coconut Tree Hill", "Guided heritage walk through Galle Dutch Fort", "Relaxation at secluded boutique beach clubs"]'::jsonb,
+  'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=800&q=80',
+  false,
+  true,
+  4
+),
+(
+  'Wild Big Four: Leopards, Elephants & Whales',
+  'Wildlife',
+  'Encounter Sri Lanka''s majestic biodiversity on land and sea.',
+  '["Wilpattu", "Minneriya", "Yala", "Mirissa"]'::jsonb,
+  6,
+  5,
+  820.00,
+  254200.00,
+  'An action-packed safari circuit for nature lovers guided by expert naturalists.',
+  '["Jeep safari in Yala National Park for leopard tracking", "The Great Elephant Gathering at Minneriya", "Bird watching safari in Bundala wetlands", "Ocean safari charter for dolphins and whales"]'::jsonb,
+  'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=800&q=80',
+  false,
+  true,
+  5
+)
+ON CONFLICT DO NOTHING;
+ 
+-- ==========================================================
+-- 21. Activities & Experiences Migration & Seed Data
+-- Run this in Supabase SQL Editor to populate live Island Experiences
+-- ==========================================================
+
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Wildlife & Nature';
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS price_lkr NUMERIC(12, 2) DEFAULT 0.00;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+-- Seed Signature Experiences if activities table is empty or for initial setup
+INSERT INTO activities (
+  title,
+  category,
+  location,
+  duration,
+  price,
+  price_lkr,
+  description,
+  cover_image,
+  display_order,
+  is_active
+) VALUES 
+(
+  'Private 4x4 Leopard Safari',
+  'Wildlife & Nature',
+  'Yala National Park',
+  '4 - 6 Hours',
+  95.00,
+  29450.00,
+  'Track leopards and wild elephants with a seasoned tracker in customized open-air Toyota Land Cruisers.',
+  'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?auto=format&fit=crop&w=800&q=80',
+  1,
+  true
+),
+(
+  'Ella Rock & Little Adam''s Peak Trek',
+  'Adventure & Trekking',
+  'Ella Highlands',
+  '3 - 5 Hours',
+  45.00,
+  13950.00,
+  'Hike through tea plantations, pine forests, and rocky cliffs to catch sunrise over Ella Gap.',
+  'https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=800&q=80',
+  2,
+  true
+),
+(
+  'Temple of the Tooth & Fire Dance',
+  'Cultural & Sacred',
+  'Kandy City',
+  '3 Hours',
+  50.00,
+  15500.00,
+  'Participate in the evening Pooja drum ceremony and witness historic Kandyan fire-walking performances.',
+  'https://images.unsplash.com/photo-1588598198321-9735fd52455b?auto=format&fit=crop&w=800&q=80',
+  3,
+  true
+),
+(
+  'High-Altitude Ceylon Tea Masterclass',
+  'Culinary & Heritage',
+  'Nuwara Eliya',
+  '2.5 Hours',
+  35.00,
+  10850.00,
+  'Pick tea leaves alongside tea pluckers, tour an 1890s factory, and taste award-winning Orange Pekoe grades.',
+  'https://images.unsplash.com/photo-1596701062351-8c2c14d1fdd0?auto=format&fit=crop&w=800&q=80',
+  4,
+  true
+),
+(
+  'Mirissa Blue Whale & Dolphin Yachting',
+  'Marine Adventure',
+  'Mirissa Marina',
+  '4 Hours',
+  85.00,
+  26350.00,
+  'Sail into the Indian Ocean aboard an ethical yacht charter with marine biologists to watch majestic blue whales.',
+  'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=800&q=80',
+  5,
+  true
+)
+ON CONFLICT DO NOTHING;
+
+-- ==========================================================
+-- 22. Vehicles & Fleet Management Module & Seed Data
+-- Run this in Supabase SQL Editor to manage vehicles and populate live fleet
+-- ==========================================================
+
+CREATE TABLE IF NOT EXISTS vehicles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'van',
+  license_plate TEXT,
+  passenger_capacity INTEGER NOT NULL DEFAULT 4,
+  luggage_capacity INTEGER NOT NULL DEFAULT 2,
+  passengers_text TEXT,
+  luggage_text TEXT,
+  recommended_for TEXT,
+  display_order INTEGER DEFAULT 0,
+  transmission TEXT DEFAULT 'Automatic',
+  fuel_type TEXT DEFAULT 'Diesel',
+  features JSONB DEFAULT '[]'::jsonb,
+  description TEXT,
+  cover_image TEXT,
+  gallery_images JSONB DEFAULT '[]'::jsonb,
+  price_per_day_usd NUMERIC(10, 2) DEFAULT 0.00,
+  price_per_day_lkr NUMERIC(12, 2) DEFAULT 0.00,
+  price_per_km_usd NUMERIC(10, 2) DEFAULT 0.00,
+  price_per_km_lkr NUMERIC(12, 2) DEFAULT 0.00,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Ensure newly added columns exist if table was created earlier
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS passengers_text TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS luggage_text TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS recommended_for TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS price_per_day_lkr NUMERIC(12, 2) DEFAULT 0.00;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS price_per_km_lkr NUMERIC(12, 2) DEFAULT 0.00;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+-- Enable RLS on vehicles
+ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to active vehicles
+DROP POLICY IF EXISTS "Public Read Access (Vehicles)" ON vehicles;
+CREATE POLICY "Public Read Access (Vehicles)"
+ON vehicles FOR SELECT
+TO public
+USING (is_active = true);
+
+-- Allow authenticated admin full access to vehicles
+DROP POLICY IF EXISTS "Allow authenticated full access to vehicles" ON vehicles;
+CREATE POLICY "Allow authenticated full access to vehicles"
+ON vehicles FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+-- Storage bucket for vehicle images
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'vehicle-images',
+  'vehicle-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 10485760,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- Storage Policies for 'vehicle-images'
+DROP POLICY IF EXISTS "Public Read Access (Vehicle Images Bucket)" ON storage.objects;
+CREATE POLICY "Public Read Access (Vehicle Images Bucket)"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'vehicle-images');
+
+DROP POLICY IF EXISTS "Admin Upload Access (Vehicle Images Bucket)" ON storage.objects;
+CREATE POLICY "Admin Upload Access (Vehicle Images Bucket)"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'vehicle-images');
+
+DROP POLICY IF EXISTS "Admin Update Access (Vehicle Images Bucket)" ON storage.objects;
+CREATE POLICY "Admin Update Access (Vehicle Images Bucket)"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'vehicle-images');
+
+DROP POLICY IF EXISTS "Admin Delete Access (Vehicle Images Bucket)" ON storage.objects;
+CREATE POLICY "Admin Delete Access (Vehicle Images Bucket)"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'vehicle-images');
+
+-- Seed Signature Fleet Vehicles
+INSERT INTO vehicles (
+  name,
+  category,
+  passenger_capacity,
+  luggage_capacity,
+  passengers_text,
+  luggage_text,
+  recommended_for,
+  display_order,
+  transmission,
+  fuel_type,
+  features,
+  price_per_day_usd,
+  price_per_day_lkr,
+  cover_image,
+  is_active
+) VALUES 
+(
+  'Mercedes-Benz E-Class & Toyota Premio',
+  'sedan',
+  3,
+  3,
+  '1 - 3 Passengers',
+  '2 Large + 2 Carry-on Bags',
+  'Couples, solo travelers & executive business trips',
+  1,
+  'Automatic',
+  'Petrol',
+  '["Dual-Zone Climate A/C", "Complimentary 4G Wi-Fi", "Leather Ergonomic Seats", "Bottled Mineral Water"]'::jsonb,
+  75.00,
+  23250.00,
+  'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
+  true
+),
+(
+  'Toyota HiAce Super GL Luxury Coach',
+  'van',
+  7,
+  6,
+  '4 - 7 Passengers',
+  '6 Large Suitcases',
+  'Families, small groups & travelers with bulky luggage',
+  2,
+  'Automatic',
+  'Diesel',
+  '["Reclining Captain Chairs", "Individual Rear A/C Vents", "High-Roof Panoramic Windows", "USB Fast Chargers at Every Seat"]'::jsonb,
+  95.00,
+  29450.00,
+  'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80',
+  true
+),
+(
+  'Toyota Coaster Executive Mini Coach',
+  'mini_bus',
+  18,
+  16,
+  '8 - 18 Passengers',
+  '16+ Suitcases & Gear',
+  'Extended families, tour groups & retreat parties',
+  3,
+  'Manual',
+  'Diesel',
+  '["Touring PA Audio System", "Heavy-Duty Chilled A/C", "Deep Recline Seats", "Overhead Luggage Compartments"]'::jsonb,
+  140.00,
+  43400.00,
+  'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
+  true
+)
+ON CONFLICT DO NOTHING;

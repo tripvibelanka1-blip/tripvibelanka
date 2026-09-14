@@ -94,6 +94,10 @@ export default function EditVehiclePage() {
   const [pricePerDayLkr, setPricePerDayLkr] = useState(0);
   const [pricePerKmUsd, setPricePerKmUsd] = useState(0);
   const [pricePerKmLkr, setPricePerKmLkr] = useState(0);
+  const [recommendedFor, setRecommendedFor] = useState('');
+  const [displayOrder, setDisplayOrder] = useState(0);
+  const [passengersText, setPassengersText] = useState('');
+  const [luggageText, setLuggageText] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   // Upload states
@@ -141,6 +145,10 @@ export default function EditVehiclePage() {
           setPricePerDayLkr(Number(v.price_per_day_lkr || 0));
           setPricePerKmUsd(Number(v.price_per_km_usd || 0));
           setPricePerKmLkr(Number(v.price_per_km_lkr || 0));
+          setRecommendedFor(v.recommended_for || '');
+          setDisplayOrder(Number(v.display_order || 0));
+          setPassengersText(v.passengers_text || '');
+          setLuggageText(v.luggage_text || '');
           setIsActive(v.is_active ?? true);
         }
       } catch (err: any) {
@@ -277,6 +285,10 @@ export default function EditVehiclePage() {
         license_plate: licensePlate.trim() || null,
         passenger_capacity: Number(passengerCapacity) || 4,
         luggage_capacity: Number(luggageCapacity) || 3,
+        passengers_text: passengersText.trim() || null,
+        luggage_text: luggageText.trim() || null,
+        recommended_for: recommendedFor.trim() || null,
+        display_order: Number(displayOrder) || 0,
         transmission,
         fuel_type: fuelType,
         features,
@@ -464,6 +476,22 @@ export default function EditVehiclePage() {
                   className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] transition-all font-mono"
                 />
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Recommended For Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={recommendedFor}
+                  onChange={(e) => setRecommendedFor(e.target.value)}
+                  placeholder="e.g. Couples, solo travelers & executive business trips"
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] transition-all"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Displayed as the subtitle on the homepage vehicle card
+                </span>
+              </div>
             </div>
           </div>
 
@@ -500,6 +528,32 @@ export default function EditVehiclePage() {
                   value={luggageCapacity}
                   onChange={(e) => setLuggageCapacity(Number(e.target.value))}
                   className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Passenger Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={passengersText}
+                  onChange={(e) => setPassengersText(e.target.value)}
+                  placeholder="e.g. 1 - 3 Passengers"
+                  className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Luggage Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={luggageText}
+                  onChange={(e) => setLuggageText(e.target.value)}
+                  placeholder="e.g. 2 Large + 2 Carry-on Bags"
+                  className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl"
                 />
               </div>
 
@@ -859,6 +913,25 @@ export default function EditVehiclePage() {
                 className="w-4 h-4 accent-[#FF6B00] rounded cursor-pointer"
               />
             </label>
+
+            {/* Display Order */}
+            <div className="pt-3 border-t border-slate-100">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Homepage Display Order
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={displayOrder}
+                onChange={(e) => setDisplayOrder(parseInt(e.target.value, 10) || 0)}
+                placeholder="0"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
+              />
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Rank 1, 2, 3... controls order on the landing page
+              </span>
+            </div>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">

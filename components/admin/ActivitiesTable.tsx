@@ -108,7 +108,9 @@ export default function ActivitiesTable({
       const matchTitle = activity.title.toLowerCase().includes(q);
       const matchDesc = activity.description?.toLowerCase().includes(q) || false;
       const matchDest = destName.includes(q);
-      if (!matchTitle && !matchDesc && !matchDest) return false;
+      const matchCat = activity.category?.toLowerCase().includes(q) || false;
+      const matchLoc = activity.location?.toLowerCase().includes(q) || false;
+      if (!matchTitle && !matchDesc && !matchDest && !matchCat && !matchLoc) return false;
     }
 
     return true;
@@ -282,6 +284,16 @@ export default function ActivitiesTable({
 
                       {/* Title & Description Excerpt */}
                       <td className="py-4 px-4">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100/80 text-orange-950 border border-orange-200/80">
+                            {act.category || 'Wildlife & Nature'}
+                          </span>
+                          {act.display_order !== null && act.display_order !== undefined && act.display_order > 0 && (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              Order #{act.display_order}
+                            </span>
+                          )}
+                        </div>
                         <div className="font-bold text-slate-900 text-sm max-w-sm sm:max-w-md line-clamp-1 group-hover:text-orange-950 transition-colors">
                           {act.title}
                         </div>
@@ -302,9 +314,21 @@ export default function ActivitiesTable({
                         )}
                       </td>
 
-                      {/* Destination */}
+                      {/* Destination & Specific Location */}
                       <td className="py-4 px-4 whitespace-nowrap">
-                        {destName ? (
+                        {act.location ? (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-800 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg">
+                              <MapPin className="w-3 h-3 text-[#FF6B00]" />
+                              {act.location}
+                            </span>
+                            {destName && (
+                              <div className="text-[10px] text-slate-500 pl-1 font-medium">
+                                Region: {destName}
+                              </div>
+                            )}
+                          </div>
+                        ) : destName ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg">
                             <MapPin className="w-3 h-3 text-[#FF6B00]" />
                             {destName}

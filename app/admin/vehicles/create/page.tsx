@@ -38,6 +38,10 @@ interface VehicleFormData {
   license_plate: string;
   passenger_capacity: number;
   luggage_capacity: number;
+  passengers_text: string;
+  luggage_text: string;
+  recommended_for: string;
+  display_order: number;
   transmission: string;
   fuel_type: string;
   features: string[];
@@ -77,16 +81,20 @@ const initialFormData: VehicleFormData = {
   license_plate: '',
   passenger_capacity: 6,
   luggage_capacity: 4,
+  passengers_text: '',
+  luggage_text: '',
+  recommended_for: '',
+  display_order: 0,
   transmission: 'Automatic',
   fuel_type: 'Diesel',
   features: ['Dual AC', 'High-Speed Wi-Fi', 'USB Charging Ports', 'English Speaking Chauffeur'],
   description: '',
   cover_image: '',
   gallery_images: [],
-  price_per_day_usd: 60,
-  price_per_day_lkr: 18600,
-  price_per_km_usd: 0.30,
-  price_per_km_lkr: 95,
+  price_per_day_usd: 0,
+  price_per_day_lkr: 0,
+  price_per_km_usd: 0,
+  price_per_km_lkr: 0,
   is_active: true,
 };
 
@@ -261,6 +269,10 @@ export default function CreateVehiclePage() {
         license_plate: formData.license_plate.trim() || null,
         passenger_capacity: Number(formData.passenger_capacity) || 4,
         luggage_capacity: Number(formData.luggage_capacity) || 3,
+        passengers_text: formData.passengers_text.trim() || null,
+        luggage_text: formData.luggage_text.trim() || null,
+        recommended_for: formData.recommended_for.trim() || null,
+        display_order: Number(formData.display_order) || 0,
         transmission: formData.transmission,
         fuel_type: formData.fuel_type,
         features: formData.features,
@@ -388,6 +400,22 @@ export default function CreateVehiclePage() {
                   className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] transition-all font-mono"
                 />
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Recommended For Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={formData.recommended_for}
+                  onChange={(e) => handleFieldChange('recommended_for', e.target.value)}
+                  placeholder="e.g. Couples, solo travelers & executive business trips"
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] transition-all"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Displayed as the subtitle on the homepage vehicle card
+                </span>
+              </div>
             </div>
           </div>
 
@@ -424,6 +452,32 @@ export default function CreateVehiclePage() {
                   value={formData.luggage_capacity}
                   onChange={(e) => handleFieldChange('luggage_capacity', Number(e.target.value))}
                   className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Passenger Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.passengers_text}
+                  onChange={(e) => handleFieldChange('passengers_text', e.target.value)}
+                  placeholder="e.g. 1 - 3 Passengers"
+                  className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Luggage Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.luggage_text}
+                  onChange={(e) => handleFieldChange('luggage_text', e.target.value)}
+                  placeholder="e.g. 2 Large + 2 Carry-on Bags"
+                  className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl"
                 />
               </div>
 
@@ -789,6 +843,25 @@ export default function CreateVehiclePage() {
                 className="w-4 h-4 accent-[#FF6B00] rounded cursor-pointer"
               />
             </label>
+
+            {/* Display Order */}
+            <div className="pt-3 border-t border-slate-100">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Homepage Display Order
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={formData.display_order}
+                onChange={(e) => handleFieldChange('display_order', parseInt(e.target.value, 10) || 0)}
+                placeholder="0"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold"
+              />
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Rank 1, 2, 3... controls order on the landing page
+              </span>
+            </div>
           </div>
 
           {/* Live Card Preview */}

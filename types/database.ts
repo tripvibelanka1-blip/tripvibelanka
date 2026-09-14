@@ -12,6 +12,10 @@ export interface TourItineraryItem {
 export interface Tour {
   id: string;
   title: string;
+  category?: string | null;
+  tagline?: string | null;
+  locations?: string[];
+  display_order?: number | null;
   destination_id: string | null;
   duration_days: number;
   duration_nights: number;
@@ -41,6 +45,10 @@ export type TourUpdate = Partial<TourInsert>;
 export interface Destination {
   id: string;
   name: string;
+  district?: string | null;
+  tag?: string | null;
+  best_time_to_visit?: string | null;
+  display_order?: number | null;
   description: string | null;
   cover_image: string | null;
   gallery_images: string[];
@@ -64,6 +72,9 @@ export type DestinationUpdate = Partial<DestinationInsert>;
 export interface Activity {
   id: string;
   title: string;
+  category?: string | null;
+  location?: string | null;
+  display_order?: number | null;
   destination_id: string | null;
   duration: string | null;
   price: number;
@@ -156,6 +167,10 @@ export interface Vehicle {
   license_plate?: string | null;
   passenger_capacity: number;
   luggage_capacity: number;
+  passengers_text?: string | null;
+  luggage_text?: string | null;
+  recommended_for?: string | null;
+  display_order?: number | null;
   transmission?: string;
   fuel_type?: string;
   features: string[];

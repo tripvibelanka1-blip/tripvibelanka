@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Activity } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
+import CustomSelect from '@/components/admin/CustomSelect';
 
 interface ActivitiesTableProps {
   initialActivities: Activity[];
@@ -168,18 +169,21 @@ export default function ActivitiesTable({
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
           {/* Destination Dropdown Filter */}
           {destinations.length > 0 && (
-            <select
+            <CustomSelect
+              size="sm"
+              containerClassName="w-auto min-w-[160px]"
+              align="right"
+              options={[
+                { value: 'all', label: 'All Destinations', icon: <MapPin className="w-3.5 h-3.5 text-slate-400" /> },
+                ...destinations.map((d) => ({
+                  value: d.id,
+                  label: d.name,
+                  icon: <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />,
+                })),
+              ]}
               value={destinationFilter}
-              onChange={(e) => setDestinationFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
-            >
-              <option value="all">All Destinations</option>
-              {destinations.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setDestinationFilter(val)}
+            />
           )}
 
           {/* Status Tabs */}

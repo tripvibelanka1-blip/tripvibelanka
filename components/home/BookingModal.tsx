@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Currency, TourPackage, Experience, FleetVehicle } from '@/types/tourism';
-import { TOUR_PACKAGES, FLEET_VEHICLES, EXPERIENCES, DESTINATIONS } from '@/data/mockData';
 import { useCurrency } from '@/context/CurrencyContext';
 import {
   X,
@@ -16,7 +15,6 @@ import {
   Tag,
   Loader2,
   AlertCircle,
-  Percent,
 } from 'lucide-react';
 import { validateCouponCode, CouponValidationResult } from '@/app/admin/banners/actions';
 import { submitBookingWithCurrencyLock } from '@/lib/supabase/booking-actions';
@@ -46,15 +44,18 @@ export default function BookingModal({
 }: BookingModalProps) {
   const { exchangeRate } = useCurrency();
   const [step, setStep] = useState(1);
-  const [selectedDestination, setSelectedDestination] = useState<string>(initialDestination || 'All Island Tour');
-  const [selectedPackageId, setSelectedPackageId] = useState<string>(initialPackageId || TOUR_PACKAGES[0].id);
-  const [tourPackages, setTourPackages] = useState<TourPackage[]>(TOUR_PACKAGES);
-  const [experiencesList, setExperiencesList] = useState<Experience[]>(EXPERIENCES);
-  const [vehiclesList, setVehiclesList] = useState<FleetVehicle[]>(FLEET_VEHICLES);
+  const [selectedDestination, setSelectedDestination] = useState<string>(initialDestination || 'All Island Signature Circuit');
+  const [selectedPackageId, setSelectedPackageId] = useState<string>(initialPackageId || '');
+  const [destinationsList, setDestinationsList] = useState<string[]>(['All Island Signature Circuit']);
+  const [tourPackages, setTourPackages] = useState<TourPackage[]>([]);
+  const [experiencesList, setExperiencesList] = useState<Experience[]>([]);
+  const [vehiclesList, setVehiclesList] = useState<FleetVehicle[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+
   const [startDate, setStartDate] = useState<string>('');
   const [duration, setDuration] = useState<string>('7 Days');
   const [guests, setGuests] = useState<number>(2);
-  const [selectedVehicle, setSelectedVehicle] = useState<string>(initialVehicleId || 'luxury-sedan');
+  const [selectedVehicle, setSelectedVehicle] = useState<string>(initialVehicleId || '');
   const [selectedAddons, setSelectedAddons] = useState<string[]>(initialAddonId ? [initialAddonId] : []);
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -75,17 +76,64 @@ export default function BookingModal({
 
   useEffect(() => {
     let isMounted = true;
-    async function fetchToursForModal() {
+
+    async function loadAllModalData() {
+      setIsLoadingData(true);
       try {
         const supabase = createClient();
-        const { data } = await supabase
+
+        // 1. Fetch live destinations
+        const destPromise = supabase
+          .from('destinations')
+          .select('name')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        // 2. Fetch live tours
+        const tourPromise = supabase
           .from('tours')
           .select('*')
           .eq('is_active', true)
+          .order('display_order', { ascending: true })
           .order('created_at', { ascending: false });
 
-        if (isMounted && data && data.length > 0) {
-          const mapped: TourPackage[] = data.map((t) => ({
+        // 3. Fetch live activities
+        const actPromise = supabase
+          .from('activities')
+          .select('*, destination:destinations(name)')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        // 4. Fetch live fleet vehicles
+        const vehPromise = supabase
+          .from('vehicles')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .order('created_at', { ascending: false });
+
+        const [destRes, tourRes, actRes, vehRes] = await Promise.allSettled([
+          destPromise,
+          tourPromise,
+          actPromise,
+          vehPromise,
+        ]);
+
+        if (!isMounted) return;
+
+        // Process Destinations
+        if (destRes.status === 'fulfilled' && destRes.value.data) {
+          const names = destRes.value.data
+            .map((d: { name: string }) => d.name)
+            .filter((n: string) => n && n.trim().length > 0);
+          setDestinationsList(['All Island Signature Circuit', ...names]);
+        }
+
+        // Process Tours
+        if (tourRes.status === 'fulfilled' && tourRes.value.data && tourRes.value.data.length > 0) {
+          const mappedTours: TourPackage[] = tourRes.value.data.map((t: any) => ({
             id: t.id,
             title: t.title,
             tagline: t.tagline || t.description || '',
@@ -105,25 +153,17 @@ export default function BookingModal({
             locations: Array.isArray(t.locations) ? (t.locations as string[]) : [],
             itinerary: [],
           }));
-          setTourPackages([...mapped, ...TOUR_PACKAGES]);
+          setTourPackages(mappedTours);
+          if (!initialPackageId && mappedTours.length > 0) {
+            setSelectedPackageId(mappedTours[0].id);
+          }
+        } else {
+          setTourPackages([]);
         }
-      } catch (err) {
-        console.warn('[BookingModal] using fallback packages:', err);
-      }
-    }
 
-    async function fetchActivitiesForModal() {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('activities')
-          .select('*, destination:destinations(name)')
-          .eq('is_active', true)
-          .order('display_order', { ascending: true })
-          .order('created_at', { ascending: false });
-
-        if (isMounted && data && data.length > 0) {
-          const mapped: Experience[] = data.map((act) => ({
+        // Process Activities
+        if (actRes.status === 'fulfilled' && actRes.value.data && actRes.value.data.length > 0) {
+          const mappedActs: Experience[] = actRes.value.data.map((act: any) => ({
             id: act.id,
             title: act.title,
             duration: act.duration || 'Half Day Excursion',
@@ -138,27 +178,14 @@ export default function BookingModal({
             description: act.description || '',
             location: act.location || act.destination?.name || 'Sri Lanka',
           }));
-          const existingIds = new Set(mapped.map((m) => m.id));
-          const complementary = EXPERIENCES.filter((mock) => !existingIds.has(mock.id));
-          setExperiencesList([...mapped, ...complementary]);
+          setExperiencesList(mappedActs);
+        } else {
+          setExperiencesList([]);
         }
-      } catch (err) {
-        console.warn('[BookingModal] using fallback experiences:', err);
-      }
-    }
 
-    async function fetchVehiclesForModal() {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('is_active', true)
-          .order('display_order', { ascending: true })
-          .order('created_at', { ascending: false });
-
-        if (isMounted && data && data.length > 0) {
-          const mapped: FleetVehicle[] = data.map((v) => {
+        // Process Vehicles
+        if (vehRes.status === 'fulfilled' && vehRes.value.data && vehRes.value.data.length > 0) {
+          const mappedVehs: FleetVehicle[] = vehRes.value.data.map((v: any) => {
             const rawCat = (v.category || '').toLowerCase();
             let cat: 'Sedans' | 'Vans' | 'Mini Buses' = 'Sedans';
             if (rawCat === 'van' || rawCat === 'vans') cat = 'Vans';
@@ -185,22 +212,26 @@ export default function BookingModal({
               recommendedFor: v.recommended_for || '',
             };
           });
-          const existingIds = new Set(mapped.map((m) => m.id));
-          const complementary = FLEET_VEHICLES.filter((mock) => !existingIds.has(mock.id));
-          setVehiclesList([...mapped, ...complementary]);
+          setVehiclesList(mappedVehs);
+          if (!initialVehicleId && mappedVehs.length > 0) {
+            setSelectedVehicle(mappedVehs[0].id);
+          }
+        } else {
+          setVehiclesList([]);
         }
       } catch (err) {
-        console.warn('[BookingModal] using fallback vehicles:', err);
+        console.warn('[BookingModal] error loading live data:', err);
+      } finally {
+        if (isMounted) setIsLoadingData(false);
       }
     }
 
-    fetchToursForModal();
-    fetchActivitiesForModal();
-    fetchVehiclesForModal();
+    loadAllModalData();
+
     return () => {
       isMounted = false;
     };
-  }, [exchangeRate]);
+  }, [exchangeRate, initialPackageId, initialVehicleId]);
 
   useEffect(() => {
     if (initialVehicleId) {
@@ -234,8 +265,38 @@ export default function BookingModal({
 
   if (!isOpen) return null;
 
-  const currentPkg = tourPackages.find((p) => p.id === selectedPackageId) || tourPackages[0];
-  const currentVehicle = FLEET_VEHICLES.find((v) => v.id === selectedVehicle) || FLEET_VEHICLES[0];
+  // Safe fallback objects if database tables are still populating
+  const fallbackPkg: TourPackage = {
+    id: 'custom-itinerary',
+    title: 'Custom Private Itinerary',
+    tagline: 'Tailored private chauffeur journey through Sri Lanka',
+    duration: 'Flexible Pace',
+    highlights: ['Executive AC Vehicle', 'Certified Guide'],
+    priceUSD: 100,
+    priceLKR: Math.round(100 * (exchangeRate || 310)),
+    rating: 5.0,
+    reviewsCount: 1,
+    image: '/hero.jpg',
+    category: 'Signature',
+    locations: ['Sri Lanka'],
+    itinerary: [],
+  };
+
+  const fallbackVehicle: FleetVehicle = {
+    id: 'standard-vehicle',
+    name: 'Executive AC Chauffeur Vehicle',
+    category: 'Sedans',
+    passengers: '1-4 Passengers',
+    luggage: '2-3 Luggage Bags',
+    features: ['Air Conditioned', 'Licensed Driver Guide'],
+    image: '/hero.jpg',
+    pricePerDayUSD: 60,
+    pricePerDayLKR: Math.round(60 * (exchangeRate || 310)),
+    recommendedFor: 'Couples and small groups',
+  };
+
+  const currentPkg = tourPackages.find((p) => p.id === selectedPackageId) || tourPackages[0] || fallbackPkg;
+  const currentVehicle = vehiclesList.find((v) => v.id === selectedVehicle) || vehiclesList[0] || fallbackVehicle;
 
   const toggleAddon = (expId: string) => {
     if (selectedAddons.includes(expId)) {
@@ -297,7 +358,7 @@ export default function BookingModal({
     setCouponError(null);
   };
 
-  // Real-time financial calculations
+  // Financial calculations
   const subtotalInUsd = calculateSubtotalUsd();
   const subtotalInCurrency = currency === 'USD' ? subtotalInUsd : Math.round(subtotalInUsd * exchangeRate);
   const discountAmount = appliedCoupon?.isValid ? (appliedCoupon.discountAmount || 0) : 0;
@@ -323,7 +384,7 @@ export default function BookingModal({
     if (step < 7) {
       setStep(step + 1);
     } else {
-      // Step 7: Final Booking Submission (Currency Locked in Supabase)
+      // Step 7: Final Booking Submission
       setIsSubmittingBooking(true);
       try {
         const res = await submitBookingWithCurrencyLock({
@@ -419,7 +480,7 @@ export default function BookingModal({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+            className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -441,67 +502,89 @@ export default function BookingModal({
               {/* Step 1: Destination */}
               {step === 1 && (
                 <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-slate-900">
+                  <h4 className="text-lg font-bold text-slate-900 font-heading">
                     Which regions of Sri Lanka do you wish to explore?
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {['All Island Signature Circuit', ...DESTINATIONS.map((d) => d.name)].map((dest) => (
-                      <button
-                        key={dest}
-                        type="button"
-                        onClick={() => setSelectedDestination(dest)}
-                        className={`p-4 rounded-2xl border text-left text-sm font-semibold transition-all flex items-center justify-between ${
-                          selectedDestination === dest
-                            ? 'border-[#FF6B00] bg-orange-50/50 text-[#FF6B00] shadow-sm'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                        }`}
-                      >
-                        <span>{dest}</span>
-                        {selectedDestination === dest && <Check className="w-4 h-4 text-[#FF6B00]" />}
-                      </button>
-                    ))}
-                  </div>
+
+                  {isLoadingData ? (
+                    <div className="p-12 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
+                      <span className="text-xs text-slate-400">Loading destinations...</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                      {destinationsList.map((dest) => (
+                        <button
+                          key={dest}
+                          type="button"
+                          onClick={() => setSelectedDestination(dest)}
+                          className={`p-4 rounded-2xl border text-left text-sm font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                            selectedDestination === dest
+                              ? 'border-[#FF6B00] bg-orange-50/50 text-[#FF6B00] shadow-sm'
+                              : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                          }`}
+                        >
+                          <span>{dest}</span>
+                          {selectedDestination === dest && <Check className="w-4 h-4 text-[#FF6B00]" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Step 2: Package */}
               {step === 2 && (
                 <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-slate-900">
+                  <h4 className="text-lg font-bold text-slate-900 font-heading">
                     Select your preferred private tour package
                   </h4>
-                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                    {tourPackages.map((pkg) => (
-                      <div
-                        key={pkg.id}
-                        onClick={() => setSelectedPackageId(pkg.id)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                          selectedPackageId === pkg.id
-                            ? 'border-[#FF6B00] bg-orange-50/50 shadow-sm'
-                            : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="space-y-1 pr-3">
-                          <span className="text-xs font-bold text-[#007AFF] uppercase">{pkg.duration}</span>
-                          <h5 className="text-sm font-bold text-slate-900">{pkg.title}</h5>
-                          <p className="text-xs text-slate-500 line-clamp-1">{pkg.tagline}</p>
+
+                  {isLoadingData ? (
+                    <div className="p-12 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
+                      <span className="text-xs text-slate-400">Loading tour packages...</span>
+                    </div>
+                  ) : tourPackages.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-xs text-slate-500">
+                        No preset tour packages listed right now. You can proceed to build a completely custom private itinerary.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                      {tourPackages.map((pkg) => (
+                        <div
+                          key={pkg.id}
+                          onClick={() => setSelectedPackageId(pkg.id)}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                            selectedPackageId === pkg.id
+                              ? 'border-[#FF6B00] bg-orange-50/50 shadow-sm'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="space-y-1 pr-3">
+                            <span className="text-xs font-bold text-orange-600 uppercase">{pkg.duration}</span>
+                            <h5 className="text-sm font-bold text-slate-900">{pkg.title}</h5>
+                            <p className="text-xs text-slate-500 line-clamp-1">{pkg.tagline}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-extrabold text-slate-900 block font-heading">
+                              {formatPrice(pkg.priceUSD)}
+                            </span>
+                            <span className="text-[10px] text-slate-400">/ person</span>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-sm font-extrabold text-slate-900 block font-heading">
-                            {formatPrice(pkg.priceUSD)}
-                          </span>
-                          <span className="text-[10px] text-slate-400">/ person</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Step 3: Dates & Duration */}
               {step === 3 && (
                 <div className="space-y-5">
-                  <h4 className="text-lg font-bold text-slate-900">
+                  <h4 className="text-lg font-bold text-slate-900 font-heading">
                     When are you planning to visit?
                   </h4>
                   <div className="space-y-4">
@@ -544,7 +627,7 @@ export default function BookingModal({
                             key={num}
                             type="button"
                             onClick={() => setGuests(typeof num === 'number' ? num : 6)}
-                            className={`w-11 h-11 rounded-xl font-bold text-sm border transition-all ${
+                            className={`w-11 h-11 rounded-xl font-bold text-sm border transition-all cursor-pointer ${
                               guests === (typeof num === 'number' ? num : 6)
                                 ? 'border-[#FF6B00] bg-[#FF6B00] text-white shadow-sm'
                                 : 'border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -562,34 +645,48 @@ export default function BookingModal({
               {/* Step 4: Vehicle */}
               {step === 4 && (
                 <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-slate-900">
+                  <h4 className="text-lg font-bold text-slate-900 font-heading">
                     Choose your chauffeur vehicle category
                   </h4>
-                  <div className="space-y-3">
-                    {vehiclesList.map((veh) => (
-                      <div
-                        key={veh.id}
-                        onClick={() => setSelectedVehicle(veh.id)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                          selectedVehicle === veh.id
-                            ? 'border-[#FF6B00] bg-orange-50/50 shadow-sm'
-                            : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <span className="text-xs font-bold text-orange-600 uppercase">{veh.category}</span>
-                          <h5 className="text-sm font-bold text-slate-900">{veh.name}</h5>
-                          <p className="text-xs text-slate-500">{veh.passengers} • {veh.luggage}</p>
+
+                  {isLoadingData ? (
+                    <div className="p-12 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
+                      <span className="text-xs text-slate-400">Loading fleet vehicles...</span>
+                    </div>
+                  ) : vehiclesList.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-xs text-slate-500">
+                        A certified private chauffeur vehicle suitable for your party size will be assigned automatically.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                      {vehiclesList.map((veh) => (
+                        <div
+                          key={veh.id}
+                          onClick={() => setSelectedVehicle(veh.id)}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                            selectedVehicle === veh.id
+                              ? 'border-[#FF6B00] bg-orange-50/50 shadow-sm'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <span className="text-xs font-bold text-orange-600 uppercase">{veh.category}</span>
+                            <h5 className="text-sm font-bold text-slate-900">{veh.name}</h5>
+                            <p className="text-xs text-slate-500">{veh.passengers} • {veh.luggage}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-bold text-slate-900 font-heading">
+                              {formatPrice(veh.pricePerDayUSD)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block">/ day</span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-slate-900">
-                            {formatPrice(veh.pricePerDayUSD)}
-                          </span>
-                          <span className="text-[10px] text-slate-400 block">/ day</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -597,50 +694,64 @@ export default function BookingModal({
               {step === 5 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-bold text-slate-900">
+                    <h4 className="text-lg font-bold text-slate-900 font-heading">
                       Add VIP Private Experiences
                     </h4>
                     <span className="text-xs text-slate-500">Optional</span>
                   </div>
-                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                    {experiencesList.map((exp) => (
-                      <div
-                        key={exp.id}
-                        onClick={() => toggleAddon(exp.id)}
-                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                          selectedAddons.includes(exp.id)
-                            ? 'border-[#007AFF] bg-sky-50/60 shadow-sm'
-                            : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="space-y-0.5">
-                          <h5 className="text-sm font-bold text-slate-900">{exp.title}</h5>
-                          <p className="text-xs text-slate-500">{exp.location} • {exp.duration}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-slate-800 font-heading">
-                            +{formatPrice(exp.priceUSD)}
-                          </span>
-                          <div
-                            className={`w-5 h-5 rounded-md border flex items-center justify-center ${
-                              selectedAddons.includes(exp.id)
-                                ? 'bg-[#007AFF] border-[#007AFF] text-white'
-                                : 'border-slate-300 bg-white'
-                            }`}
-                          >
-                            {selectedAddons.includes(exp.id) && <Check className="w-3.5 h-3.5" />}
+
+                  {isLoadingData ? (
+                    <div className="p-12 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
+                      <span className="text-xs text-slate-400">Loading activities...</span>
+                    </div>
+                  ) : experiencesList.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-xs text-slate-500">
+                        No add-on activities listed right now. You may specify any special activity wishes in the next step.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                      {experiencesList.map((exp) => (
+                        <div
+                          key={exp.id}
+                          onClick={() => toggleAddon(exp.id)}
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                            selectedAddons.includes(exp.id)
+                              ? 'border-[#FF6B00] bg-orange-50/60 shadow-sm'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <h5 className="text-sm font-bold text-slate-900">{exp.title}</h5>
+                            <p className="text-xs text-slate-500">{exp.location} • {exp.duration}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-slate-800 font-heading">
+                              +{formatPrice(exp.priceUSD)}
+                            </span>
+                            <div
+                              className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                                selectedAddons.includes(exp.id)
+                                  ? 'bg-[#FF6B00] border-[#FF6B00] text-white'
+                                  : 'border-slate-300 bg-white'
+                              }`}
+                            >
+                              {selectedAddons.includes(exp.id) && <Check className="w-3.5 h-3.5" />}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Step 6: Traveler Details */}
               {step === 6 && (
                 <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-slate-900">
+                  <h4 className="text-lg font-bold text-slate-900 font-heading">
                     Lead Traveler Information
                   </h4>
 
@@ -724,7 +835,7 @@ export default function BookingModal({
                   {/* Summary Card */}
                   <div className="p-4 rounded-2xl bg-orange-50/70 border border-orange-200/80 space-y-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
-                      Trip Summary & Details
+                      Trip Summary &amp; Details
                     </span>
                     <div className="space-y-1.5 text-xs text-slate-700">
                       <div className="flex justify-between">
@@ -736,7 +847,7 @@ export default function BookingModal({
                         <span className="font-semibold text-slate-800">{selectedDestination}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Dates & Duration:</span>
+                        <span className="text-slate-500">Dates &amp; Duration:</span>
                         <span className="font-semibold text-slate-800">{startDate || 'Flexible Dates'} ({duration})</span>
                       </div>
                       <div className="flex justify-between">
@@ -835,7 +946,7 @@ export default function BookingModal({
                   {/* Financial Breakdown & Totals */}
                   <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2.5">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                      Financial Calculation & Breakdown
+                      Financial Calculation &amp; Breakdown
                     </span>
 
                     <div className="space-y-1.5 text-xs text-slate-600">

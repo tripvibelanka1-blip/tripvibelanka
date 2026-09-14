@@ -23,6 +23,16 @@ import {
   Phone,
 } from 'lucide-react';
 import { Enquiry, EnquiryStatus, EnquiryType } from '@/types/database';
+import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
+import { Layers, Footprints } from 'lucide-react';
+
+const ENQUIRY_TYPE_OPTIONS: CustomSelectOption[] = [
+  { value: 'all', label: 'All Categories', icon: <Layers className="w-3.5 h-3.5 text-slate-400" /> },
+  { value: 'Tour', label: 'Tours', icon: <Compass className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'Activity', label: 'Activities & Safari', icon: <Footprints className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'Vehicle', label: 'Vehicle Fleet', icon: <Car className="w-3.5 h-3.5 text-blue-600" /> },
+  { value: 'General', label: 'General Inquiries', icon: <Mail className="w-3.5 h-3.5 text-purple-600" /> },
+];
 import EnquiryDrawer from '@/components/admin/enquiries/EnquiryDrawer';
 import { updateEnquiryStatus, deleteEnquiry } from '@/app/admin/enquiries/actions';
 
@@ -244,17 +254,14 @@ export default function EnquiriesList({ initialEnquiries }: EnquiriesListProps) 
 
         {/* Secondary Category Filter */}
         <div className="flex items-center gap-2">
-          <select
+          <CustomSelect
+            size="sm"
+            containerClassName="w-auto min-w-[160px]"
+            align="right"
+            options={ENQUIRY_TYPE_OPTIONS}
             value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value as EnquiryType | 'all')}
-            className="px-3 py-1.5 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] cursor-pointer"
-          >
-            <option value="all">All Categories</option>
-            <option value="Tour">Tours</option>
-            <option value="Activity">Activities & Safari</option>
-            <option value="Vehicle">Vehicle Fleet</option>
-            <option value="General">General Inquiries</option>
-          </select>
+            onChange={(val) => setSelectedType(val as EnquiryType | 'all')}
+          />
         </div>
       </div>
 

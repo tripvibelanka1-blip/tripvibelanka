@@ -305,7 +305,7 @@ export default function CreateVehiclePage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-16">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6 max-w-6xl mx-auto pb-16">
       {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div className="flex items-center gap-3">
@@ -564,7 +564,7 @@ export default function CreateVehiclePage() {
                   <input
                     type="number"
                     min="1"
-                    step="1"
+                    step="any"
                     required
                     value={formData.price_per_day_usd || ''}
                     onChange={(e) => handleFieldChange('price_per_day_usd', parseFloat(e.target.value) || 0)}
@@ -593,7 +593,7 @@ export default function CreateVehiclePage() {
                   <input
                     type="number"
                     min="0"
-                    step="100"
+                    step="any"
                     value={formData.price_per_day_lkr || ''}
                     onChange={(e) => handleFieldChange('price_per_day_lkr', parseFloat(e.target.value) || 0)}
                     placeholder="e.g. 18600"
@@ -614,7 +614,7 @@ export default function CreateVehiclePage() {
                   <input
                     type="number"
                     min="0"
-                    step="0.05"
+                    step="any"
                     value={formData.price_per_km_usd || ''}
                     onChange={(e) => handleFieldChange('price_per_km_usd', parseFloat(e.target.value) || 0)}
                     placeholder="e.g. 0.30"
@@ -642,7 +642,7 @@ export default function CreateVehiclePage() {
                   <input
                     type="number"
                     min="0"
-                    step="5"
+                    step="any"
                     value={formData.price_per_km_lkr || ''}
                     onChange={(e) => handleFieldChange('price_per_km_lkr', parseFloat(e.target.value) || 0)}
                     placeholder="e.g. 95"

@@ -19,8 +19,11 @@ const CURRENCIES: { code: Currency; symbol: string; label: string; flag: string 
 export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('home');
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
+  const isClickScrollingRef = useRef(false);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const sentinel = document.getElementById('scroll-sentinel');
@@ -36,6 +39,66 @@ export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: Na
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
+
+  // Scroll-spy: automatically detect active section as user scrolls
+  useEffect(() => {
+    const sectionIds = ['home', 'tours', 'destinations', 'experiences', 'fleet', 'why-us'];
+
+    const handleScroll = () => {
+      if (isClickScrollingRef.current) return;
+
+      const scrollPosition = window.scrollY + 180;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // When reached the bottom of page, highlight the last section ('why-us')
+      if (window.scrollY + windowHeight >= documentHeight - 60) {
+        setActiveSection('why-us');
+        return;
+      }
+
+      for (let i = sectionIds.length - 1; i >= 0; i--) {
+        const section = document.getElementById(sectionIds[i]);
+        if (section) {
+          const top = section.offsetTop;
+          if (scrollPosition >= top) {
+            setActiveSection(sectionIds[i]);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+    };
+  }, []);
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    setActiveSection(id);
+    isClickScrollingRef.current = true;
+
+    if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+    clickTimeoutRef.current = setTimeout(() => {
+      isClickScrollingRef.current = false;
+    }, 850);
+
+    if (id === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const element = document.getElementById(id);
+      if (element) {
+        const navOffset = 80;
+        const targetPosition = element.getBoundingClientRect().top + window.scrollY - navOffset;
+        window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+      }
+    }
+  };
 
   // Close dropdown on outside click or escape key
   useEffect(() => {
@@ -58,12 +121,12 @@ export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: Na
   }, []);
 
   const navLinks = [
-    { name: 'Home', href: '#', active: true },
-    { name: 'Tours', href: '#tours' },
-    { name: 'Destinations', href: '#destinations' },
-    { name: 'Experiences', href: '#experiences' },
-    { name: 'Fleet', href: '#fleet' },
-    { name: 'Why Us', href: '#why-us' },
+    { name: 'Home', href: '#home', id: 'home' },
+    { name: 'Tours', href: '#tours', id: 'tours' },
+    { name: 'Destinations', href: '#destinations', id: 'destinations' },
+    { name: 'Experiences', href: '#experiences', id: 'experiences' },
+    { name: 'Fleet', href: '#fleet', id: 'fleet' },
+    { name: 'Why Us', href: '#why-us', id: 'why-us' },
   ];
 
   return (
@@ -79,7 +142,8 @@ export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: Na
         >
           {/* Logo & Brand Name */}
           <a
-            href="#"
+            href="#home"
+            onClick={(e) => handleNavClick(e, 'home')}
             className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full py-1 pr-2"
           >
             <div className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border shadow-sm flex items-center justify-center ${
@@ -110,23 +174,27 @@ export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: Na
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1 lg:gap-1.5">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className={`px-3.5 py-1.5 rounded-full text-xs lg:text-sm transition-all duration-200 font-medium ${
-                  link.active
-                    ? scrolled
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'bg-white text-slate-900 font-semibold shadow-sm'
-                    : scrolled
-                    ? 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/80'
-                    : 'text-white/80 hover:text-white hover:bg-white/15'
-                }`}
-              >
-                {link.name}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.id;
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs lg:text-sm transition-all duration-200 font-medium ${
+                    isActive
+                      ? scrolled
+                        ? 'bg-slate-900 text-white shadow-sm font-semibold'
+                        : 'bg-white text-slate-900 font-semibold shadow-sm'
+                      : scrolled
+                      ? 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/80'
+                      : 'text-white/80 hover:text-white hover:bg-white/15'
+                  }`}
+                >
+                  {link.name}
+                </a>
+              );
+            })}
           </div>
 
           {/* Desktop Right Actions: Currency & CTA */}
@@ -279,16 +347,29 @@ export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: Na
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col space-y-2">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-3 rounded-2xl text-base font-semibold text-slate-800 hover:bg-orange-50 hover:text-[#FF6B00] transition-colors"
-                >
-                  {link.name}
-                </a>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = activeSection === link.id;
+                return (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    onClick={(e) => {
+                      handleNavClick(e, link.id);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`px-4 py-3 rounded-2xl text-base font-semibold transition-all flex items-center justify-between ${
+                      isActive
+                        ? 'bg-[#FF6B00] text-white shadow-sm shadow-orange-500/25'
+                        : 'text-slate-800 hover:bg-orange-50 hover:text-[#FF6B00]'
+                    }`}
+                  >
+                    <span>{link.name}</span>
+                    {isActive && (
+                      <span className="w-2 h-2 rounded-full bg-white" />
+                    )}
+                  </a>
+                );
+              })}
             </div>
 
             <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
@@ -304,13 +385,13 @@ export default function Navbar({ currency, onCurrencyChange, onOpenBooking }: Na
               </button>
 
               <a
-                href="https://wa.me/94770000000"
+                href="https://wa.me/94761560046?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20inquire%20about%20a%20luxury%20tour."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
-                <span>Instant WhatsApp Concierge</span>
+                <span>WhatsApp: 076 156 0046 (24/7)</span>
               </a>
             </div>
           </div>

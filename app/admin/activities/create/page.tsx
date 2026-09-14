@@ -26,6 +26,8 @@ import { compressImage } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
 import TrustTooltip from '@/components/admin/TrustTooltip';
 import AIContentHelper from '@/components/admin/AIContentHelper';
+import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
+import { Compass as CompassIcon, Footprints, Landmark, Utensils, Anchor } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 
 interface ActivityFormData {
@@ -43,12 +45,16 @@ interface ActivityFormData {
   is_active: boolean;
 }
 
+const ACTIVITY_CATEGORY_OPTIONS: CustomSelectOption[] = [
+  { value: 'Wildlife & Nature', label: 'Wildlife & Nature', description: 'National parks, leopard safaris & birding', icon: <CompassIcon className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'Adventure & Trekking', label: 'Adventure & Trekking', description: 'Peak climbs, tea ridge hiking & ziplines', icon: <Footprints className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'Cultural & Sacred', label: 'Cultural & Sacred', description: 'Ancient ruins, sacred shrines & rituals', icon: <Landmark className="w-3.5 h-3.5 text-orange-600" /> },
+  { value: 'Culinary & Heritage', label: 'Culinary & Heritage', description: 'Ceylon tea tasting, spice trails & cooking classes', icon: <Utensils className="w-3.5 h-3.5 text-rose-600" /> },
+  { value: 'Marine Adventure', label: 'Marine Adventure', description: 'Whale watching, scuba diving & ocean surf', icon: <Anchor className="w-3.5 h-3.5 text-sky-600" /> },
+];
+
 const ACTIVITY_CATEGORIES = [
-  'Wildlife & Nature',
-  'Adventure & Trekking',
-  'Cultural & Sacred',
-  'Culinary & Heritage',
-  'Marine Adventure',
+  ...ACTIVITY_CATEGORY_OPTIONS.map((c) => c.value),
   'Wellness & Ayurveda',
   'Scenic & Photography',
 ];
@@ -482,23 +488,14 @@ export default function CreateActivityPage() {
                 >
                   Category
                 </label>
-                <div className="relative">
-                  <input
-                    id="act-category"
-                    list="category-suggestions"
-                    type="text"
-                    disabled={isSubmitting}
-                    value={formData.category}
-                    onChange={(e) => handleFieldChange('category', e.target.value)}
-                    placeholder="e.g. Wildlife & Nature"
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-medium disabled:opacity-60"
-                  />
-                  <datalist id="category-suggestions">
-                    {ACTIVITY_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
-                </div>
+                <CustomSelect
+                  options={ACTIVITY_CATEGORY_OPTIONS}
+                  value={formData.category}
+                  onChange={(val) => handleFieldChange('category', val)}
+                  disabled={isSubmitting}
+                  placeholder="Select activity category..."
+                  id="act-category"
+                />
                 <p className="text-[11px] text-slate-500 mt-1">
                   Shown as the category badge on the homepage card
                 </p>
@@ -643,7 +640,7 @@ export default function CreateActivityPage() {
                     id="act-price-lkr"
                     type="number"
                     min="0"
-                    step="100"
+                    step="any"
                     disabled={isSubmitting}
                     value={formData.price_lkr || ''}
                     onChange={(e) =>

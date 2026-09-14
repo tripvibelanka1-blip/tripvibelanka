@@ -1,6 +1,23 @@
 import React from 'react';
 import { Booking } from '@/types/database';
-import { Search, Download, Filter, Calendar, X } from 'lucide-react';
+import { Search, Download, Filter, Calendar, X, CreditCard, CheckCircle2, Clock, RotateCcw, XCircle } from 'lucide-react';
+import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
+
+const PAYMENT_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: 'all', label: 'Payment: All Statuses', icon: <CreditCard className="w-3.5 h-3.5 text-slate-400" /> },
+  { value: 'advance_paid', label: '20% Advance Paid', badge: 'Deposit', icon: <Clock className="w-3.5 h-3.5 text-amber-500" /> },
+  { value: 'fully_paid', label: 'Fully Settled', badge: 'Paid', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> },
+  { value: 'pending', label: 'Pending Payment', badge: 'Due', icon: <Clock className="w-3.5 h-3.5 text-slate-400" /> },
+  { value: 'refunded', label: 'Refunded', badge: 'Return', icon: <RotateCcw className="w-3.5 h-3.5 text-rose-500" /> },
+];
+
+const BOOKING_FILTER_OPTIONS: CustomSelectOption[] = [
+  { value: 'all', label: 'Booking: All Statuses', icon: <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" /> },
+  { value: 'confirmed', label: 'Confirmed', badge: 'Active', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> },
+  { value: 'pending', label: 'Pending Review', badge: 'Review', icon: <Clock className="w-3.5 h-3.5 text-amber-500" /> },
+  { value: 'completed', label: 'Completed', badge: 'Done', icon: <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> },
+  { value: 'cancelled', label: 'Cancelled', badge: 'Void', icon: <XCircle className="w-3.5 h-3.5 text-rose-500" /> },
+];
 
 interface BookingsFilterBarProps {
   searchQuery: string;
@@ -192,29 +209,23 @@ export default function BookingsFilterBar({
             <span>Filters:</span>
           </div>
 
-          <select
+          <CustomSelect
+            size="sm"
+            containerClassName="w-auto min-w-[170px]"
+            align="right"
+            options={PAYMENT_FILTER_OPTIONS}
             value={paymentFilter}
-            onChange={(e) => onPaymentFilterChange(e.target.value)}
-            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#FF6B00] cursor-pointer"
-          >
-            <option value="all">Payment: All Statuses</option>
-            <option value="advance_paid">20% Advance Paid</option>
-            <option value="fully_paid">Fully Settled</option>
-            <option value="pending">Pending Payment</option>
-            <option value="refunded">Refunded</option>
-          </select>
+            onChange={(val) => onPaymentFilterChange(val)}
+          />
 
-          <select
+          <CustomSelect
+            size="sm"
+            containerClassName="w-auto min-w-[175px]"
+            align="right"
+            options={BOOKING_FILTER_OPTIONS}
             value={bookingFilter}
-            onChange={(e) => onBookingFilterChange(e.target.value)}
-            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#FF6B00] cursor-pointer"
-          >
-            <option value="all">Booking: All Statuses</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="pending">Pending Confirmation</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+            onChange={(val) => onBookingFilterChange(val)}
+          />
         </div>
       </div>
     </div>

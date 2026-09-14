@@ -28,6 +28,16 @@ import DestinationSelect from '@/components/admin/DestinationSelect';
 import TrustTooltip from '@/components/admin/TrustTooltip';
 import DualPriceInput from '@/components/admin/DualPriceInput';
 import AIContentHelper from '@/components/admin/AIContentHelper';
+import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
+import { Landmark, Compass as CompassIcon, Waves, Mountain } from 'lucide-react';
+
+const TOUR_CATEGORY_OPTIONS: CustomSelectOption[] = [
+  { value: 'Cultural', label: 'Cultural', description: 'Ancient citadels, sacred temples & UNESCO heritage', icon: <Landmark className="w-3.5 h-3.5 text-amber-600" /> },
+  { value: 'Wildlife', label: 'Wildlife', description: 'Leopard safaris, elephant gatherings & bird sanctuaries', icon: <CompassIcon className="w-3.5 h-3.5 text-emerald-600" /> },
+  { value: 'Coastal', label: 'Coastal', description: 'Golden beaches, surf breaks & whale watching', icon: <Waves className="w-3.5 h-3.5 text-sky-600" /> },
+  { value: 'Hill Country', label: 'Hill Country', description: 'Misty tea estates, waterfalls & scenic train routes', icon: <Mountain className="w-3.5 h-3.5 text-teal-600" /> },
+  { value: 'Signature', label: 'Signature', description: 'All-inclusive bespoke VIP private island circuits', icon: <Sparkles className="w-3.5 h-3.5 text-orange-600" /> },
+];
 
 interface TourFormData {
   title: string;
@@ -760,19 +770,14 @@ export default function CreateTourPage() {
                 >
                   Category Filter
                 </label>
-                <select
-                  id="tour-category"
-                  disabled={isSubmitting}
+                <CustomSelect
+                  options={TOUR_CATEGORY_OPTIONS}
                   value={formData.category}
-                  onChange={(e) => handleFieldChange('category', e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all disabled:opacity-60 font-medium text-slate-800"
-                >
-                  <option value="Cultural">Cultural</option>
-                  <option value="Wildlife">Wildlife</option>
-                  <option value="Coastal">Coastal</option>
-                  <option value="Hill Country">Hill Country</option>
-                  <option value="Signature">Signature</option>
-                </select>
+                  onChange={(val) => handleFieldChange('category', val)}
+                  disabled={isSubmitting}
+                  placeholder="Select tour category..."
+                  id="tour-category"
+                />
               </div>
             </div>
 

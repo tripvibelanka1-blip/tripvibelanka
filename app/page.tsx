@@ -9,8 +9,8 @@ import PromoBanner from '@/components/home/PromoBanner';
 import Destinations from '@/components/home/Destinations';
 import TourPackages from '@/components/home/TourPackages';
 import Experiences from '@/components/home/Experiences';
-import WhyUs from '@/components/home/WhyUs';
 import FleetShowcase from '@/components/home/FleetShowcase';
+import WhyUs from '@/components/home/WhyUs';
 import Testimonials from '@/components/home/Testimonials';
 import Footer from '@/components/home/Footer';
 import BookingModal from '@/components/home/BookingModal';
@@ -65,14 +65,14 @@ export default function HomePage() {
       />
 
       <main>
-        {/* Full-Bleed Hero Section with Floating Preview Cards */}
-        <Hero onOpenBooking={handleOpenBooking} />
+        {/* Full-Bleed Hero Section with Floating Destination Cards */}
+        <Hero
+          onOpenBooking={handleOpenBooking}
+          onSelectDestination={handleSelectDestination}
+        />
 
         {/* Limited-Time Seasonal Promo Offer Banner */}
         <PromoBanner onOpenBooking={handleOpenBooking} />
-
-        {/* Featured Destinations Bento Grid */}
-        <Destinations onSelectDestination={handleSelectDestination} />
 
         {/* Popular Tour Packages Grid */}
         <TourPackages
@@ -80,14 +80,14 @@ export default function HomePage() {
           onSelectPackage={(pkgId) => handleOpenBooking(pkgId)}
         />
 
+        {/* Featured Destinations Bento Grid */}
+        <Destinations onSelectDestination={handleSelectDestination} />
+
         {/* Activities & Experiences Slider */}
         <Experiences
           currency={currency}
           onSelectExperience={handleSelectExperience}
         />
-
-        {/* Why Choose Us Minimalist Pillars */}
-        <WhyUs />
 
         {/* Executive Vehicle Fleet Showcase */}
         <FleetShowcase
@@ -95,12 +95,15 @@ export default function HomePage() {
           onSelectVehicle={handleSelectVehicle}
         />
 
+        {/* Why Choose Us & About Us Story Pillars */}
+        <WhyUs onOpenBooking={() => handleOpenBooking()} />
+
         {/* Traveler Gallery & 5-Star Testimonials */}
         <Testimonials />
       </main>
 
-      {/* Comprehensive Dark Footer with WhatsApp Floating CTA */}
-      <Footer />
+      {/* Verified Footer with Real Social Media, TripAdvisor & 24/7 Contacts */}
+      <Footer onOpenBooking={() => handleOpenBooking()} />
 
       {/* 7-Step Interactive Itinerary & Booking Modal */}
       <BookingModal

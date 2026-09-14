@@ -33,6 +33,23 @@ import {
 import BrandLogo from '@/components/BrandLogo';
 import { Vehicle } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
+import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
+import { Clock, RotateCcw, XCircle } from 'lucide-react';
+
+const BOOKING_STATUS_OPTIONS: CustomSelectOption[] = [
+  { value: 'pending', label: 'Pending Confirmation', badge: 'Review', icon: <Clock className="w-3.5 h-3.5 text-amber-500" /> },
+  { value: 'confirmed', label: 'Confirmed', badge: 'Active', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> },
+  { value: 'completed', label: 'Tour Completed', badge: 'Done', icon: <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> },
+  { value: 'cancelled', label: 'Cancelled', badge: 'Void', icon: <XCircle className="w-3.5 h-3.5 text-rose-500" /> },
+];
+
+const PAYMENT_STATUS_OPTIONS: CustomSelectOption[] = [
+  { value: 'pending', label: 'Pending Payment', badge: 'Due', icon: <Clock className="w-3.5 h-3.5 text-slate-400" /> },
+  { value: 'advance_paid', label: '20% Advance Paid', badge: 'Deposit', icon: <Clock className="w-3.5 h-3.5 text-amber-500" /> },
+  { value: 'fully_paid', label: 'Fully Settled', badge: 'Paid', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> },
+  { value: 'refunded', label: 'Refunded', badge: 'Return', icon: <RotateCcw className="w-3.5 h-3.5 text-rose-500" /> },
+  { value: 'failed', label: 'Failed', badge: 'Error', icon: <XCircle className="w-3.5 h-3.5 text-rose-500" /> },
+];
 import {
   updateBookingStatus,
   updatePaymentStatus,
@@ -289,40 +306,31 @@ export default function BookingDetailDrawer({
             </div>
 
             {/* Two Dropdowns for Status Control */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-200/60 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-orange-200/60 text-xs">
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">
                   Booking Status:
                 </label>
-                <select
+                <CustomSelect
+                  size="sm"
+                  options={BOOKING_STATUS_OPTIONS}
                   value={booking.booking_status}
                   disabled={isUpdatingStatus}
-                  onChange={(e) => handleBookingStatusChange(e.target.value as BookingStatus)}
-                  className="w-full px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-xl shadow-2xs focus:ring-1 focus:ring-[#FF6B00] cursor-pointer disabled:opacity-50"
-                >
-                  <option value="pending">Pending Confirmation</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Tour Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                  onChange={(val) => handleBookingStatusChange(val as BookingStatus)}
+                />
               </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">
                   Payment Status:
                 </label>
-                <select
+                <CustomSelect
+                  size="sm"
+                  options={PAYMENT_STATUS_OPTIONS}
                   value={booking.payment_status}
                   disabled={isUpdatingPayment}
-                  onChange={(e) => handlePaymentStatusChange(e.target.value as PaymentStatus)}
-                  className="w-full px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-xl shadow-2xs focus:ring-1 focus:ring-[#FF6B00] cursor-pointer disabled:opacity-50"
-                >
-                  <option value="pending">Pending Payment</option>
-                  <option value="advance_paid">20% Advance Paid</option>
-                  <option value="fully_paid">Fully Settled</option>
-                  <option value="refunded">Refunded</option>
-                  <option value="failed">Failed</option>
-                </select>
+                  onChange={(val) => handlePaymentStatusChange(val as PaymentStatus)}
+                />
               </div>
             </div>
           </div>
@@ -618,9 +626,19 @@ export default function BookingDetailDrawer({
                     <Car className="w-3.5 h-3.5 text-[#FF6B00]" />
                     <span>Quick-Select Registered Fleet Vehicle:</span>
                   </label>
-                  <select
-                    onChange={(e) => {
-                      const vId = e.target.value;
+                  <CustomSelect
+                    size="sm"
+                    options={[
+                      { value: '', label: `-- Choose from Fleet (${fleetVehicles.length} available) --`, icon: <Car className="w-3.5 h-3.5 text-slate-400" /> },
+                      ...fleetVehicles.map((v) => ({
+                        value: v.id,
+                        label: `${v.name}${v.license_plate ? ` [${v.license_plate}]` : ''}`,
+                        description: `${v.passenger_capacity} Seats • ${v.category.toUpperCase()}`,
+                        icon: <Car className="w-3.5 h-3.5 text-[#FF6B00]" />,
+                      })),
+                    ]}
+                    value=""
+                    onChange={(vId) => {
                       if (!vId) return;
                       const selectedV = fleetVehicles.find((v) => v.id === vId);
                       if (selectedV) {
@@ -628,16 +646,9 @@ export default function BookingDetailDrawer({
                         setDriverGuide(`${selectedV.name}${plateStr}`);
                       }
                     }}
-                    defaultValue=""
-                    className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl cursor-pointer"
-                  >
-                    <option value="">-- Choose from Fleet ({fleetVehicles.length} available) --</option>
-                    {fleetVehicles.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} {v.license_plate ? `[${v.license_plate}]` : ''} - {v.passenger_capacity} Seats ({v.category.toUpperCase()})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder={`-- Choose from Fleet (${fleetVehicles.length} available) --`}
+                    showDescriptionInTrigger
+                  />
                 </div>
               )}
 

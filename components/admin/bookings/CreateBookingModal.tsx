@@ -18,7 +18,9 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
+  Clock,
 } from 'lucide-react';
+import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
 
 interface CreateBookingModalProps {
   isOpen: boolean;
@@ -218,18 +220,19 @@ export default function CreateBookingModal({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Tour Package *
               </label>
-              <select
+              <CustomSelect
+                options={tours.map((t) => ({
+                  value: t.id,
+                  label: t.title,
+                  badge: `${t.duration_days}D/${t.duration_nights}N`,
+                  description: `$${t.price_usd} / Rs. ${t.price_lkr.toLocaleString()}`,
+                  icon: <Compass className="w-3.5 h-3.5 text-[#FF6B00]" />,
+                }))}
                 value={selectedTourId}
-                onChange={(e) => handleTourChange(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] cursor-pointer"
-              >
-                {tours.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title} ({t.duration_days}D/{t.duration_nights}N) - ${t.price_usd} / Rs. {t.price_lkr.toLocaleString()}
-                  </option>
-                ))}
-                {tours.length === 0 && <option value="">Custom Tour / Itinerary</option>}
-              </select>
+                onChange={(val) => handleTourChange(val)}
+                placeholder={tours.length === 0 ? "Custom Tour / Itinerary" : "Select tour package..."}
+                showDescriptionInTrigger
+              />
             </div>
 
             <div>
@@ -440,14 +443,17 @@ export default function CreateBookingModal({
                 <span>Mark 20% Advance as Paid (Simulation / Wire Received)</span>
               </label>
 
-              <select
+              <CustomSelect
+                size="sm"
+                containerClassName="w-auto min-w-[145px]"
+                align="right"
+                options={[
+                  { value: 'confirmed', label: 'Confirmed', badge: 'Active', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> },
+                  { value: 'pending', label: 'Pending', badge: 'Review', icon: <Clock className="w-3.5 h-3.5 text-amber-500" /> },
+                ]}
                 value={bookingStatus}
-                onChange={(e) => setBookingStatus(e.target.value as any)}
-                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold cursor-pointer"
-              >
-                <option value="confirmed">Status: Confirmed</option>
-                <option value="pending">Status: Pending</option>
-              </select>
+                onChange={(val) => setBookingStatus(val as 'confirmed' | 'pending')}
+              />
             </div>
           </div>
 

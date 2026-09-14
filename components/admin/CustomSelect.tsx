@@ -18,6 +18,9 @@ interface CustomSelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  containerClassName?: string;
+  size?: 'default' | 'sm';
+  align?: 'left' | 'right';
   icon?: React.ReactNode;
   id?: string;
   showDescriptionInTrigger?: boolean;
@@ -30,6 +33,9 @@ export default function CustomSelect({
   placeholder = 'Select an option...',
   disabled = false,
   className = '',
+  containerClassName = 'w-full',
+  size = 'default',
+  align = 'left',
   icon,
   id,
   showDescriptionInTrigger = false,
@@ -80,8 +86,10 @@ export default function CustomSelect({
 
   const activeIcon = selectedOption?.icon || icon;
 
+  const isSmall = size === 'sm';
+
   return (
-    <div ref={containerRef} className="relative w-full" id={id}>
+    <div ref={containerRef} className={`relative ${containerClassName}`} id={id}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -90,7 +98,12 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={`
-          w-full px-3.5 py-2.5 text-xs rounded-xl border text-left transition-all flex items-center justify-between gap-2.5 cursor-pointer select-none
+          w-full text-xs rounded-xl border text-left transition-all flex items-center justify-between gap-2 cursor-pointer select-none
+          ${
+            isSmall
+              ? 'px-2.5 py-1.5 font-semibold'
+              : 'px-3.5 py-2.5 font-medium'
+          }
           ${
             disabled
               ? 'opacity-60 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'
@@ -101,10 +114,12 @@ export default function CustomSelect({
           ${className}
         `}
       >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {activeIcon && (
             <div
-              className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+              className={`rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                isSmall ? 'w-5 h-5 text-[11px]' : 'w-6 h-6'
+              } ${
                 selectedOption
                   ? 'bg-orange-50 text-[#FF6B00] border border-orange-200/80'
                   : 'bg-slate-200/60 text-slate-400'
@@ -140,16 +155,25 @@ export default function CustomSelect({
 
         <div className="text-slate-400 pl-1 shrink-0">
           <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 ${
-              isOpen ? 'rotate-180 text-[#FF6B00]' : ''
-            }`}
+            className={`transition-transform duration-200 ${
+              isSmall ? 'w-3.5 h-3.5' : 'w-4 h-4'
+            } ${isOpen ? 'rotate-180 text-[#FF6B00]' : ''}`}
           />
         </div>
       </button>
 
       {/* Popover Menu */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-900/10 p-1.5 space-y-1 animate-in fade-in zoom-in-98 duration-150 max-h-72 overflow-y-auto">
+        <div
+          className={`
+            absolute top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-900/10 p-1.5 space-y-1 animate-in fade-in zoom-in-98 duration-150 max-h-72 overflow-y-auto
+            ${
+              align === 'right'
+                ? 'right-0 min-w-full w-max max-w-sm sm:max-w-md'
+                : 'left-0 min-w-full w-max max-w-sm sm:max-w-md'
+            }
+          `}
+        >
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
@@ -157,7 +181,7 @@ export default function CustomSelect({
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
                 className={`
-                  px-3 py-2.5 rounded-xl text-xs flex items-center justify-between gap-2.5 cursor-pointer transition-all
+                  px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2.5 cursor-pointer transition-all
                   ${
                     isSelected
                       ? 'bg-orange-50/90 text-orange-950 font-bold border border-orange-200/80 shadow-2xs'
@@ -180,7 +204,7 @@ export default function CustomSelect({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={isSelected ? 'text-orange-950' : 'text-slate-800'}>
+                      <span className={isSelected ? 'text-orange-950 font-bold' : 'text-slate-800'}>
                         {option.label}
                       </span>
                       {option.badge && (

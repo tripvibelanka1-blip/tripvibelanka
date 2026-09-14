@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Tag, Copy, Check, ArrowRight, Clock } from 'lucide-react';
 import { Banner } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
-import { PROMO_BANNER } from '@/data/mockData';
 
 interface PromoBannerProps {
   onOpenBooking: (packageId?: string, couponCode?: string) => void;
@@ -15,10 +14,15 @@ interface PromoBannerProps {
 export default function PromoBanner({ onOpenBooking, banner: initialBanner }: PromoBannerProps) {
   const [copied, setCopied] = useState(false);
   const [activeBanner, setActiveBanner] = useState<Banner | null>(initialBanner ?? null);
+  const [isLoading, setIsLoading] = useState<boolean>(initialBanner === undefined);
 
   // Load active banner from Supabase client-side if not explicitly passed as prop
   useEffect(() => {
-    if (initialBanner !== undefined) return;
+    if (initialBanner !== undefined) {
+      setActiveBanner(initialBanner);
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     async function loadActiveBanner() {
@@ -36,11 +40,18 @@ export default function PromoBanner({ onOpenBooking, banner: initialBanner }: Pr
           .limit(1)
           .maybeSingle();
 
-        if (isMounted && data && !error) {
-          setActiveBanner(data as Banner);
+        if (isMounted) {
+          if (data && !error) {
+            setActiveBanner(data as Banner);
+          } else {
+            setActiveBanner(null);
+          }
         }
       } catch (err) {
-        console.warn('[PromoBanner] Using fallback banner:', err);
+        console.warn('[PromoBanner] Error loading active banner:', err);
+        if (isMounted) setActiveBanner(null);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
 
@@ -51,14 +62,19 @@ export default function PromoBanner({ onOpenBooking, banner: initialBanner }: Pr
     };
   }, [initialBanner]);
 
-  // Display data mapping (active database banner takes precedence over static mock fallback)
-  const badge = activeBanner?.badge_text || PROMO_BANNER.badge;
-  const title = activeBanner?.title || `${PROMO_BANNER.title}: ${PROMO_BANNER.discount}`;
-  const subtitle = activeBanner?.description || PROMO_BANNER.subtitle;
-  const validity = activeBanner?.validity_text || PROMO_BANNER.validUntil;
-  const code = activeBanner ? activeBanner.coupon_code : PROMO_BANNER.code;
-  const ctaText = activeBanner?.button_text || PROMO_BANNER.ctaText;
-  const ctaLink = activeBanner?.button_link || '#tours';
+  // If loading or no active promotional banner exists in the server database, do not render mock banner
+  if (isLoading || !activeBanner) {
+    return null;
+  }
+
+  // Display data from active database banner
+  const badge = activeBanner.badge_text || 'Seasonal Promotion';
+  const title = activeBanner.title;
+  const subtitle = activeBanner.description;
+  const validity = activeBanner.validity_text;
+  const code = activeBanner.coupon_code;
+  const ctaText = activeBanner.button_text || 'Claim Offer';
+  const ctaLink = activeBanner.button_link || '#tours';
 
   const handleCopyCode = () => {
     if (!code) return;
@@ -112,7 +128,7 @@ export default function PromoBanner({ onOpenBooking, banner: initialBanner }: Pr
 
           {/* Action Buttons & Promo Code Box */}
           <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3.5 w-full lg:w-auto shrink-0">
-            {/* Promo Code Box (Rendered only when coupon_code exists) */}
+            {/* Promo Code Box */}
             {code && (
               <div className="flex items-center justify-between sm:justify-start gap-3 px-4 py-2.5 rounded-2xl bg-white border border-slate-200/80 text-slate-800 shadow-xs">
                 <div className="flex flex-col">

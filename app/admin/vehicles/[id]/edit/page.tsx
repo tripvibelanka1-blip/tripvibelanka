@@ -30,6 +30,7 @@ import { Vehicle, VehicleUpdate } from '@/types/database';
 import { compressImage } from '@/utils/imageCompression';
 import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
 import TrustTooltip from '@/components/admin/TrustTooltip';
+import AIContentHelper from '@/components/admin/AIContentHelper';
 import { useCurrency } from '@/context/CurrencyContext';
 
 const CATEGORY_OPTIONS: CustomSelectOption[] = [
@@ -439,9 +440,16 @@ export default function EditVehiclePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Vehicle Model Name *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Vehicle Model Name *
+                  </label>
+                  <AIContentHelper
+                    topic={name}
+                    location={name}
+                    moduleType="vehicle"
+                  />
+                </div>
                 <input
                   type="text"
                   required

@@ -27,6 +27,7 @@ import { compressImage, formatBytes } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
 import TrustTooltip from '@/components/admin/TrustTooltip';
 import DualPriceInput from '@/components/admin/DualPriceInput';
+import AIContentHelper from '@/components/admin/AIContentHelper';
 
 interface TourFormData {
   title: string;
@@ -727,12 +728,19 @@ export default function CreateTourPage() {
             {/* Tour Title & Category Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
-                <label
-                  htmlFor="tour-title"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Tour Title <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="tour-title"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+                  >
+                    Tour Title <span className="text-rose-500">*</span>
+                  </label>
+                  <AIContentHelper
+                    topic={formData.title}
+                    location={formData.locations_input || formData.title}
+                    moduleType="tour"
+                  />
+                </div>
                 <input
                   id="tour-title"
                   type="text"
@@ -789,12 +797,19 @@ export default function CreateTourPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="tour-locations"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Route Locations (Comma Separated)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="tour-locations"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+                  >
+                    Route Locations (Comma Separated)
+                  </label>
+                  <AIContentHelper
+                    topic={formData.title}
+                    location={formData.locations_input || formData.title}
+                    moduleType="tour"
+                  />
+                </div>
                 <input
                   id="tour-locations"
                   type="text"

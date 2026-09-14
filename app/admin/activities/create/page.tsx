@@ -25,6 +25,7 @@ import { ActivityInsert, DestinationRecord } from '@/types/database';
 import { compressImage } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
 import TrustTooltip from '@/components/admin/TrustTooltip';
+import AIContentHelper from '@/components/admin/AIContentHelper';
 import { useCurrency } from '@/context/CurrencyContext';
 
 interface ActivityFormData {
@@ -446,12 +447,19 @@ export default function CreateActivityPage() {
 
             {/* Title */}
             <div>
-              <label
-                htmlFor="act-title"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-              >
-                Activity Title <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="act-title"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+                >
+                  Activity Title <span className="text-rose-500">*</span>
+                </label>
+                <AIContentHelper
+                  topic={formData.title}
+                  location={formData.location || formData.title}
+                  moduleType="activity"
+                />
+              </div>
               <input
                 id="act-title"
                 type="text"
@@ -498,12 +506,19 @@ export default function CreateActivityPage() {
 
               {/* Excursion Location Spot */}
               <div>
-                <label
-                  htmlFor="act-location"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Location / Spot <span className="text-[10px] font-normal lowercase text-slate-400">(optional)</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="act-location"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+                  >
+                    Location / Spot <span className="text-[10px] font-normal lowercase text-slate-400">(optional)</span>
+                  </label>
+                  <AIContentHelper
+                    topic={formData.title}
+                    location={formData.location || formData.title}
+                    moduleType="activity"
+                  />
+                </div>
                 <div className="relative">
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input

@@ -21,6 +21,7 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import { DestinationInsert } from '@/types/database';
 import { compressImage } from '@/utils/imageCompression';
+import AIContentHelper from '@/components/admin/AIContentHelper';
 
 interface DestinationFormData {
   name: string;
@@ -423,12 +424,19 @@ export default function CreateDestinationPage() {
             {/* Name & District Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="dest-name"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                >
-                  Destination Name <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="dest-name"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+                  >
+                    Destination Name <span className="text-rose-500">*</span>
+                  </label>
+                  <AIContentHelper
+                    topic={formData.name}
+                    location={formData.name || formData.district}
+                    moduleType="destination"
+                  />
+                </div>
                 <input
                   id="dest-name"
                   type="text"

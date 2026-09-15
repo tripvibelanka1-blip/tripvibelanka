@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Currency, FleetVehicle } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
@@ -296,6 +297,17 @@ export default function FleetShowcase({ currency, onSelectVehicle }: FleetShowca
             ))}
           </div>
         )}
+
+        {/* Dedicated Fleet Page Gateway */}
+        <div className="mt-12 text-center">
+          <Link
+            href="/fleet"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-900 bg-white border border-slate-200 hover:border-[#FF6B00] hover:text-[#FF6B00] shadow-xs hover:shadow-md transition-all duration-300 group"
+          >
+            <span>Explore Full Executive Fleet and Chauffeur Services</span>
+            <ArrowUpRight className="w-4 h-4 text-[#FF6B00] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+        </div>
       </div>
     </section>
   );

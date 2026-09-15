@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { Destination as DbDestination } from '@/types/database';
 import { MapPin, Calendar, ArrowUpRight, Loader2, Compass } from 'lucide-react';
@@ -242,6 +243,20 @@ export default function Destinations({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Dedicated Destinations Catalog Link */}
+      {destinations.length > 0 && (
+        <div className="mt-12 text-center">
+          <Link
+            href="/destinations"
+            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-md transition-all group cursor-pointer active:scale-[0.98]"
+          >
+            <MapPin className="w-4 h-4 text-[#FF6B00]" />
+            <span>Explore All Regional Destinations &amp; Cultural Guides</span>
+            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
         </div>
       )}
     </section>

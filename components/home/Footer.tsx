@@ -279,6 +279,42 @@ export default function Footer({ onOpenBooking }: FooterProps) {
               </h4>
               <ul className="space-y-2.5 font-medium text-xs sm:text-sm text-slate-600">
                 <li>
+                  <Link
+                    href="/tours"
+                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
+                    <span>All Tour Packages Catalog</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/destinations"
+                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
+                    <span>All Destinations &amp; Guides</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/experiences"
+                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
+                    <span>All Experiences &amp; Activities</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/booking"
+                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
+                    <span>Book a Private Journey</span>
+                  </Link>
+                </li>
+                <li>
                   <a
                     href="/#tours"
                     onClick={(e) => handleSmoothScroll(e, 'tours')}
@@ -309,14 +345,13 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="/#fleet"
-                    onClick={(e) => handleSmoothScroll(e, 'fleet')}
+                  <Link
+                    href="/fleet"
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
                     <span>Executive Vehicle Fleet</span>
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a

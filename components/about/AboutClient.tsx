@@ -26,7 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
-import AboutNavbar from '@/components/about/AboutNavbar';
+import Navbar from '@/components/home/Navbar';
 import Footer from '@/components/home/Footer';
 import BookingModal from '@/components/home/BookingModal';
 import { createClient } from '@/utils/supabase/client';
@@ -278,11 +278,12 @@ export default function AboutClient() {
       {/* Zero-jank Scroll Sentinel */}
       <div id="scroll-sentinel" className="absolute top-0 left-0 w-full h-10 pointer-events-none -z-10" />
 
-      {/* About Page Navigation Bar (Exact same style as Home Page, About-specific links) */}
-      <AboutNavbar
+      {/* Universal Pill Navigation Bar */}
+      <Navbar
         currency={currency}
         onCurrencyChange={setCurrency}
         onOpenBooking={() => setIsBookingOpen(true)}
+        forceSolid
       />
 
       <main className="pt-24 sm:pt-28">
@@ -1041,48 +1042,48 @@ export default function AboutClient() {
             {/* Subtle Ambient Radial Warmth */}
             <div className="absolute -right-16 -bottom-16 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 max-w-3xl space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100/80 border border-orange-200 text-[#FF6B00] text-xs font-bold uppercase tracking-wider">
+            <div className="relative z-10 w-full space-y-7">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 border border-orange-200 text-[#FF6B00] text-xs font-bold uppercase tracking-wider">
                 <Clock className="w-3.5 h-3.5" />
                 <span>Ready to Start Planning?</span>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light font-heading tracking-tight text-slate-900 leading-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light font-heading tracking-tight text-slate-900 leading-tight max-w-4xl">
                 Your Private Sri Lanka Voyage{' '}
                 <span className="font-semibold text-slate-950 block sm:inline">Begins with a Conversation.</span>
               </h2>
 
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              <p className="text-slate-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl font-normal">
                 Connect with our local travel specialists today. We are available 7 days a week, 24 hours a day on WhatsApp and telephone to tailor every detail to your schedule.
               </p>
 
-              {/* Harmonious Action Channels */}
-              <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Harmonious Action Channels with Generous Breathing Room */}
+              <div className="pt-2 flex flex-wrap items-center gap-3.5 sm:gap-4">
                 {/* Primary CTA: Brand Cinnamon Orange */}
                 <button
                   type="button"
                   onClick={() => setIsBookingOpen(true)}
-                  className="px-6 py-3.5 rounded-full bg-[#FF6B00] hover:bg-[#E55F00] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/25 cursor-pointer active:scale-[0.98]"
+                  className="px-7 py-4 rounded-full bg-[#FF6B00] hover:bg-[#E55F00] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/25 cursor-pointer active:scale-[0.98] whitespace-nowrap shrink-0"
                 >
                   <span>Request Custom Itinerary</span>
                   <ArrowUpRight className="w-4 h-4" />
                 </button>
 
-                {/* Secondary CTA: Clean Luxury White Pill with subtle WhatsApp icon */}
+                {/* Secondary CTA: Clean Luxury White Pill with single-line phone number */}
                 <a
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 rounded-full bg-white hover:bg-stone-50 text-slate-800 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all border border-stone-200/90 shadow-2xs hover:border-emerald-500/50 cursor-pointer active:scale-[0.98]"
+                  className="px-7 py-4 rounded-full bg-white hover:bg-stone-50 text-slate-900 font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2.5 transition-all border border-stone-200/90 shadow-2xs hover:border-emerald-500/50 cursor-pointer active:scale-[0.98] whitespace-nowrap shrink-0"
                 >
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
-                  <span>Call / WhatsApp: {phone}</span>
+                  <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="whitespace-nowrap">Call / WhatsApp: {phone}</span>
                 </a>
 
                 {/* Third Link: Clean Explore Packages */}
                 <Link
                   href="/#tours"
-                  className="px-5 py-3.5 rounded-full text-stone-700 hover:text-slate-950 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors"
+                  className="px-6 py-4 rounded-full bg-white/60 hover:bg-white text-stone-700 hover:text-slate-950 font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all border border-stone-200/60 hover:border-stone-300 shadow-2xs cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <span>Explore Tour Packages</span>
                   <ArrowRight className="w-4 h-4 text-stone-400" />
@@ -1090,7 +1091,7 @@ export default function AboutClient() {
               </div>
 
               {/* Social Channels Row */}
-              <div className="pt-6 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-4 text-xs text-stone-500">
+              <div className="pt-8 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-4 text-xs text-stone-500 w-full">
                 <div className="flex items-center gap-3">
                   <span>Follow Our Daily Ceylon Moments:</span>
                   <span className="font-bold text-slate-900">@tripvibelanka</span>

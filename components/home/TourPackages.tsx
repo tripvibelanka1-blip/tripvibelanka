@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import { Currency } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
-import { Clock, CheckCircle2, ArrowUpRight, MapPin, Loader2, Sparkles } from 'lucide-react';
+import { Clock, CheckCircle2, ArrowUpRight, MapPin, Loader2, Sparkles, Compass } from 'lucide-react';
 
 interface TourPackagesProps {
   currency: Currency;
@@ -314,6 +315,20 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Dedicated Tour Packages Catalog Link */}
+        {packages.length > 0 && (
+          <div className="mt-12 text-center">
+            <Link
+              href="/tours"
+              className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-md transition-all group cursor-pointer active:scale-[0.98]"
+            >
+              <Compass className="w-4 h-4 text-[#FF6B00]" />
+              <span>Explore All Tour Packages &amp; Itineraries</span>
+              <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Link>
           </div>
         )}
       </div>

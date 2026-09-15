@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Compass,
   Sliders,
@@ -10,6 +11,8 @@ import {
   UtensilsCrossed,
   Star,
   ArrowUpRight,
+  ArrowRight,
+  BookOpen,
   MessageCircle,
   PhoneCall,
   CheckCircle2,
@@ -129,6 +132,17 @@ export default function WhyUs({ onOpenBooking }: WhyUsProps) {
                   </span>
                 </div>
               </div>
+
+              {/* Read More button to full About Us page */}
+              <div className="pt-2">
+                <Link
+                  href="/about"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-[#FF6B00] text-white font-semibold text-xs transition-all duration-200 shadow-xs hover:shadow group"
+                >
+                  <span>Read More</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
             </div>
 
             {/* TripAdvisor 5.0 Proof & Quick Action */}
@@ -232,6 +246,17 @@ export default function WhyUs({ onOpenBooking }: WhyUsProps) {
               </div>
             );
           })}
+        </div>
+
+        {/* Read More under Why Us section */}
+        <div className="mt-12 text-center">
+          <Link
+            href="/about"
+            className="inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white hover:bg-slate-900 text-slate-900 hover:text-white border border-slate-200/90 hover:border-slate-900 text-xs sm:text-sm font-semibold tracking-wide transition-all duration-300 shadow-2xs hover:shadow-md group cursor-pointer"
+          >
+            <span>Read More About Our Story &amp; The Team</span>
+            <ArrowRight className="w-4 h-4 text-[#FF6B00] group-hover:text-white transition-transform group-hover:translate-x-1" />
+          </Link>
         </div>
       </div>
     </section>

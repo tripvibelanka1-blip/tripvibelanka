@@ -726,12 +726,20 @@ ON site_settings FOR SELECT
 TO anon, authenticated 
 USING (true);
 
--- Allow authenticated admin full update access
+-- Allow authenticated admin full access (SELECT, INSERT, UPDATE, DELETE)
 DROP POLICY IF EXISTS "Allow authenticated update site settings" ON site_settings;
-CREATE POLICY "Allow authenticated update site settings" 
-ON site_settings FOR UPDATE 
+DROP POLICY IF EXISTS "Allow authenticated all site settings" ON site_settings;
+CREATE POLICY "Allow authenticated all site settings" 
+ON site_settings FOR ALL 
 TO authenticated 
 USING (true) 
+WITH CHECK (true);
+
+-- Explicitly ensure INSERT is permitted for UPSERT operations
+DROP POLICY IF EXISTS "Allow authenticated insert site settings" ON site_settings;
+CREATE POLICY "Allow authenticated insert site settings" 
+ON site_settings FOR INSERT 
+TO authenticated 
 WITH CHECK (true);
 
 -- ==========================================================

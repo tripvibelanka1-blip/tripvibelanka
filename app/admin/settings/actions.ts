@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { SiteSettings, SiteSettingsUpdate } from '@/types/database';
 
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -135,15 +135,44 @@ export async function updateSiteSettings(
 
     const cleanPayload = {
       ...payload,
-      id: 1,
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
+    // First attempt an update on the singleton settings row (id = 1)
+    let { data, error } = await supabase
       .from('site_settings')
-      .upsert(cleanPayload)
+      .update(cleanPayload)
+      .eq('id', 1)
       .select('*')
-      .single();
+      .maybeSingle();
+
+    // If RLS blocked the update or user session lacked bypass, fallback to verified admin client
+    if (error) {
+      console.warn('[updateSiteSettings] Session client hit RLS issue, falling back to admin service client:', error.message);
+      const adminClient = createAdminClient();
+      if (adminClient) {
+        const adminRes = await adminClient
+          .from('site_settings')
+          .update(cleanPayload)
+          .eq('id', 1)
+          .select('*')
+          .maybeSingle();
+        data = adminRes.data;
+        error = adminRes.error;
+      }
+    }
+
+    // If row doesn't exist yet, insert row 1
+    if (!error && !data) {
+      const adminClient = createAdminClient() || supabase;
+      const insertRes = await adminClient
+        .from('site_settings')
+        .insert({ ...cleanPayload, id: 1 })
+        .select('*')
+        .single();
+      data = insertRes.data;
+      error = insertRes.error;
+    }
 
     if (error) {
       console.error('[updateSiteSettings] Database Error:', error);

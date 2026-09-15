@@ -3,13 +3,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Currency } from '@/types/tourism';
-import { Menu, X, ArrowUpRight, Globe, PhoneCall, ChevronDown, Check } from 'lucide-react';
+import { Menu, X, ArrowUpRight, Globe, ChevronDown, Check, PhoneCall } from 'lucide-react';
 
-interface NavbarProps {
+interface AboutNavbarProps {
   currency: Currency;
   onCurrencyChange: (c: Currency) => void;
-  onOpenBooking: (packageId?: string) => void;
-  forceSolid?: boolean;
+  onOpenBooking: () => void;
 }
 
 const CURRENCIES: { code: Currency; symbol: string; label: string; flag: string }[] = [
@@ -17,63 +16,41 @@ const CURRENCIES: { code: Currency; symbol: string; label: string; flag: string 
   { code: 'LKR', symbol: 'Rs', label: 'Sri Lanka Rupee', flag: '🇱🇰' },
 ];
 
-export default function Navbar({
+export default function AboutNavbar({
   currency,
   onCurrencyChange,
   onOpenBooking,
-  forceSolid = false,
-}: NavbarProps) {
+}: AboutNavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [isAboutPage, setIsAboutPage] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>('home');
+  const [activeSection, setActiveSection] = useState<string>('story');
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
   const isClickScrollingRef = useRef(false);
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // About Page specific navigation links (6 items matching the home page navbar rhythm)
+  const navLinks = [
+    { name: 'Home', href: '/', id: 'home' },
+    { name: 'Our Story', href: '#story', id: 'story' },
+    { name: 'Our Team', href: '#team', id: 'team' },
+    { name: 'Moments', href: '#moments', id: 'moments' },
+    { name: 'Halal Care', href: '#halal', id: 'halal' },
+    { name: 'Reviews', href: '#reviews', id: 'reviews' },
+  ];
+
+  // Scroll-spy tracking the actual sections of the About Page
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname === '/about') {
-      setIsAboutPage(true);
-    }
-  }, []);
-
-  const isSolid = forceSolid || scrolled || isAboutPage;
-
-  useEffect(() => {
-    const sentinel = document.getElementById('scroll-sentinel');
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setScrolled(!entry.isIntersecting);
-      },
-      { threshold: 0 }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
-
-  // Scroll-spy: automatically detect active section as user scrolls
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname === '/about') {
-      setActiveSection('about');
-      return;
-    }
-
-    const sectionIds = ['home', 'tours', 'destinations', 'experiences', 'fleet', 'why-us'];
+    const sectionIds = ['story', 'team', 'moments', 'halal', 'reviews'];
 
     const handleScroll = () => {
       if (isClickScrollingRef.current) return;
 
-      const scrollPosition = window.scrollY + 180;
+      const scrollPosition = window.scrollY + 200;
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
 
-      // When reached the bottom of page, highlight the last section ('why-us')
-      if (window.scrollY + windowHeight >= documentHeight - 60) {
-        setActiveSection('why-us');
+      if (window.scrollY + windowHeight >= documentHeight - 80) {
+        setActiveSection('reviews');
         return;
       }
 
@@ -98,16 +75,10 @@ export default function Navbar({
     };
   }, []);
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    if (id === 'about') {
-      if (typeof window !== 'undefined' && window.location.pathname !== '/about') {
-        window.location.href = '/about';
-      }
-      return;
-    }
-
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      window.location.href = id === 'home' ? '/' : `/#${id}`;
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string, href: string) => {
+    if (id === 'home') {
+      // Return to homepage
+      window.location.href = '/';
       return;
     }
 
@@ -120,19 +91,15 @@ export default function Navbar({
       isClickScrollingRef.current = false;
     }, 850);
 
-    if (id === 'home') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      const element = document.getElementById(id);
-      if (element) {
-        const navOffset = 80;
-        const targetPosition = element.getBoundingClientRect().top + window.scrollY - navOffset;
-        window.scrollTo({ top: targetPosition, behavior: 'smooth' });
-      }
+    const element = document.getElementById(id);
+    if (element) {
+      const navOffset = 90;
+      const targetPosition = element.getBoundingClientRect().top + window.scrollY - navOffset;
+      window.scrollTo({ top: targetPosition, behavior: 'smooth' });
     }
   };
 
-  // Close dropdown on outside click or escape key
+  // Close currency dropdown on outside click or Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (currencyDropdownRef.current && !currencyDropdownRef.current.contains(event.target as Node)) {
@@ -152,35 +119,23 @@ export default function Navbar({
     };
   }, []);
 
-  const navLinks = [
-    { name: 'Home', href: '/', id: 'home' },
-    { name: 'Tours', href: '/#tours', id: 'tours' },
-    { name: 'Destinations', href: '/#destinations', id: 'destinations' },
-    { name: 'Experiences', href: '/#experiences', id: 'experiences' },
-    { name: 'Fleet', href: '/#fleet', id: 'fleet' },
-    { name: 'Why Us', href: '/#why-us', id: 'why-us' },
-  ];
-
   return (
     <>
       <header className="fixed top-5 inset-x-4 z-50 max-w-6xl mx-auto transition-all duration-300">
         <nav
-          className={`w-full rounded-full transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between border ${
-            isSolid
-              ? 'bg-white/95 backdrop-blur-xl border-slate-200/90 shadow-lg shadow-slate-900/5 text-slate-900'
-              : 'bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl text-white'
-          }`}
-          aria-label="Main Navigation"
+          className="w-full rounded-full transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between border bg-white/95 backdrop-blur-xl border-slate-200/90 shadow-lg shadow-slate-900/5 text-slate-900"
+          aria-label="About Page Navigation"
         >
-          {/* Logo & Brand Name */}
+          {/* Logo & Brand Name - Identical to Home Page */}
           <a
             href="/"
-            onClick={(e) => handleNavClick(e, 'home')}
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/';
+            }}
             className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full py-1 pr-2"
           >
-            <div className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border shadow-sm flex items-center justify-center ${
-              isSolid ? 'border-orange-500/20 bg-orange-500/10' : 'border-white/30 bg-white/10 backdrop-blur-md'
-            }`}>
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border shadow-sm flex items-center justify-center border-orange-500/20 bg-orange-500/10">
               <Image
                 src="/logo.jpeg"
                 alt="Tripvibe Lanka Logo"
@@ -191,20 +146,16 @@ export default function Navbar({
               />
             </div>
             <div className="flex flex-col">
-              <span className={`text-base sm:text-lg font-bold tracking-tight font-heading leading-tight flex items-center gap-1 ${
-                isSolid ? 'text-slate-900' : 'text-white'
-              }`}>
+              <span className="text-base sm:text-lg font-bold tracking-tight font-heading leading-tight flex items-center gap-1 text-slate-900">
                 Tripvibe<span className="text-[#FF6B00]">Lanka</span>
               </span>
-              <span className={`text-[10px] uppercase tracking-widest font-medium hidden sm:inline-block ${
-                isSolid ? 'text-slate-500' : 'text-white/70'
-              }`}>
+              <span className="text-[10px] uppercase tracking-widest font-medium hidden sm:inline-block text-slate-500">
                 Luxury Private Tours
               </span>
             </div>
           </a>
 
-          {/* Desktop Nav Links */}
+          {/* Desktop Nav Links - Identical Style to Home Page, About-Specific Content */}
           <div className="hidden md:flex items-center gap-1 lg:gap-1.5">
             {navLinks.map((link) => {
               const isActive = activeSection === link.id;
@@ -212,15 +163,11 @@ export default function Navbar({
                 <a
                   key={link.name}
                   href={link.href}
-                  onClick={(e) => handleNavClick(e, link.id)}
+                  onClick={(e) => handleNavClick(e, link.id, link.href)}
                   className={`px-3.5 py-1.5 rounded-full text-xs lg:text-sm transition-all duration-200 font-medium ${
                     isActive
-                      ? isSolid
-                        ? 'bg-slate-900 text-white shadow-sm font-semibold'
-                        : 'bg-white text-slate-900 font-semibold shadow-sm'
-                      : isSolid
-                      ? 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
-                      : 'text-white/80 hover:text-white hover:bg-white/15'
+                      ? 'bg-slate-900 text-white shadow-sm font-semibold'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
                   }`}
                 >
                   {link.name}
@@ -229,44 +176,34 @@ export default function Navbar({
             })}
           </div>
 
-          {/* Desktop Right Actions: Currency & CTA */}
+          {/* Desktop Right Actions: Currency & CTA - Identical to Home Page */}
           <div className="hidden sm:flex items-center gap-2.5">
             {/* Custom Frosted Currency Dropdown */}
             <div ref={currencyDropdownRef} className="relative">
               <button
                 type="button"
                 onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer select-none border ${
-                  isSolid
-                    ? 'bg-slate-100/90 hover:bg-slate-200/80 border-slate-200/90 text-slate-800'
-                    : 'bg-white/15 hover:bg-white/25 border-white/25 text-white backdrop-blur-md'
-                }`}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer select-none border bg-slate-100/90 hover:bg-slate-200/80 border-slate-200/90 text-slate-800"
                 aria-haspopup="listbox"
                 aria-expanded={currencyDropdownOpen}
                 aria-label="Select Currency"
               >
-                <Globe className={`w-3.5 h-3.5 shrink-0 ${isSolid ? 'text-slate-600' : 'text-white/80'}`} />
+                <Globe className="w-3.5 h-3.5 shrink-0 text-slate-600" />
                 <span>{currency} ({currency === 'USD' ? '$' : 'Rs'})</span>
                 <ChevronDown
-                  className={`w-3 h-3 transition-transform duration-200 ${
+                  className={`w-3 h-3 transition-transform duration-200 text-slate-600 ${
                     currencyDropdownOpen ? 'rotate-180' : ''
-                  } ${isSolid ? 'text-slate-600' : 'text-white/70'}`}
+                  }`}
                 />
               </button>
 
               {/* Custom Popover matching Navbar glass */}
               {currencyDropdownOpen && (
                 <div
-                  className={`absolute right-0 top-full mt-2 w-48 rounded-2xl p-1.5 shadow-2xl border transition-all z-50 ${
-                    isSolid
-                      ? 'bg-white/95 backdrop-blur-xl border-slate-200/90 text-slate-900 shadow-xl shadow-slate-900/10'
-                      : 'bg-slate-900/90 backdrop-blur-2xl border-white/20 shadow-2xl text-white'
-                  }`}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-2xl p-1.5 shadow-xl border transition-all z-50 bg-white/95 backdrop-blur-xl border-slate-200/90 text-slate-900 shadow-slate-900/10"
                   role="listbox"
                 >
-                  <div className={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${
-                    isSolid ? 'text-slate-400' : 'text-white/60'
-                  }`}>
+                  <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                     Select Currency
                   </div>
                   <div className="space-y-0.5 mt-0.5">
@@ -282,12 +219,8 @@ export default function Navbar({
                           }}
                           className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all text-left cursor-pointer border-0 ${
                             isSelected
-                              ? isSolid
-                                ? 'bg-slate-100 font-semibold text-slate-950'
-                                : 'bg-white/15 font-semibold text-white'
-                              : isSolid
-                              ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-950'
-                              : 'hover:bg-white/10 text-white/80 hover:text-white'
+                              ? 'bg-slate-100 font-semibold text-slate-950'
+                              : 'hover:bg-slate-50 text-slate-700 hover:text-slate-950'
                           }`}
                           role="option"
                           aria-selected={isSelected}
@@ -296,21 +229,13 @@ export default function Navbar({
                             <span className="text-sm leading-none">{c.flag}</span>
                             <div className="flex flex-col">
                               <span className="leading-tight">{c.code} ({c.symbol})</span>
-                              <span className={`text-[10px] ${
-                                isSelected
-                                  ? isSolid
-                                    ? 'text-slate-500'
-                                    : 'text-white/80'
-                                  : isSolid
-                                  ? 'text-slate-400'
-                                  : 'text-white/60'
-                              }`}>
+                              <span className={`text-[10px] ${isSelected ? 'text-slate-500' : 'text-slate-400'}`}>
                                 {c.label}
                               </span>
                             </div>
                           </div>
                           {isSelected && (
-                            <Check className={`w-3.5 h-3.5 shrink-0 ${isSolid ? 'text-slate-900' : 'text-white'}`} />
+                            <Check className="w-3.5 h-3.5 shrink-0 text-slate-900" />
                           )}
                         </button>
                       );
@@ -323,16 +248,10 @@ export default function Navbar({
             {/* Book Now Button matching reference */}
             <button
               onClick={() => onOpenBooking()}
-              className={`inline-flex items-center justify-center gap-2 px-4 lg:px-5 py-2 rounded-full text-xs lg:text-sm font-semibold active:scale-[0.98] transition-all duration-200 cursor-pointer group ${
-                isSolid
-                  ? 'text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-sm shadow-orange-500/25'
-                  : 'text-white bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 shadow-md'
-              }`}
+              className="inline-flex items-center justify-center gap-2 px-4 lg:px-5 py-2 rounded-full text-xs lg:text-sm font-semibold active:scale-[0.98] transition-all duration-200 cursor-pointer group text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-sm shadow-orange-500/25"
             >
               <span>Book now</span>
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${
-                isSolid ? 'bg-white/20 text-white' : 'bg-white text-slate-900'
-              }`}>
+              <span className="w-5 h-5 rounded-full flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 bg-white/20 text-white">
                 <ArrowUpRight className="w-3 h-3" />
               </span>
             </button>
@@ -343,11 +262,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={() => onCurrencyChange(currency === 'USD' ? 'LKR' : 'USD')}
-              className={`text-xs font-semibold rounded-full px-2.5 py-1 border transition-all cursor-pointer flex items-center gap-1 ${
-                isSolid
-                  ? 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200'
-                  : 'bg-white/15 text-white border-white/25 backdrop-blur-md hover:bg-white/25'
-              }`}
+              className="text-xs font-semibold rounded-full px-2.5 py-1 border transition-all cursor-pointer flex items-center gap-1 bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200"
               aria-label="Toggle currency"
             >
               <Globe className="w-3 h-3" />
@@ -357,9 +272,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`p-2 rounded-full focus:outline-none ${
-                isSolid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/20'
-              }`}
+              className="p-2 rounded-full focus:outline-none text-slate-800 hover:bg-slate-100"
               aria-label="Toggle Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -386,7 +299,7 @@ export default function Navbar({
                     key={link.name}
                     href={link.href}
                     onClick={(e) => {
-                      handleNavClick(e, link.id);
+                      handleNavClick(e, link.id, link.href);
                       setMobileMenuOpen(false);
                     }}
                     className={`px-4 py-3 rounded-2xl text-base font-semibold transition-all flex items-center justify-between ${

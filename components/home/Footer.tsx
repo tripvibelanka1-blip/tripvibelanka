@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import {
   MessageCircle,
   ArrowUpRight,
+  ArrowRight,
   Phone,
   Clock,
   MapPin,
@@ -79,21 +81,29 @@ export default function Footer({ onOpenBooking }: FooterProps) {
 
   // Fetch dynamic contact and social channels from settings table
   useEffect(() => {
-    async function loadSettings() {
+    let isMounted = true;
+    async function loadSiteSettings() {
       try {
         const supabase = createClient();
         const { data } = await supabase.from('site_settings').select('*').eq('id', 1).maybeSingle();
-        if (data) {
+        if (data && isMounted) {
           setSiteSettings(data);
         }
       } catch (err) {
         console.warn('Could not load site_settings:', err);
       }
     }
-    loadSettings();
+    loadSiteSettings();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.href = targetId === 'home' ? '/' : `/#${targetId}`;
+      return;
+    }
     e.preventDefault();
     if (targetId === 'home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -201,6 +211,16 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 show you Sri Lanka: we let you feel it.
               </p>
 
+              <div>
+                <Link
+                  href="/about"
+                  className="text-xs font-semibold text-[#FF6B00] hover:text-[#E55F00] inline-flex items-center gap-1 group/story transition-colors"
+                >
+                  <span>Read our full story</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/story:translate-x-1" />
+                </Link>
+              </div>
+
               {/* Verified TripAdvisor Proof Badge */}
               <a
                 href={tripadvisorUrl}
@@ -260,7 +280,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
               <ul className="space-y-2.5 font-medium text-xs sm:text-sm text-slate-600">
                 <li>
                   <a
-                    href="#tours"
+                    href="/#tours"
                     onClick={(e) => handleSmoothScroll(e, 'tours')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -270,7 +290,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 </li>
                 <li>
                   <a
-                    href="#destinations"
+                    href="/#destinations"
                     onClick={(e) => handleSmoothScroll(e, 'destinations')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -280,7 +300,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 </li>
                 <li>
                   <a
-                    href="#experiences"
+                    href="/#experiences"
                     onClick={(e) => handleSmoothScroll(e, 'experiences')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -290,7 +310,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 </li>
                 <li>
                   <a
-                    href="#fleet"
+                    href="/#fleet"
                     onClick={(e) => handleSmoothScroll(e, 'fleet')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -300,7 +320,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 </li>
                 <li>
                   <a
-                    href="#reviews"
+                    href="/#reviews"
                     onClick={(e) => handleSmoothScroll(e, 'reviews')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -319,7 +339,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
               <ul className="space-y-2.5 font-medium text-xs sm:text-sm text-slate-600">
                 <li>
                   <a
-                    href="#why-us"
+                    href="/#why-us"
                     onClick={(e) => handleSmoothScroll(e, 'why-us')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -328,18 +348,17 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="#why-us"
-                    onClick={(e) => handleSmoothScroll(e, 'why-us')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
+                  <Link
+                    href="/about"
+                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group font-semibold text-slate-900"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Our Story and Team</span>
-                  </a>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]" />
+                    <span>About Us (Read More)</span>
+                  </Link>
                 </li>
                 <li>
                   <a
-                    href="#why-us"
+                    href="/#why-us"
                     onClick={(e) => handleSmoothScroll(e, 'why-us')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >
@@ -349,7 +368,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 </li>
                 <li>
                   <a
-                    href="#reviews"
+                    href="/#reviews"
                     onClick={(e) => handleSmoothScroll(e, 'reviews')}
                     className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
                   >

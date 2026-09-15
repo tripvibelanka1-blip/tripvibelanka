@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Star, Quote, ArrowUpRight } from 'lucide-react';
+import { Star, ArrowUpRight } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 interface RealReview {
@@ -10,7 +10,6 @@ interface RealReview {
   name: string;
   location: string;
   flag: string;
-  avatar: string;
   rating: number;
   title: string;
   quote: string;
@@ -47,7 +46,6 @@ const REAL_TRIPADVISOR_REVIEWS: RealReview[] = [
     name: 'Esmablb',
     location: 'Independent Traveler',
     flag: '🇫🇷',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
     rating: 5,
     title: 'The perfect trip to Sri Lanka',
     travelType: 'Couples',
@@ -60,7 +58,6 @@ const REAL_TRIPADVISOR_REVIEWS: RealReview[] = [
     name: 'Leonardo B.',
     location: 'Verified Guest',
     flag: '🇮🇹',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
     rating: 5,
     title: 'Great drivers for a great travel experience',
     travelType: 'Couples',
@@ -73,7 +70,6 @@ const REAL_TRIPADVISOR_REVIEWS: RealReview[] = [
     name: 'Hadi Al-Hashimi',
     location: 'Kuala Lumpur, Malaysia',
     flag: '🇲🇾',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     rating: 5,
     title: 'A Soulful Journey Through Sri Lanka',
     travelType: '10 Days Tour',
@@ -86,7 +82,6 @@ const REAL_TRIPADVISOR_REVIEWS: RealReview[] = [
     name: 'Departure42728',
     location: 'United Kingdom',
     flag: '🇬🇧',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
     rating: 5,
     title: '5 days tour with Director Abdul',
     travelType: 'Family Journey',
@@ -99,7 +94,6 @@ const REAL_TRIPADVISOR_REVIEWS: RealReview[] = [
     name: 'Mazen E.',
     location: 'Holiday Guest',
     flag: '🇦🇪',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80',
     rating: 5,
     title: 'Great experience from start to finish',
     travelType: '5-Day Package',
@@ -112,7 +106,6 @@ const REAL_TRIPADVISOR_REVIEWS: RealReview[] = [
     name: 'Nellita L.',
     location: 'Travel Enthusiast',
     flag: '🇨🇭',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
     rating: 5,
     title: 'A day to remember',
     travelType: 'Day Tour',
@@ -242,17 +235,15 @@ export default function Testimonials() {
               key={review.id}
               className="rounded-3xl p-7 bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between relative group"
             >
-              <Quote className="absolute top-6 right-6 w-7 h-7 text-orange-200 group-hover:text-orange-300 transition-colors pointer-events-none" />
-
               <div className="space-y-3">
                 {/* Rating & Date */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1 text-emerald-500">
                     {[...Array(review.rating)].map((_, idx) => (
                       <Star key={idx} className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />
                     ))}
                   </div>
-                  <span className="text-[11px] font-medium text-slate-400">{review.date}</span>
+                  <span className="text-xs font-medium text-slate-400 shrink-0">{review.date}</span>
                 </div>
 
                 {/* Title */}
@@ -267,25 +258,22 @@ export default function Testimonials() {
               </div>
 
               {/* Author Footer */}
-              <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-emerald-500/20">
-                    <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+              <div className="pt-4 mt-5 border-t border-slate-100 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-900 font-heading">{review.name}</span>
+                    <span className="text-xs">{review.flag}</span>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900 font-heading">{review.name}</span>
-                      <span className="text-xs">{review.flag}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block leading-tight">{review.location}</span>
-                  </div>
+                  <span className="text-[10px] text-slate-500 block leading-tight truncate">
+                    {review.location}
+                  </span>
                 </div>
 
                 <a
                   href={TRIPADVISOR_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200 transition-colors shrink-0"
                 >
                   <TripAdvisorIcon className="w-3 h-3 fill-emerald-600" />
                   <span>Tripadvisor</span>

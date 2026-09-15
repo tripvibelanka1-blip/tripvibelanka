@@ -26,9 +26,9 @@ export default function DestinationsHero({
   totalDestinations,
 }: DestinationsHeroProps) {
   return (
-    <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-10 sm:pb-14">
+    <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-10 sm:pb-14 overflow-hidden">
       {/* Ambient background glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[540px] h-[340px] bg-gradient-to-tr from-amber-200/30 via-orange-100/25 to-emerald-100/30 blur-3xl pointer-events-none -z-10 rounded-full" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[540px] max-w-[90vw] h-[340px] bg-gradient-to-tr from-amber-200/30 via-orange-100/25 to-emerald-100/30 blur-3xl pointer-events-none -z-10 rounded-full" />
 
       <div className="text-center space-y-6 max-w-4xl mx-auto">
         {/* Eyebrow badge */}

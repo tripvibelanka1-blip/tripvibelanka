@@ -6,7 +6,18 @@ import Link from 'next/link';
 import { Currency, FleetVehicle } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
-import { Users, Briefcase, CheckCircle2, ArrowUpRight, Loader2, Car } from 'lucide-react';
+import {
+  Users,
+  Briefcase,
+  CheckCircle2,
+  ArrowUpRight,
+  Loader2,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  Wifi,
+} from 'lucide-react';
 
 interface FleetShowcaseProps {
   currency: Currency;
@@ -18,6 +29,38 @@ export default function FleetShowcase({ currency, onSelectVehicle }: FleetShowca
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Sedans' | 'Vans' | 'Mini Buses'>('All');
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeVehicleIndex, setActiveVehicleIndex] = useState<number>(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  // Reset active vehicle when category changes
+  useEffect(() => {
+    setActiveVehicleIndex(0);
+  }, [selectedCategory]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    const currentList =
+      selectedCategory === 'All'
+        ? vehicles
+        : vehicles.filter((v) => v.category === selectedCategory);
+
+    if (Math.abs(diff) > 40 && currentList.length > 1) {
+      if (diff > 0) {
+        // Swiped left -> next
+        setActiveVehicleIndex((prev) => (prev + 1) % currentList.length);
+      } else {
+        // Swiped right -> prev
+        setActiveVehicleIndex((prev) => (prev - 1 + currentList.length) % currentList.length);
+      }
+    }
+    setTouchStartX(null);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -205,96 +248,310 @@ export default function FleetShowcase({ currency, onSelectVehicle }: FleetShowca
             </button>
           </div>
         ) : (
-          // Vehicles Grid
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {filteredVehicles.map((vehicle) => (
-              <div
-                key={vehicle.id}
-                className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-              >
-                <div>
-                  {/* Vehicle Image */}
-                  <div className="relative h-60 w-full overflow-hidden bg-slate-100">
-                    <Image
-                      src={vehicle.image}
-                      alt={vehicle.name}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 33vw"
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-
-                    <div className="absolute top-4 left-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-950/70 backdrop-blur-md text-white border border-white/20 shadow-sm">
-                        {vehicle.category}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Body Details */}
-                  <div className="p-6 space-y-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-slate-900 group-hover:text-[#FF6B00] transition-colors font-heading leading-snug">
-                        {vehicle.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1 italic">
-                        {vehicle.recommendedFor}
-                      </p>
-                    </div>
-
-                    {/* Capacity Specs */}
-                    <div className="grid grid-cols-2 gap-2 py-3 border-y border-slate-100 text-xs text-slate-700">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-[#FF6B00] shrink-0" />
-                        <span>{vehicle.passengers}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="w-4 h-4 text-slate-600 shrink-0" />
-                        <span>{vehicle.luggage}</span>
-                      </div>
-                    </div>
-
-                    {/* Included Amenities */}
-                    <div className="space-y-1.5 pt-1">
-                      <span className="text-xs text-slate-400 font-medium block">
-                        Vehicle Amenities
-                      </span>
-                      <ul className="space-y-1">
-                        {vehicle.features.map((feat, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-xs text-slate-600">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
-                            <span>{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Price & Action */}
-                <div className="p-6 pt-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block font-medium">
-                      With Chauffeur Guide
-                    </span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-slate-900 font-heading">
-                        {formatPrice(vehicle)}
-                      </span>
-                      <span className="text-xs text-slate-500">/ day</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => onSelectVehicle(vehicle.id)}
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold text-white bg-[#0F172A] hover:bg-slate-800 active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-                  >
-                    <span>Select Vehicle</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </button>
+          <div>
+            {/* ================= MOBILE VIEW: Interactive Luxury Showroom Stage (< lg) ================= */}
+            <div className="block lg:hidden space-y-4">
+              {/* 1. Horizontal Tactile Vehicle Switcher Bar */}
+              <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6 pb-1">
+                <div className="inline-flex gap-2 min-w-max">
+                  {filteredVehicles.map((v, idx) => {
+                    const isSelected = (filteredVehicles[activeVehicleIndex] ? activeVehicleIndex : 0) === idx;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => setActiveVehicleIndex(idx)}
+                        className={`px-4 py-2 rounded-2xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-900 text-white shadow-md ring-2 ring-[#FF6B00]/40'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-[#FF6B00]' : 'bg-slate-300'}`} />
+                        <span>{v.name.split(' ')[0]}</span>
+                        <span className={`text-[11px] font-medium ${isSelected ? 'text-orange-300' : 'text-slate-400'}`}>
+                          {formatPrice(v)}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+
+              {/* 2. Central Automotive Stage Card */}
+              {(() => {
+                const activeVehicle = filteredVehicles[activeVehicleIndex] || filteredVehicles[0];
+                if (!activeVehicle) return null;
+
+                return (
+                  <div
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-md transition-all duration-300 flex flex-col"
+                  >
+                    {/* Vehicle Hero Media Display with Quick Navigation Overlay */}
+                    <div className="relative h-60 sm:h-72 w-full overflow-hidden bg-slate-950 select-none">
+                      <Image
+                        src={activeVehicle.image}
+                        alt={activeVehicle.name}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 33vw"
+                        className="object-cover transition-transform duration-700"
+                        priority
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-black/30 pointer-events-none" />
+
+                      {/* Top Floating Badges & Arrows */}
+                      <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between z-10">
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-950/80 backdrop-blur-md text-white border border-white/20 shadow-sm">
+                          {activeVehicle.category}
+                        </span>
+
+                        <div className="flex items-center gap-1.5 bg-slate-950/70 backdrop-blur-md border border-white/20 rounded-full p-1 text-white shadow-sm">
+                          <button
+                            type="button"
+                            aria-label="Previous vehicle"
+                            onClick={() =>
+                              setActiveVehicleIndex(
+                                (prev) => (prev - 1 + filteredVehicles.length) % filteredVehicles.length
+                              )
+                            }
+                            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/20 active:scale-90 transition-all cursor-pointer"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <span className="font-mono text-[11px] font-bold px-1.5 text-slate-200">
+                            {((activeVehicleIndex % filteredVehicles.length) + 1)} / {filteredVehicles.length}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Next vehicle"
+                            onClick={() =>
+                              setActiveVehicleIndex((prev) => (prev + 1) % filteredVehicles.length)
+                            }
+                            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/20 active:scale-90 transition-all cursor-pointer"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bottom Banner on Image: Verified Chauffeur Included */}
+                      <div className="absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between text-white text-xs">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-[11px] font-medium">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Certified Chauffeur Included</span>
+                        </span>
+                        <span className="text-[11px] text-slate-300/80 font-medium">Swipe to switch</span>
+                      </div>
+                    </div>
+
+                    {/* Stage Details & Specifications HUD */}
+                    <div className="p-5 sm:p-6 space-y-4">
+                      {/* Title & Tagline */}
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 font-heading">
+                          {activeVehicle.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 italic">
+                          {activeVehicle.recommendedFor}
+                        </p>
+                      </div>
+
+                      {/* 4-Tile Quick Specs Matrix */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
+                          <div className="w-7 h-7 rounded-xl bg-orange-100/70 text-[#FF6B00] flex items-center justify-center shrink-0">
+                            <Users className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-slate-400 block font-medium">Capacity</span>
+                            <span className="font-semibold text-slate-800 truncate block">{activeVehicle.passengers}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
+                          <div className="w-7 h-7 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
+                            <Briefcase className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-slate-400 block font-medium">Luggage</span>
+                            <span className="font-semibold text-slate-800 truncate block">{activeVehicle.luggage}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
+                          <div className="w-7 h-7 rounded-xl bg-blue-100/70 text-blue-600 flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-slate-400 block font-medium">Climate</span>
+                            <span className="font-semibold text-slate-800 truncate block">Dual-Zone A/C</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
+                          <div className="w-7 h-7 rounded-xl bg-emerald-100/70 text-emerald-600 flex items-center justify-center shrink-0">
+                            <Wifi className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-slate-400 block font-medium">Connectivity</span>
+                            <span className="font-semibold text-slate-800 truncate block">Free 4G Wi-Fi</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Feature Highlights Pills */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {activeVehicle.features.slice(0, 3).map((feat, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100/80 text-slate-600 border border-slate-200/60"
+                          >
+                            <CheckCircle2 className="w-3 h-3 text-[#FF6B00]" />
+                            <span>{feat}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stage Booking Footer */}
+                    <div className="p-5 pt-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-medium">
+                          Daily Rate (With Chauffeur)
+                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl sm:text-2xl font-bold text-slate-900 font-heading">
+                            {formatPrice(activeVehicle)}
+                          </span>
+                          <span className="text-xs text-slate-500">/ day</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => onSelectVehicle(activeVehicle.id)}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-bold text-white bg-[#0F172A] hover:bg-slate-800 active:scale-[0.98] transition-all cursor-pointer shadow-md"
+                      >
+                        <span>Select Vehicle</span>
+                        <ArrowUpRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Mobile Indicator Dots */}
+              {filteredVehicles.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 pt-2">
+                  {filteredVehicles.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      aria-label={`Show vehicle ${idx + 1}`}
+                      onClick={() => setActiveVehicleIndex(idx)}
+                      className={`transition-all duration-300 rounded-full h-1.5 ${
+                        (filteredVehicles[activeVehicleIndex] ? activeVehicleIndex : 0) === idx
+                          ? 'w-7 bg-[#FF6B00]'
+                          : 'w-2 bg-slate-300 hover:bg-slate-400'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ================= DESKTOP VIEW: 3-Column Grid (lg:) ================= */}
+            <div className="hidden lg:grid lg:grid-cols-3 gap-8">
+              {filteredVehicles.map((vehicle) => (
+                <div
+                  key={vehicle.id}
+                  className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* Vehicle Image */}
+                    <div className="relative h-60 w-full overflow-hidden bg-slate-100">
+                      <Image
+                        src={vehicle.image}
+                        alt={vehicle.name}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 33vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+                      <div className="absolute top-4 left-4">
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-950/70 backdrop-blur-md text-white border border-white/20 shadow-sm">
+                          {vehicle.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Body Details */}
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-slate-900 group-hover:text-[#FF6B00] transition-colors font-heading leading-snug">
+                          {vehicle.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 italic">
+                          {vehicle.recommendedFor}
+                        </p>
+                      </div>
+
+                      {/* Capacity Specs */}
+                      <div className="grid grid-cols-2 gap-2 py-3 border-y border-slate-100 text-xs text-slate-700">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-[#FF6B00] shrink-0" />
+                          <span>{vehicle.passengers}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-slate-600 shrink-0" />
+                          <span>{vehicle.luggage}</span>
+                        </div>
+                      </div>
+
+                      {/* Included Amenities */}
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-xs text-slate-400 font-medium block">
+                          Vehicle Amenities
+                        </span>
+                        <ul className="space-y-1">
+                          {vehicle.features.map((feat, idx) => (
+                            <li key={idx} className="flex items-center gap-2 text-xs text-slate-600">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
+                              <span>{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price & Action */}
+                  <div className="p-6 pt-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">
+                        With Chauffeur Guide
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold text-slate-900 font-heading">
+                          {formatPrice(vehicle)}
+                        </span>
+                        <span className="text-xs text-slate-500">/ day</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => onSelectVehicle(vehicle.id)}
+                      className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold text-white bg-[#0F172A] hover:bg-slate-800 active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+                    >
+                      <span>Select Vehicle</span>
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

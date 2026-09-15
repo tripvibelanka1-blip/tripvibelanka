@@ -46,11 +46,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${poppins.variable} ${plusJakartaSans.variable} scroll-smooth antialiased`}
+      className={`${poppins.variable} ${plusJakartaSans.variable} scroll-smooth antialiased overflow-x-clip max-w-full`}
     >
       <body
         suppressHydrationWarning
-        className="min-h-screen bg-white text-slate-900 font-body selection:bg-orange-500/20 selection:text-orange-900"
+        className="min-h-screen bg-white text-slate-900 font-body selection:bg-orange-500/20 selection:text-orange-900 overflow-x-clip max-w-full relative"
       >
         <CurrencyProvider>
           {children}

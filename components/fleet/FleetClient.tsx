@@ -119,7 +119,7 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 flex flex-col font-sans selection:bg-[#FF6B00] selection:text-white">
+    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 flex flex-col font-sans selection:bg-[#FF6B00] selection:text-white overflow-x-clip w-full">
       {/* Universal Sticky Navbar */}
       <Navbar
         currency={currency}

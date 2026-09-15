@@ -163,15 +163,15 @@ const OUR_PROMISES = [
   },
   {
     title: 'Complete Financial Transparency',
-    description: 'Clear, itemized quotes with zero hidden booking surcharges, unexpected driver meal fees, or tourist traps.',
+    description: 'All vehicle fuel, highway tolls, chauffeur lodging, and insurance inclusions locked in upfront with zero surprise surcharges.',
   },
   {
-    title: 'Curated Boutique Stays',
-    description: 'Handpicked colonial tea bungalows, boutique beach villas, and scenic eco-lodges vetted for top comfort and cleanliness.',
+    title: 'Unhurried Authentic Pacing',
+    description: 'We prioritize deep discovery over checklist rushing. Spend real time admiring hidden waterfalls, tea estates, and local craft stalls.',
   },
   {
-    title: 'Authentic Human Memories',
-    description: 'Heartfelt cultural conversations, tranquil vistas, and genuine local friendships that you will cherish for life.',
+    title: 'Handpicked Boutique Accommodations',
+    description: 'Colonial tea bungalows, cliffside ocean sanctuaries, and family-run villas vetted for comfort, safety, and hygiene.',
   },
 ];
 
@@ -226,6 +226,25 @@ export default function AboutClient() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [siteSettings, setSiteSettings] = useState<Partial<SiteSettings> | null>(null);
+  const [activeMapStopIndex, setActiveMapStopIndex] = useState<number>(0);
+  const [mapTouchStartX, setMapTouchStartX] = useState<number | null>(null);
+
+  const handleMapTouchStart = (e: React.TouchEvent) => {
+    setMapTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleMapTouchEnd = (e: React.TouchEvent) => {
+    if (mapTouchStartX === null) return;
+    const diff = mapTouchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        setActiveMapStopIndex((prev) => (prev + 1) % REAL_GUEST_MOMENTS.length);
+      } else {
+        setActiveMapStopIndex((prev) => (prev - 1 + REAL_GUEST_MOMENTS.length) % REAL_GUEST_MOMENTS.length);
+      }
+    }
+    setMapTouchStartX(null);
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -274,7 +293,7 @@ export default function AboutClient() {
   const tiktokUrl = siteSettings?.tiktok_url || 'https://tiktok.com/@tripvibelanka';
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-slate-900 selection:bg-orange-500/20 selection:text-orange-950 font-body">
+    <div className="min-h-screen bg-[#FAF9F6] text-slate-900 selection:bg-orange-500/20 selection:text-orange-950 font-body overflow-x-clip w-full">
       {/* Zero-jank Scroll Sentinel */}
       <div id="scroll-sentinel" className="absolute top-0 left-0 w-full h-10 pointer-events-none -z-10" />
 
@@ -290,9 +309,9 @@ export default function AboutClient() {
         {/* ========================================================== */}
         {/* 1. HERO SECTION: BRAND SOUL & VALUES                       */}
         {/* ========================================================== */}
-        <section id="hero" className="relative px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto pt-6 pb-12 sm:pb-16">
+        <section id="hero" className="relative px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto pt-6 pb-12 sm:pb-16 overflow-hidden">
           {/* Subtle Ambient Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[320px] bg-gradient-to-tr from-amber-200/35 via-orange-100/25 to-emerald-100/30 blur-3xl pointer-events-none -z-10 rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[520px] max-w-[90vw] h-[320px] bg-gradient-to-tr from-amber-200/35 via-orange-100/25 to-emerald-100/30 blur-3xl pointer-events-none -z-10 rounded-full" />
 
           <div className="text-center space-y-6 max-w-4xl mx-auto">
             {/* Editorial Eyebrow Badge */}
@@ -645,8 +664,185 @@ export default function AboutClient() {
               </p>
             </div>
 
-            {/* Gallery: 2 Top + 3 Middle + 2 Bottom (All 7 strictly 4:3) */}
-            <div className="space-y-6 sm:space-y-8">
+            {/* ========================================================== */}
+            {/* MOBILE PRESENTATION: Location Pills & Connected Memory Stage */}
+            {/* ========================================================== */}
+            <div className="block lg:hidden space-y-4">
+              {/* 1. Horizontal Location Selector Pills Bar */}
+              <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sm:-mx-6 sm:px-6 pb-1">
+                <div className="inline-flex items-center gap-2 min-w-max py-1">
+                  {REAL_GUEST_MOMENTS.map((moment, idx) => {
+                    const isSelected = activeMapStopIndex === idx;
+                    const pillNames = [
+                      'Sigiriya',
+                      'Ella',
+                      'Nuwara Eliya',
+                      'Ramboda Falls',
+                      'Kandy',
+                      'Central Viewpoint',
+                      'Colombo',
+                    ];
+                    const label = pillNames[idx] || moment.location.split(',')[0].trim();
+                    return (
+                      <button
+                        key={moment.id}
+                        type="button"
+                        onClick={() => setActiveMapStopIndex(idx)}
+                        className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 select-none active:scale-95 ${
+                          isSelected
+                            ? 'bg-slate-900 text-white shadow-md ring-2 ring-[#FF6B00]/40'
+                            : 'bg-white border border-stone-200/90 text-stone-700 hover:bg-stone-50 shadow-2xs'
+                        }`}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
+                            isSelected ? 'bg-[#FF6B00]' : 'bg-stone-300'
+                          }`}
+                        />
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Connected Real Guest Memory Photo Card */}
+              {(() => {
+                const currentMoment = REAL_GUEST_MOMENTS[activeMapStopIndex];
+                return (
+                  <div className="space-y-3">
+                    {/* Location & Tag Indicator Strip */}
+                    <div className="flex items-center justify-between px-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-pulse" />
+                        <span className="font-heading font-bold uppercase text-[11px] tracking-wider text-slate-900">
+                          {activeMapStopIndex + 1} of {REAL_GUEST_MOMENTS.length}: {currentMoment.location}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[11px] font-bold text-[#FF6B00] bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/60">
+                        {currentMoment.tag}
+                      </span>
+                    </div>
+
+                    {/* Swipeable Guest Photo Card */}
+                    <div
+                      onTouchStart={handleMapTouchStart}
+                      onTouchEnd={handleMapTouchEnd}
+                      className="rounded-3xl bg-[#FAF9F6] border border-stone-200 shadow-md overflow-hidden flex flex-col transition-all duration-300"
+                    >
+                      <div
+                        onClick={() => setLightboxIndex(activeMapStopIndex)}
+                        className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100 cursor-pointer group"
+                      >
+                        <Image
+                          src={currentMoment.src}
+                          alt={currentMoment.alt}
+                          fill
+                          sizes="100vw"
+                          priority={activeMapStopIndex === 0}
+                          className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
+
+                        {/* Top Location Badge */}
+                        <div className="absolute top-3.5 left-3.5 z-10">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                            <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
+                            <span>{currentMoment.location}</span>
+                          </span>
+                        </div>
+
+                        {/* Expand Button */}
+                        <div className="absolute top-3.5 right-3.5 z-10">
+                          <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center border border-white/20 shadow-xs active:scale-95 transition-transform">
+                            <Maximize2 className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+
+                        {/* Overlay Title */}
+                        <div className="absolute bottom-4 inset-x-4 z-10">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-300 block mb-1 font-heading">
+                            Stop {activeMapStopIndex + 1} of {REAL_GUEST_MOMENTS.length} · Real Traveler Moment
+                          </span>
+                          <h3 className="text-xl font-bold text-white font-heading leading-tight drop-shadow-sm">
+                            {currentMoment.title}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Card Content & Guest Testimony */}
+                      <div className="p-5 bg-white space-y-3 border-t border-stone-100">
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                          &ldquo;{currentMoment.caption}&rdquo;
+                        </p>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
+                          <div className="flex items-center gap-1.5 text-emerald-700 font-semibold text-[11px]">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>Verified Tripvibe Guest Memory</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setLightboxIndex(activeMapStopIndex)}
+                            className="text-[11px] font-bold text-[#FF6B00] hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Fullscreen</span>
+                            <span>↗</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Step Controls */}
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveMapStopIndex((prev) => (prev - 1 + REAL_GUEST_MOMENTS.length) % REAL_GUEST_MOMENTS.length)
+                        }
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-stone-200 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-stone-50 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Prev Stop</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        {REAL_GUEST_MOMENTS.map((_, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            aria-label={`Go to stop ${idx + 1}`}
+                            onClick={() => setActiveMapStopIndex(idx)}
+                            className={`rounded-full transition-all duration-300 ${
+                              activeMapStopIndex === idx
+                                ? 'w-6 h-1.5 bg-[#FF6B00]'
+                                : 'w-1.5 h-1.5 bg-stone-300 hover:bg-stone-400'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveMapStopIndex((prev) => (prev + 1) % REAL_GUEST_MOMENTS.length)
+                        }
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-stone-200 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-stone-50 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <span>Next Stop</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* ========================================================== */}
+            {/* DESKTOP PRESENTATION: Full 2-3-2 Editorial Photo Grid (lg:) */}
+            {/* ========================================================== */}
+            <div className="hidden lg:block space-y-6 sm:space-y-8">
               {/* Row 1: 2 Featured Moments (Sigiriya & Ella) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 {REAL_GUEST_MOMENTS.slice(0, 2).map((item, idx) => (

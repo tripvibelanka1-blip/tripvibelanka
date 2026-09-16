@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Currency, Experience } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
 import Navbar from '@/components/home/Navbar';
@@ -16,6 +17,7 @@ import Footer from '@/components/home/Footer';
 import BookingModal from '@/components/home/BookingModal';
 
 export default function HomePage() {
+  const router = useRouter();
   const { currency, setCurrency } = useCurrency();
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
@@ -33,10 +35,7 @@ export default function HomePage() {
   };
 
   const handleSelectDestination = (destName: string) => {
-    setSelectedDestination(destName);
-    setSelectedAddonId(undefined);
-    setSelectedVehicleId(undefined);
-    setIsBookingOpen(true);
+    router.push(`/destinations?destination=${encodeURIComponent(destName)}`);
   };
 
   const handleSelectExperience = (exp: Experience) => {

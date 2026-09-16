@@ -211,8 +211,9 @@ export default function Destinations({
             className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 overflow-x-auto md:overflow-visible pb-4 pt-1 -mx-4 px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0 hide-scrollbar snap-x snap-mandatory"
           >
             {destinations.map((dest) => (
-              <div
+              <Link
                 key={dest.id}
+                href={`/destinations?destination=${encodeURIComponent(dest.name)}`}
                 onClick={() => onSelectDestination(dest.name)}
                 className={`group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200/80 bg-slate-900 cursor-pointer w-[86vw] sm:w-[380px] md:w-auto shrink-0 snap-center md:snap-align-none min-h-[460px] sm:min-h-[420px] md:min-h-[360px] flex flex-col justify-between p-6 sm:p-8 ${dest.bentoSpan}`}
               >
@@ -283,11 +284,11 @@ export default function Destinations({
                       <span>Best Time: <strong className="text-white">{dest.bestTimeToVisit}</strong></span>
                     </span>
                     <span className="text-orange-400 font-semibold group-hover:translate-x-1 transition-transform shrink-0">
-                      Explore Packages →
+                      Explore Destination →
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 

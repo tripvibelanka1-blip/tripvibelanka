@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Sparkles, MapPin, Compass, ArrowUpRight, PhoneCall } from 'lucide-react';
@@ -17,6 +18,7 @@ import Footer from '@/components/home/Footer';
 import { SiteSettings } from '@/types/database';
 
 export default function DestinationsClient() {
+  const searchParams = useSearchParams();
   const { currency, setCurrency, exchangeRate } = useCurrency();
 
   const [destinations, setDestinations] = useState<DestinationItem[]>([]);
@@ -106,6 +108,25 @@ export default function DestinationsClient() {
       isMounted = false;
     };
   }, []);
+
+  // Auto-open destination drawer when arriving from hero / home destination cards
+  useEffect(() => {
+    const destParam = searchParams.get('destination') || searchParams.get('id');
+    if (destParam && destinations.length > 0) {
+      const paramLower = destParam.toLowerCase().trim();
+      const match = destinations.find(
+        (d) =>
+          d.id === destParam ||
+          d.name.toLowerCase() === paramLower ||
+          d.name.toLowerCase().includes(paramLower) ||
+          paramLower.includes(d.name.toLowerCase())
+      );
+      if (match) {
+        setSelectedDestinationForDrawer(match);
+        setIsDrawerOpen(true);
+      }
+    }
+  }, [destinations, searchParams]);
 
   // Filter destinations by region and search query
   const filteredDestinations = useMemo(() => {

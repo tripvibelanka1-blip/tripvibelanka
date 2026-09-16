@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import DestinationsClient from '@/components/destinations/DestinationsClient';
+import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,18 @@ export default function DestinationsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <DestinationsClient />
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin text-[#FF6B00]" />
+            <p className="text-sm font-semibold text-stone-600">
+              Loading Destinations...
+            </p>
+          </div>
+        }
+      >
+        <DestinationsClient />
+      </Suspense>
     </>
   );
 }

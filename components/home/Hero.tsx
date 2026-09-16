@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ArrowUpRight, Loader2, Sparkles } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -96,8 +97,6 @@ export default function Hero({ onOpenBooking, onSelectDestination }: HeroProps) 
   const handleCardClick = (card: HeroCardItem) => {
     if (onSelectDestination) {
       onSelectDestination(card.destinationName);
-    } else {
-      onOpenBooking(card.id);
     }
   };
 
@@ -154,8 +153,9 @@ export default function Hero({ onOpenBooking, onSelectDestination }: HeroProps) 
         ) : (
           // Live Database Destination Cards
           cards.map((dest) => (
-            <div
+            <Link
               key={dest.id}
+              href={`/destinations?destination=${encodeURIComponent(dest.destinationName)}`}
               onClick={() => handleCardClick(dest)}
               className="w-[210px] h-[290px] sm:w-[230px] sm:h-[320px] md:w-[250px] md:h-[340px] rounded-3xl shrink-0 snap-center overflow-hidden relative group cursor-pointer border border-white/20 shadow-2xl transition-all duration-300 hover:scale-[1.03] flex flex-col justify-end"
             >
@@ -183,7 +183,7 @@ export default function Hero({ onOpenBooking, onSelectDestination }: HeroProps) 
                   {dest.subtitle}
                 </p>
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

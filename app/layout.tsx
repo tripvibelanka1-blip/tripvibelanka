@@ -31,7 +31,13 @@ export const metadata: Metadata = {
     "Tripvibe Lanka",
   ],
   icons: {
-    icon: "/logo.jpeg",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png" },
+    ],
   },
 };
 

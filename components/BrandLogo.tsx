@@ -31,7 +31,7 @@ export default function BrandLogo({
         return (
           <div className={`relative w-9 h-9 rounded-xl overflow-hidden border border-orange-500/20 bg-white shadow-sm flex items-center justify-center p-0.5 ${className}`}>
             <Image
-              src="/logo.jpeg"
+              src="/logo-emblem.png"
               alt="TripVibe Lanka"
               width={36}
               height={36}
@@ -49,7 +49,7 @@ export default function BrandLogo({
               <div className="absolute -inset-2 bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-amber-600/20 rounded-3xl blur-lg -z-10 opacity-70" />
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-xl shadow-orange-950/10 border border-orange-100 flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/logo.jpeg"
+                  src="/logo-emblem.png"
                   alt="TripVibe Lanka"
                   width={96}
                   height={96}
@@ -73,7 +73,7 @@ export default function BrandLogo({
           <div className={`flex items-center gap-2.5 ${className}`}>
             <div className="w-8 h-8 rounded-lg bg-white border border-orange-200/60 p-0.5 shadow-xs overflow-hidden flex items-center justify-center">
               <Image
-                src="/logo.jpeg"
+                src="/logo-emblem.png"
                 alt="TripVibe Lanka"
                 width={32}
                 height={32}
@@ -99,7 +99,7 @@ export default function BrandLogo({
             {/* Emblem Container with subtle warm border */}
             <div className="w-10 h-10 rounded-xl bg-white border border-orange-200/80 p-0.5 shadow-sm shadow-orange-500/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               <Image
-                src="/logo.jpeg"
+                src="/logo-emblem.png"
                 alt="TripVibe Lanka"
                 width={40}
                 height={40}

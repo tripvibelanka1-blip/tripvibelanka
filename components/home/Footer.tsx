@@ -192,13 +192,13 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                 }}
                 className="inline-flex items-center gap-2.5 group"
               >
-                <div className="relative w-9 h-9 rounded-full overflow-hidden border border-orange-500/20 bg-orange-500/10 shadow-xs flex items-center justify-center">
+                <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-orange-500/20 bg-white shadow-xs flex items-center justify-center p-0.5">
                   <Image
-                    src="/logo.jpeg"
+                    src="/logo-emblem.png"
                     alt="Tripvibe Lanka Logo"
                     fill
                     sizes="36px"
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    className="object-contain p-0.5 group-hover:scale-105 transition-transform"
                   />
                 </div>
                 <div className="flex flex-col">

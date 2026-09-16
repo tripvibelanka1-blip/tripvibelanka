@@ -139,15 +139,15 @@ export default function Navbar({
             }}
             className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full py-1 pr-2"
           >
-            <div className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border shadow-sm flex items-center justify-center ${
-              isSolid ? 'border-orange-500/20 bg-orange-500/10' : 'border-white/30 bg-white/10 backdrop-blur-md'
+            <div className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border shadow-xs flex items-center justify-center p-0.5 ${
+              isSolid ? 'border-orange-500/20 bg-white' : 'border-white/30 bg-white/95 backdrop-blur-md'
             }`}>
               <Image
-                src="/logo.jpeg"
+                src="/logo-emblem.png"
                 alt="Tripvibe Lanka Logo"
                 fill
                 sizes="36px"
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-contain p-0.5 group-hover:scale-105 transition-transform duration-300"
                 priority
               />
             </div>

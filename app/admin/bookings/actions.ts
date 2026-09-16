@@ -176,3 +176,62 @@ export async function deleteBooking(bookingId: string) {
     return { error: err.message || 'Failed to delete booking.' };
   }
 }
+
+export interface CancelBookingPayload {
+  refundPercentage: number;
+  refundAmount: number;
+  reason: string;
+  notes?: string;
+}
+
+/**
+ * Cancel a booking and process policy-calculated refund status
+ */
+export async function cancelBookingWithRefund(
+  bookingId: string,
+  payload: CancelBookingPayload
+) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Unauthorized. Please log in as an admin.' };
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    const cancellationLog = `[Cancelled on ${todayStr}] Reason: ${payload.reason}. Policy Refund: ${payload.refundPercentage}% (${payload.refundAmount}). ${payload.notes ? `Notes: ${payload.notes.trim()}` : ''}`.trim();
+
+    // If refundAmount > 0: set payment_status to 'refunded'
+    // If 0%: keep as 'advance_paid' or 'pending' but record cancellation
+    const newPaymentStatus: PaymentStatus = payload.refundAmount > 0 ? 'refunded' : 'advance_paid';
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({
+        booking_status: 'cancelled',
+        payment_status: newPaymentStatus,
+        admin_notes: cancellationLog,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
+      .select('*, tours(id, title, duration_days, duration_nights, price_usd, price_lkr, cover_image)')
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath('/admin/bookings');
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('Failed to cancel booking:', err);
+    return { error: err.message || 'Failed to cancel booking and apply refund.' };
+  }
+}
+

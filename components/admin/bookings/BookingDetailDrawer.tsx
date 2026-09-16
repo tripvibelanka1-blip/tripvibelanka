@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Booking, BookingStatus, PaymentStatus } from '@/types/database';
 import { PaymentStatusBadge, BookingStatusBadge } from './StatusBadges';
 import {
@@ -29,12 +29,15 @@ import {
   UserCheck,
   Car,
   Tag,
+  AlertOctagon,
 } from 'lucide-react';
 import BrandLogo from '@/components/BrandLogo';
 import { Vehicle } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
 import CustomSelect, { CustomSelectOption } from '@/components/admin/CustomSelect';
 import { Clock, RotateCcw, XCircle } from 'lucide-react';
+import CancellationModal from './CancellationModal';
+import { calculateCancellationEligibility } from '@/lib/utils/cancellation';
 
 const BOOKING_STATUS_OPTIONS: CustomSelectOption[] = [
   { value: 'pending', label: 'Pending Confirmation', badge: 'Review', icon: <Clock className="w-3.5 h-3.5 text-amber-500" /> },
@@ -79,10 +82,26 @@ export default function BookingDetailDrawer({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+
+  // Auto-calculated cancellation policy eligibility
+  const cancellationEligibility = useMemo(() => {
+    if (!booking?.travel_date) return null;
+    return calculateCancellationEligibility(booking.travel_date, booking.advance_amount);
+  }, [booking?.travel_date, booking?.advance_amount]);
+
+  // Helper to filter out automated legacy server debug strings from dispatch notes
+  const sanitizeNotes = (notes?: string | null) => {
+    if (!notes) return '';
+    if (notes.startsWith('Checkout locked at') || notes.startsWith('Promo code')) {
+      return '';
+    }
+    return notes;
+  };
 
   // Editable dispatch fields
   const [driverGuide, setDriverGuide] = useState(booking?.assigned_driver_guide || '');
-  const [adminNotes, setAdminNotes] = useState(booking?.admin_notes || '');
+  const [adminNotes, setAdminNotes] = useState(sanitizeNotes(booking?.admin_notes));
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [fleetVehicles, setFleetVehicles] = useState<Vehicle[]>([]);
 
@@ -110,7 +129,7 @@ export default function BookingDetailDrawer({
   React.useEffect(() => {
     if (booking) {
       setDriverGuide(booking.assigned_driver_guide || '');
-      setAdminNotes(booking.admin_notes || '');
+      setAdminNotes(sanitizeNotes(booking.admin_notes));
       setSaveSuccessMsg('');
     }
   }, [booking]);
@@ -268,6 +287,14 @@ export default function BookingDetailDrawer({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowCancellationModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 rounded-xl shadow-2xs transition-all cursor-pointer"
+              title="Cancellation & Refund Policy Assessment"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+              <span>{booking.booking_status === 'cancelled' ? 'Refund Details' : 'Cancel & Refund'}</span>
+            </button>
+            <button
               onClick={() => setShowVoucherModal(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 rounded-xl shadow-2xs hover:bg-slate-50 transition-all cursor-pointer"
               title="Print Customer Voucher"
@@ -293,6 +320,28 @@ export default function BookingDetailDrawer({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          {/* Cancelled Booking Notification Banner */}
+          {booking.booking_status === 'cancelled' && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between font-bold text-rose-800">
+                <div className="flex items-center gap-2">
+                  <AlertOctagon className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>This Booking Has Been Cancelled</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCancellationModal(true)}
+                  className="underline hover:text-rose-950 font-bold cursor-pointer"
+                >
+                  View Refund Details &rarr;
+                </button>
+              </div>
+              <p className="text-rose-700 text-[11px] leading-relaxed">
+                {booking.admin_notes || `Payment Status: ${booking.payment_status.toUpperCase()}`}
+              </p>
+            </div>
+          )}
+
           {/* Status Badges & Quick Control */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-50/70 via-amber-50/50 to-white border border-orange-200/60 space-y-3">
             <div className="flex items-center justify-between">
@@ -439,6 +488,29 @@ export default function BookingDetailDrawer({
                   </div>
                 </div>
               </div>
+
+              {/* Dynamic Policy Eligibility Chip */}
+              {cancellationEligibility && (
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>
+                      {cancellationEligibility.daysUntilTour >= 0
+                        ? `${cancellationEligibility.daysUntilTour} days until departure`
+                        : 'Departure date has passed'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCancellationModal(true)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${cancellationEligibility.badgeClass}`}
+                    title="Click to assess cancellation & refund"
+                  >
+                    <span>{cancellationEligibility.tierTitle}</span>
+                    <span className="underline font-normal text-[10px]">Assess &rarr;</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -541,6 +613,15 @@ export default function BookingDetailDrawer({
                       {Number(booking.total_amount).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })}
+                    </span>
+                  </div>
+                )}
+
+                {booking.applied_exchange_rate && Number(booking.applied_exchange_rate) > 1 && (
+                  <div className="flex justify-between items-center text-[11px] text-slate-500">
+                    <span>Locked Exchange Rate:</span>
+                    <span className="font-mono font-medium text-slate-700">
+                      1 USD = Rs. {Number(booking.applied_exchange_rate).toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -900,6 +981,18 @@ export default function BookingDetailDrawer({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Cancellation & Refund Policy Modal */}
+      {showCancellationModal && (
+        <CancellationModal
+          isOpen={showCancellationModal}
+          onClose={() => setShowCancellationModal(false)}
+          booking={booking}
+          onCancelled={(updated) => {
+            onBookingUpdated(updated);
+          }}
+        />
       )}
     </>
   );

@@ -202,9 +202,7 @@ export async function submitBookingWithCurrencyLock(
       remaining_balance: remainingBalance,        // PERMANENTLY LOCKED (Due on arrival)
       payment_status: 'pending',
       booking_status: 'pending',
-      admin_notes: input.couponCode
-        ? `Promo code ${input.couponCode.toUpperCase()} applied (-${input.currency} ${rawDiscount}). Locked at 1 USD = ${liveRate.toFixed(4)} LKR. Subtotal: $${subtotalUsd.toFixed(2)} USD, Net: $${grandTotalUsd.toFixed(2)} USD.`
-        : `Checkout locked at 1 USD = ${liveRate.toFixed(4)} LKR via server proxy. Master USD base: $${grandTotalUsd.toFixed(2)}.`,
+      admin_notes: null,
     };
 
     // 7. Insert into Supabase

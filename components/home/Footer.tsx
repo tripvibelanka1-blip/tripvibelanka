@@ -182,9 +182,14 @@ export default function Footer({ onOpenBooking }: FooterProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 mb-12 text-sm">
             {/* Column 1: Brand & TripAdvisor Badge (4 cols) */}
             <div className="lg:col-span-4 space-y-5">
-              <a
-                href="#home"
-                onClick={(e) => handleSmoothScroll(e, 'home')}
+              <Link
+                href="/"
+                onClick={(e) => {
+                  if (typeof window !== 'undefined' && window.location.pathname === '/') {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
                 className="inline-flex items-center gap-2.5 group"
               >
                 <div className="relative w-9 h-9 rounded-full overflow-hidden border border-orange-500/20 bg-orange-500/10 shadow-xs flex items-center justify-center">
@@ -204,7 +209,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                     Luxury Private Tours
                   </span>
                 </div>
-              </a>
+              </Link>
 
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-sm">
                 Bespoke private tours, native chauffeur guides, and authentic immersive Ceylon journeys. We do not just
@@ -277,138 +282,122 @@ export default function Footer({ onOpenBooking }: FooterProps) {
               <h4 className="font-semibold text-slate-900 text-xs tracking-wider uppercase font-heading">
                 Explore Island Circuits
               </h4>
-              <ul className="space-y-2.5 font-medium text-xs sm:text-sm text-slate-600">
+              <ul className="space-y-2.5 font-normal text-xs sm:text-sm text-slate-600">
                 <li>
                   <Link
                     href="/tours"
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
-                    <span>All Tour Packages Catalog</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      All Tour Packages
+                    </span>
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/destinations"
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
-                    <span>All Destinations &amp; Guides</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Destinations &amp; Guides
+                    </span>
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/experiences"
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
-                    <span>All Experiences &amp; Activities</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Activities &amp; Experiences
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/fleet"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
+                  >
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Executive Vehicle Fleet
+                    </span>
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/booking"
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group text-slate-900 font-semibold"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] transition-colors" />
-                    <span>Book a Private Journey</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Plan Custom Itinerary
+                    </span>
                   </Link>
-                </li>
-                <li>
-                  <a
-                    href="/#tours"
-                    onClick={(e) => handleSmoothScroll(e, 'tours')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Popular Tour Packages</span>
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/#destinations"
-                    onClick={(e) => handleSmoothScroll(e, 'destinations')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Featured Destinations</span>
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/#experiences"
-                    onClick={(e) => handleSmoothScroll(e, 'experiences')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Activities and Experiences</span>
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    href="/fleet"
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Executive Vehicle Fleet</span>
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="/#reviews"
-                    onClick={(e) => handleSmoothScroll(e, 'reviews')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Traveler Reviews and Memories</span>
-                  </a>
                 </li>
               </ul>
             </div>
 
-            {/* Column 3: About and Why Us (2 cols) */}
+            {/* Column 3: About Tripvibe & Trust (2 cols) */}
             <div className="lg:col-span-2 space-y-3">
               <h4 className="font-semibold text-slate-900 text-xs tracking-wider uppercase font-heading">
                 About Tripvibe
               </h4>
-              <ul className="space-y-2.5 font-medium text-xs sm:text-sm text-slate-600">
-                <li>
-                  <a
-                    href="/#why-us"
-                    onClick={(e) => handleSmoothScroll(e, 'why-us')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Why Choose Us</span>
-                  </a>
-                </li>
+              <ul className="space-y-2.5 font-normal text-xs sm:text-sm text-slate-600">
                 <li>
                   <Link
                     href="/about"
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group font-semibold text-slate-900"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]" />
-                    <span>About Us (Read More)</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      About Our Story
+                    </span>
                   </Link>
                 </li>
                 <li>
                   <a
                     href="/#why-us"
                     onClick={(e) => handleSmoothScroll(e, 'why-us')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>Halal-Friendly Hospitality</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Why Choose Us
+                    </span>
                   </a>
                 </li>
                 <li>
                   <a
                     href="/#reviews"
                     onClick={(e) => handleSmoothScroll(e, 'reviews')}
-                    className="hover:text-[#FF6B00] transition-colors flex items-center gap-1.5 group"
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#FF6B00] transition-colors group"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-[#FF6B00] transition-colors" />
-                    <span>5.0 Tripadvisor Proof</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Traveler Reviews
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={tripadvisorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-slate-600 hover:text-[#FF6B00] transition-colors group"
+                  >
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      Tripadvisor Reviews
+                    </span>
+                    <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-[#FF6B00] transition-colors shrink-0" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`https://wa.me/${formattedWhatsapp}?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20plan%20a%20private%20tour.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-slate-600 hover:text-[#FF6B00] transition-colors group"
+                  >
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">
+                      24/7 WhatsApp Concierge
+                    </span>
+                    <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-[#FF6B00] transition-colors shrink-0" />
                   </a>
                 </li>
               </ul>
@@ -467,7 +456,7 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                   </div>
                 </div>
 
-                {onOpenBooking && (
+                {onOpenBooking ? (
                   <button
                     type="button"
                     onClick={onOpenBooking}
@@ -476,15 +465,39 @@ export default function Footer({ onOpenBooking }: FooterProps) {
                     <span>Design Custom Itinerary</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </button>
+                ) : (
+                  <Link
+                    href="/booking"
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-[#FF6B00] transition-colors text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                  >
+                    <span>Design Custom Itinerary</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Copyright Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 pt-6 pb-4 border-t border-slate-200/70 gap-2">
-            <p>© {new Date().getFullYear()} Tripvibe Lanka. All rights reserved.</p>
-            <p className="flex items-center gap-1 font-medium text-slate-600">
+          {/* Copyright Bar with PayHere Required Policy Links */}
+          <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 pt-6 pb-4 border-t border-slate-200/70 gap-3">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <p>© {new Date().getFullYear()} Tripvibe Lanka. All rights reserved.</p>
+              <span className="hidden sm:inline text-slate-300">·</span>
+              <nav aria-label="Legal Links" className="flex items-center gap-3 text-slate-500">
+                <Link href="/terms" className="hover:text-[#FF6B00] transition-colors">
+                  Terms &amp; Conditions
+                </Link>
+                <span>·</span>
+                <Link href="/privacy" className="hover:text-[#FF6B00] transition-colors">
+                  Privacy Policy
+                </Link>
+                <span>·</span>
+                <Link href="/refund-policy" className="hover:text-[#FF6B00] transition-colors">
+                  Refund &amp; Cancellation
+                </Link>
+              </nav>
+            </div>
+            <p className="flex items-center gap-1 font-medium text-slate-600 text-[11px] sm:text-xs">
               ❤️ Made with love in Sri Lanka · Licensed and Verified Private Tour Operator
             </p>
           </div>

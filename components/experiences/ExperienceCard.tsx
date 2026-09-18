@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   MapPin,
   Clock,
@@ -132,14 +133,13 @@ export default function ExperienceCard({
             <span>Details</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => onOpenBooking(experience.id, locationText)}
-            className="flex-1 py-2.5 px-4 rounded-full text-xs font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-sm shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          <Link
+            href={`/booking?addon=${experience.id}${locationText ? `&destination=${encodeURIComponent(locationText)}` : ''}`}
+            className="flex-1 py-2.5 px-4 rounded-full text-xs font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-sm shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center"
           >
             <span>Add to Journey</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
+          </Link>
         </div>
       </div>
     </article>

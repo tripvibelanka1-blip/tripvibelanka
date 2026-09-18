@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Sparkles, Compass, ArrowUpRight, PhoneCall } from 'lucide-react';
@@ -11,11 +13,11 @@ import ExperienceDetailDrawer, {
   ExperienceItem,
   LinkedTourMini,
 } from './ExperienceDetailDrawer';
-import BookingModal from '@/components/home/BookingModal';
 import Footer from '@/components/home/Footer';
 import { SiteSettings } from '@/types/database';
 
 export default function ExperiencesClient() {
+  const router = useRouter();
   const { currency, setCurrency, exchangeRate } = useCurrency();
 
   const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
@@ -27,13 +29,10 @@ export default function ExperiencesClient() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
 
-  // Interactive Drawer and Booking Modal State
+  // Interactive Drawer State
   const [selectedExperienceForDrawer, setSelectedExperienceForDrawer] =
     useState<ExperienceItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [bookingAddonId, setBookingAddonId] = useState<string | undefined>(undefined);
-  const [bookingDestination, setBookingDestination] = useState<string | undefined>(undefined);
 
   // Load live activities from Supabase
   useEffect(() => {
@@ -155,9 +154,13 @@ export default function ExperiencesClient() {
   };
 
   const handleOpenBooking = (addonId?: string, location?: string) => {
-    setBookingAddonId(addonId);
-    setBookingDestination(location);
-    setIsBookingOpen(true);
+    if (addonId) {
+      router.push(
+        `/booking?addon=${addonId}${location ? `&destination=${encodeURIComponent(location)}` : ''}`
+      );
+    } else {
+      router.push('/booking');
+    }
   };
 
   const defaultWhatsapp = siteSettings?.whatsapp_number || '94761560046';
@@ -252,14 +255,13 @@ export default function ExperiencesClient() {
                   Whether you wish to arrange a private wildlife ranger at dawn, an exclusive culinary masterclass with a native chef, or helicopter transfers between highland tea estates, our bespoke concierge can arrange it smoothly into your private itinerary.
                 </p>
                 <div className="pt-2 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenBooking()}
+                  <Link
+                    href="/booking"
                     className="px-6 py-3 rounded-full text-xs sm:text-sm font-semibold bg-[#FF6B00] hover:bg-[#E55F00] text-white shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all cursor-pointer inline-flex items-center gap-2"
                   >
                     <span>Request Custom Activity</span>
                     <ArrowUpRight className="w-4 h-4" />
-                  </button>
+                  </Link>
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -293,15 +295,6 @@ export default function ExperiencesClient() {
           handleOpenBooking(addonId, loc);
         }}
         whatsappUrl={whatsappUrl}
-      />
-
-      {/* 7-step Interactive Booking Modal */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        currency={currency}
-        initialAddonId={bookingAddonId}
-        initialDestination={bookingDestination}
       />
 
       {/* Universal Footer */}

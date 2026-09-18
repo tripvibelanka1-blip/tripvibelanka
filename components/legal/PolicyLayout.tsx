@@ -2,11 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { FileText, Shield, RefreshCw, MessageCircle, Phone, MapPin, ChevronRight, CheckCircle2 } from 'lucide-react';
 import Navbar from '@/components/home/Navbar';
 import Footer from '@/components/home/Footer';
-import BookingModal from '@/components/home/BookingModal';
 import { useCurrency } from '@/context/CurrencyContext';
 
 interface PolicyLayoutProps {
@@ -45,8 +44,8 @@ export default function PolicyLayout({
   activeSlug,
   children,
 }: PolicyLayoutProps) {
+  const router = useRouter();
   const { currency, setCurrency } = useCurrency();
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const pathname = usePathname();
 
   return (
@@ -55,7 +54,7 @@ export default function PolicyLayout({
       <Navbar
         currency={currency}
         onCurrencyChange={setCurrency}
-        onOpenBooking={() => setIsBookingOpen(true)}
+        onOpenBooking={() => router.push('/booking')}
         forceSolid
       />
 
@@ -178,14 +177,7 @@ export default function PolicyLayout({
       </main>
 
       {/* Global Footer */}
-      <Footer onOpenBooking={() => setIsBookingOpen(true)} />
-
-      {/* Booking Modal */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        currency={currency}
-      />
+      <Footer onOpenBooking={() => router.push('/booking')} />
     </div>
   );
 }

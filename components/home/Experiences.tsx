@@ -6,11 +6,11 @@ import Link from 'next/link';
 import { Currency, Experience } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Loader2, Sparkles, Compass, ArrowUpRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Loader2, Sparkles, ArrowUpRight } from 'lucide-react';
 
 interface ExperiencesProps {
   currency: Currency;
-  onSelectExperience: (exp: Experience) => void;
+  onSelectExperience?: (exp: Experience) => void;
 }
 
 export default function Experiences({ currency, onSelectExperience }: ExperiencesProps) {
@@ -239,13 +239,14 @@ export default function Experiences({ currency, onSelectExperience }: Experience
                   </span>
                 </div>
 
-                <button
-                  onClick={() => onSelectExperience(exp)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-[#FF6B00] bg-orange-50 hover:bg-[#FF6B00] hover:text-white transition-all cursor-pointer border border-orange-200/60"
+                <Link
+                  href={`/booking?addon=${exp.id}${exp.location ? `&destination=${encodeURIComponent(exp.location)}` : ''}`}
+                  onClick={() => onSelectExperience?.(exp)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-[#FF6B00] bg-orange-50 hover:bg-[#FF6B00] hover:text-white transition-all cursor-pointer border border-orange-200/60 active:scale-[0.98]"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add to Trip</span>
-                </button>
+                </Link>
               </div>
             </div>
           ))}
@@ -257,11 +258,11 @@ export default function Experiences({ currency, onSelectExperience }: Experience
         <div className="mt-12 text-center">
           <Link
             href="/experiences"
-            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-md transition-all group cursor-pointer active:scale-[0.98]"
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-full bg-white hover:bg-slate-900 text-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 text-xs sm:text-sm font-semibold tracking-wide shadow-xs hover:shadow-md transition-all duration-300 group cursor-pointer active:scale-[0.98]"
           >
-            <Compass className="w-4 h-4 text-[#FF6B00]" />
+            <Sparkles className="w-4 h-4 text-[#FF6B00] group-hover:text-white transition-colors shrink-0" />
             <span>Explore All Handcrafted Experiences &amp; Activities</span>
-            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
           </Link>
         </div>
       )}

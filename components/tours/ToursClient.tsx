@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Sparkles, SlidersHorizontal } from 'lucide-react';
@@ -9,11 +10,11 @@ import ToursHero from './ToursHero';
 import ToursFilters, { DurationFilterKey, SortOptionKey } from './ToursFilters';
 import TourCard from './TourCard';
 import TourDetailDrawer, { TourDetailItem } from './TourDetailDrawer';
-import BookingModal from '@/components/home/BookingModal';
 import Footer from '@/components/home/Footer';
 import { SiteSettings } from '@/types/database';
 
 export default function ToursClient() {
+  const router = useRouter();
   const { currency, setCurrency, exchangeRate } = useCurrency();
 
   const [tours, setTours] = useState<TourDetailItem[]>([]);
@@ -26,11 +27,9 @@ export default function ToursClient() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOptionKey>('featured');
 
-  // Interactive Drawer and Booking Modal states
+  // Interactive Drawer state
   const [selectedTourForDrawer, setSelectedTourForDrawer] = useState<TourDetailItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [bookingPackageId, setBookingPackageId] = useState<string | undefined>(undefined);
 
   const categories = ['All', 'Signature', 'Cultural', 'Wildlife', 'Coastal', 'Hill Country'];
 
@@ -215,8 +214,11 @@ export default function ToursClient() {
   };
 
   const handleOpenBooking = (packageId?: string) => {
-    setBookingPackageId(packageId);
-    setIsBookingOpen(true);
+    if (packageId) {
+      router.push(`/booking?package=${encodeURIComponent(packageId)}`);
+    } else {
+      router.push('/booking');
+    }
   };
 
   const handleResetFilters = () => {
@@ -331,17 +333,6 @@ export default function ToursClient() {
           handleOpenBooking(id);
         }}
         currency={currency}
-      />
-
-      {/* 7-Step Interactive Itinerary & Booking Modal (Direct Sync) */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => {
-          setIsBookingOpen(false);
-          setBookingPackageId(undefined);
-        }}
-        currency={currency}
-        initialPackageId={bookingPackageId}
       />
     </div>
   );

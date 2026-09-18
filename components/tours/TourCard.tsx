@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Clock,
   MapPin,
@@ -154,14 +155,13 @@ export default function TourCard({
             <Eye className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
-          <button
-            type="button"
-            onClick={() => onBookTour(tour.id)}
+          <Link
+            href={`/booking?package=${tour.id}`}
             className="w-full py-3 sm:py-2.5 px-3 rounded-full text-xs font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-sm shadow-orange-500/20 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-[0.98]"
           >
             <span>Reserve</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
+          </Link>
         </div>
       </div>
     </article>

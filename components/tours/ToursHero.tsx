@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Sparkles,
   ArrowUpRight,
@@ -61,14 +62,13 @@ export default function ToursHero({
 
         {/* Proportional CTAs */}
         <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5">
-          <button
-            type="button"
-            onClick={onOpenBooking}
+          <Link
+            href="/booking"
             className="px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-md shadow-orange-500/20 active:scale-[0.98] cursor-pointer inline-flex items-center gap-1.5 group"
           >
             <span>Plan Custom Itinerary</span>
             <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </button>
+          </Link>
 
           <a
             href={whatsappUrl}

@@ -14,24 +14,16 @@ import FleetShowcase from '@/components/home/FleetShowcase';
 import WhyUs from '@/components/home/WhyUs';
 import Testimonials from '@/components/home/Testimonials';
 import Footer from '@/components/home/Footer';
-import BookingModal from '@/components/home/BookingModal';
 
 export default function HomePage() {
   const router = useRouter();
   const { currency, setCurrency } = useCurrency();
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
-  const [selectedDestination, setSelectedDestination] = useState<string | undefined>(undefined);
-  const [appliedCouponCode, setAppliedCouponCode] = useState<string | undefined>(undefined);
-  const [selectedAddonId, setSelectedAddonId] = useState<string | undefined>(undefined);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(undefined);
-
   const handleOpenBooking = (packageId?: string, couponCode?: string) => {
-    setSelectedPackageId(packageId);
-    setAppliedCouponCode(couponCode);
-    setSelectedAddonId(undefined);
-    setSelectedVehicleId(undefined);
-    setIsBookingOpen(true);
+    const params = new URLSearchParams();
+    if (packageId) params.set('package', packageId);
+    if (couponCode) params.set('coupon', couponCode);
+    const qs = params.toString();
+    router.push(qs ? `/booking?${qs}` : '/booking');
   };
 
   const handleSelectDestination = (destName: string) => {
@@ -39,16 +31,13 @@ export default function HomePage() {
   };
 
   const handleSelectExperience = (exp: Experience) => {
-    setSelectedDestination(exp.location);
-    setSelectedAddonId(exp.id);
-    setSelectedVehicleId(undefined);
-    setIsBookingOpen(true);
+    router.push(
+      `/booking?addon=${exp.id}${exp.location ? `&destination=${encodeURIComponent(exp.location)}` : ''}`
+    );
   };
 
   const handleSelectVehicle = (vehicleId: string) => {
-    setSelectedVehicleId(vehicleId);
-    setSelectedAddonId(undefined);
-    setIsBookingOpen(true);
+    router.push(`/booking?vehicle=${vehicleId}`);
   };
 
   return (
@@ -76,7 +65,7 @@ export default function HomePage() {
         {/* Popular Tour Packages Grid */}
         <TourPackages
           currency={currency}
-          onSelectPackage={(pkgId) => handleOpenBooking(pkgId)}
+          onSelectPackage={(pkgId) => router.push(`/booking?package=${pkgId}`)}
         />
 
         {/* Featured Destinations Bento Grid */}
@@ -103,18 +92,6 @@ export default function HomePage() {
 
       {/* Verified Footer with Real Social Media, TripAdvisor & 24/7 Contacts */}
       <Footer onOpenBooking={() => handleOpenBooking()} />
-
-      {/* 7-Step Interactive Itinerary & Booking Modal */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        currency={currency}
-        initialPackageId={selectedPackageId}
-        initialDestination={selectedDestination}
-        initialCouponCode={appliedCouponCode}
-        initialAddonId={selectedAddonId}
-        initialVehicleId={selectedVehicleId}
-      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2, Sparkles, MapPin, Compass, ArrowUpRight, PhoneCall } from 'lucide-react';
@@ -13,11 +14,11 @@ import DestinationDetailDrawer, {
   LinkedTourSummary,
   LinkedActivitySummary,
 } from './DestinationDetailDrawer';
-import BookingModal from '@/components/home/BookingModal';
 import Footer from '@/components/home/Footer';
 import { SiteSettings } from '@/types/database';
 
 export default function DestinationsClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { currency, setCurrency, exchangeRate } = useCurrency();
 
@@ -31,13 +32,10 @@ export default function DestinationsClient() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedRegion, setSelectedRegion] = useState<string>('All Regions');
 
-  // Interactive Drawer and Booking Modal State
+  // Interactive Drawer State
   const [selectedDestinationForDrawer, setSelectedDestinationForDrawer] =
     useState<DestinationItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [bookingDestination, setBookingDestination] = useState<string | undefined>(undefined);
-  const [bookingPackageId, setBookingPackageId] = useState<string | undefined>(undefined);
 
   // Load live data from Supabase
   useEffect(() => {
@@ -219,9 +217,11 @@ export default function DestinationsClient() {
   };
 
   const handleOpenBooking = (destinationName?: string, packageId?: string) => {
-    setBookingDestination(destinationName);
-    setBookingPackageId(packageId);
-    setIsBookingOpen(true);
+    const params = new URLSearchParams();
+    if (destinationName) params.set('destination', destinationName);
+    if (packageId) params.set('package', packageId);
+    const qs = params.toString();
+    router.push(qs ? `/booking?${qs}` : '/booking');
   };
 
   const defaultWhatsapp = siteSettings?.whatsapp_number || '94761560046';
@@ -318,14 +318,13 @@ export default function DestinationsClient() {
                   Our native Ceylon itinerary specialists craft private multi-destination journeys combining ancient UNESCO citadels, scenic highland tea routes, and wild leopard coastal reserves, designed entirely around your pace.
                 </p>
                 <div className="pt-2 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenBooking()}
+                  <Link
+                    href="/booking"
                     className="px-6 py-3 rounded-full text-xs sm:text-sm font-semibold bg-[#FF6B00] hover:bg-[#E55F00] text-white shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all cursor-pointer inline-flex items-center gap-2"
                   >
                     <span>Start Custom Itinerary</span>
                     <ArrowUpRight className="w-4 h-4" />
-                  </button>
+                  </Link>
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -364,15 +363,6 @@ export default function DestinationsClient() {
           handleOpenBooking(destName, pkgId);
         }}
         whatsappUrl={whatsappUrl}
-      />
-
-      {/* 7-step Interactive Booking Modal */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        currency={currency}
-        initialDestination={bookingDestination}
-        initialPackageId={bookingPackageId}
       />
 
       {/* Universal Footer */}

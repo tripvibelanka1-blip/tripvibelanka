@@ -364,13 +364,13 @@ export default function DestinationDetailDrawer({
                           >
                             Explore Itinerary
                           </Link>
-                          <button
-                            type="button"
-                            onClick={() => onOpenBooking(destination.name, tour.id)}
+                          <Link
+                            href={`/booking?package=${tour.id}&destination=${encodeURIComponent(destination.name)}`}
+                            onClick={onClose}
                             className="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-semibold bg-[#FF6B00] text-white hover:bg-[#E55F00] shadow-sm transition-all text-center cursor-pointer"
                           >
                             Reserve Tour
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     );
@@ -425,13 +425,14 @@ export default function DestinationDetailDrawer({
 
           {/* Sticky Drawer Footer CTAs */}
           <div className="p-5 bg-white border-t border-stone-200/90 shrink-0 shadow-lg space-y-2.5">
-            <button
-              onClick={() => onOpenBooking(destination.name)}
+            <Link
+              href={`/booking?destination=${encodeURIComponent(destination.name)}`}
+              onClick={onClose}
               className="w-full py-3.5 rounded-full text-sm font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.99] transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Plan a Private Tour to {destination.name}</span>
               <ArrowUpRight className="w-4 h-4" />
-            </button>
+            </Link>
 
             <a
               href={destWhatsappInquiry}

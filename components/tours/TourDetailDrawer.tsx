@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   X,
   Clock,
@@ -296,17 +297,14 @@ export default function TourDetailDrawer({
               <span>Ask Concierge on WhatsApp</span>
             </a>
 
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onBookTour(tour.id);
-              }}
+            <Link
+              href={`/booking?package=${tour.id}`}
+              onClick={onClose}
               className="w-full sm:w-auto px-7 py-3.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-md shadow-orange-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
             >
               <span>Reserve This Tour</span>
               <ArrowUpRight className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
         </div>
       </div>

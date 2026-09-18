@@ -252,10 +252,11 @@ export default function WhyUs({ onOpenBooking }: WhyUsProps) {
         <div className="mt-12 text-center">
           <Link
             href="/about"
-            className="inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white hover:bg-slate-900 text-slate-900 hover:text-white border border-slate-200/90 hover:border-slate-900 text-xs sm:text-sm font-semibold tracking-wide transition-all duration-300 shadow-2xs hover:shadow-md group cursor-pointer"
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-full bg-white hover:bg-slate-900 text-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 text-xs sm:text-sm font-semibold tracking-wide shadow-xs hover:shadow-md transition-all duration-300 group cursor-pointer active:scale-[0.98]"
           >
+            <Users className="w-4 h-4 text-[#FF6B00] group-hover:text-white transition-colors shrink-0" />
             <span>Read More About Our Story &amp; The Team</span>
-            <ArrowRight className="w-4 h-4 text-[#FF6B00] group-hover:text-white transition-transform group-hover:translate-x-1" />
+            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
           </Link>
         </div>
       </div>

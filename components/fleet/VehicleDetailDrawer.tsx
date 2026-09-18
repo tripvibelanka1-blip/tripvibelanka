@@ -317,15 +317,13 @@ export default function VehicleDetailDrawer({
               <ArrowUpRight className="w-4 h-4" />
             </Link>
 
-            <button
-              onClick={() => {
-                onClose();
-                onReserve(vehicle.id);
-              }}
-              className="px-5 py-3.5 rounded-full text-xs sm:text-sm font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer"
+            <Link
+              href={`/booking?vehicle=${vehicle.id}`}
+              onClick={onClose}
+              className="px-5 py-3.5 rounded-full text-xs sm:text-sm font-semibold text-stone-700 bg-white hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer text-center"
             >
               Quick Reserve
-            </button>
+            </Link>
           </div>
         </div>
       </div>

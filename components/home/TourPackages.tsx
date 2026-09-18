@@ -10,7 +10,7 @@ import { Clock, CheckCircle2, ArrowUpRight, MapPin, Loader2, Sparkles, Compass }
 
 interface TourPackagesProps {
   currency: Currency;
-  onSelectPackage: (packageId: string) => void;
+  onSelectPackage?: (packageId: string) => void;
 }
 
 interface TourCardItem {
@@ -305,13 +305,14 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => onSelectPackage(pkg.id)}
+                  <Link
+                    href={`/booking?package=${pkg.id}`}
+                    onClick={() => onSelectPackage?.(pkg.id)}
                     className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.98] transition-all shadow-md shadow-orange-500/20 cursor-pointer"
                   >
                     <span>Reserve Tour</span>
                     <ArrowUpRight className="w-4 h-4" />
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -323,11 +324,11 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
           <div className="mt-12 text-center">
             <Link
               href="/tours"
-              className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold tracking-wide shadow-md transition-all group cursor-pointer active:scale-[0.98]"
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-full bg-white hover:bg-slate-900 text-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 text-xs sm:text-sm font-semibold tracking-wide shadow-xs hover:shadow-md transition-all duration-300 group cursor-pointer active:scale-[0.98]"
             >
-              <Compass className="w-4 h-4 text-[#FF6B00]" />
+              <Compass className="w-4 h-4 text-[#FF6B00] group-hover:text-white transition-colors shrink-0" />
               <span>Explore All Tour Packages &amp; Itineraries</span>
-              <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
             </Link>
           </div>
         )}

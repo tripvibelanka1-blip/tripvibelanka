@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Users,
   Briefcase,
@@ -24,7 +25,6 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/home/Navbar';
 import Footer from '@/components/home/Footer';
-import BookingModal from '@/components/home/BookingModal';
 import { useCurrency } from '@/context/CurrencyContext';
 import VehicleDetailDrawer, { FleetVehicleDetail } from './VehicleDetailDrawer';
 
@@ -33,6 +33,7 @@ interface FleetClientProps {
 }
 
 export default function FleetClient({ initialVehicles }: FleetClientProps) {
+  const router = useRouter();
   const { currency, setCurrency, exchangeRate } = useCurrency();
   const [vehicles] = useState<FleetVehicleDetail[]>(initialVehicles);
 
@@ -41,11 +42,9 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedCapacity, setSelectedCapacity] = useState<string>('All');
 
-  // Drawer & Modal State
+  // Drawer State
   const [selectedVehicleForDrawer, setSelectedVehicleForDrawer] = useState<FleetVehicleDetail | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [bookingPreselectedVehicle, setBookingPreselectedVehicle] = useState<string | undefined>(undefined);
 
   // Categories extracted dynamically from database
   const availableCategories = useMemo(() => {
@@ -99,9 +98,12 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
     setIsDrawerOpen(true);
   };
 
-  const handleQuickReserve = (vehicleId: string) => {
-    setBookingPreselectedVehicle(vehicleId);
-    setIsBookingModalOpen(true);
+  const handleQuickReserve = (vehicleId?: string) => {
+    if (vehicleId) {
+      router.push(`/booking?vehicle=${encodeURIComponent(vehicleId)}`);
+    } else {
+      router.push('/booking');
+    }
   };
 
   const formatPrice = (v: FleetVehicleDetail) => {
@@ -124,7 +126,7 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
       <Navbar
         currency={currency}
         onCurrencyChange={setCurrency}
-        onOpenBooking={() => setIsBookingModalOpen(true)}
+        onOpenBooking={() => handleQuickReserve()}
         forceSolid={true}
       />
 
@@ -589,22 +591,14 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         currency={currency}
-        onReserve={handleQuickReserve}
-      />
-
-      {/* Booking Modal Handoff */}
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => {
-          setIsBookingModalOpen(false);
-          setBookingPreselectedVehicle(undefined);
+        onReserve={(vId) => {
+          setIsDrawerOpen(false);
+          handleQuickReserve(vId);
         }}
-        currency={currency}
-        initialVehicleId={bookingPreselectedVehicle}
       />
 
       {/* Universal Footer */}
-      <Footer onOpenBooking={() => setIsBookingModalOpen(true)} />
+      <Footer onOpenBooking={() => handleQuickReserve()} />
     </div>
   );
 }

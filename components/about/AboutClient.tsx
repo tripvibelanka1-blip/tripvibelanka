@@ -25,10 +25,10 @@ import {
   ChevronRight,
   X,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCurrency } from '@/context/CurrencyContext';
 import Navbar from '@/components/home/Navbar';
 import Footer from '@/components/home/Footer';
-import BookingModal from '@/components/home/BookingModal';
 import { createClient } from '@/utils/supabase/client';
 import { SiteSettings } from '@/types/database';
 
@@ -222,8 +222,8 @@ const VERIFIED_REVIEWS = [
 ];
 
 export default function AboutClient() {
+  const router = useRouter();
   const { currency, setCurrency } = useCurrency();
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [siteSettings, setSiteSettings] = useState<Partial<SiteSettings> | null>(null);
   const [activeMapStopIndex, setActiveMapStopIndex] = useState<number>(0);
@@ -301,7 +301,7 @@ export default function AboutClient() {
       <Navbar
         currency={currency}
         onCurrencyChange={setCurrency}
-        onOpenBooking={() => setIsBookingOpen(true)}
+        onOpenBooking={() => router.push('/booking')}
         forceSolid
       />
 
@@ -339,7 +339,7 @@ export default function AboutClient() {
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <button
                 type="button"
-                onClick={() => setIsBookingOpen(true)}
+                onClick={() => router.push('/booking')}
                 className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#FF6B00] hover:bg-[#E55F00] text-white text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-md shadow-orange-500/25 cursor-pointer flex items-center justify-center gap-2 group active:scale-[0.98]"
               >
                 <span>Plan Custom Journey</span>
@@ -1033,7 +1033,7 @@ export default function AboutClient() {
 
               <button
                 type="button"
-                onClick={() => setIsBookingOpen(true)}
+                onClick={() => router.push('/booking')}
                 className="w-full sm:w-auto px-6 py-3 rounded-full bg-slate-900 hover:bg-[#FF6B00] text-white text-xs font-semibold tracking-wide transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 shrink-0 group active:scale-[0.98]"
               >
                 <span>Design Custom Itinerary</span>
@@ -1258,7 +1258,7 @@ export default function AboutClient() {
                 {/* Primary CTA: Brand Cinnamon Orange */}
                 <button
                   type="button"
-                  onClick={() => setIsBookingOpen(true)}
+                  onClick={() => router.push('/booking')}
                   className="px-7 py-4 rounded-full bg-[#FF6B00] hover:bg-[#E55F00] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/25 cursor-pointer active:scale-[0.98] whitespace-nowrap shrink-0"
                 >
                   <span>Request Custom Itinerary</span>
@@ -1329,14 +1329,7 @@ export default function AboutClient() {
       </main>
 
       {/* Global Verified Footer */}
-      <Footer onOpenBooking={() => setIsBookingOpen(true)} />
-
-      {/* Booking Itinerary Modal */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        currency={currency}
-      />
+      <Footer onOpenBooking={() => router.push('/booking')} />
 
       {/* Interactive Lightbox Modal for Real Guest Photos */}
       {lightboxIndex !== null && (

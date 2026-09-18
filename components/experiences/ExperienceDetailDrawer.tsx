@@ -388,13 +388,18 @@ export default function ExperienceDetailDrawer({
 
           {/* Sticky Drawer Footer CTAs */}
           <div className="p-5 bg-white border-t border-stone-200/90 shrink-0 shadow-lg space-y-2.5">
-            <button
-              onClick={() => onOpenBooking(experience.id, experience.location || experience.destination?.name)}
+            <Link
+              href={`/booking?addon=${experience.id}${
+                experience.location || experience.destination?.name
+                  ? `&destination=${encodeURIComponent(experience.location || experience.destination?.name || '')}`
+                  : ''
+              }`}
+              onClick={onClose}
               className="w-full py-3.5 rounded-full text-sm font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] active:scale-[0.99] transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Add This Experience to Custom Itinerary</span>
               <ArrowUpRight className="w-4 h-4" />
-            </button>
+            </Link>
 
             <a
               href={expWhatsappInquiry}

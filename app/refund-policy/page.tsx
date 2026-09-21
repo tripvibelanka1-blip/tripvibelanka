@@ -199,12 +199,12 @@ export default function RefundPolicyPage() {
               Direct WhatsApp Support
             </span>
             <a
-              href="https://wa.me/94761560046?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20request%20a%20booking%20amendment%20or%20cancellation."
+              href="https://wa.me/94775368357?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20request%20a%20booking%20amendment%20or%20cancellation."
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-bold text-slate-900 hover:text-[#FF6B00] transition-colors mt-0.5 inline-block"
             >
-              076 156 0046
+              077 536 8357
             </a>
           </div>
 
@@ -246,8 +246,8 @@ export default function RefundPolicyPage() {
           <p>Colombo, Sri Lanka</p>
           <p>
             Phone / WhatsApp:{' '}
-            <a href="tel:+94761560046" className="text-[#FF6B00] font-semibold hover:underline">
-              076 156 0046
+            <a href="tel:+94775368357" className="text-[#FF6B00] font-semibold hover:underline">
+              077 536 8357
             </a>
           </p>
         </div>

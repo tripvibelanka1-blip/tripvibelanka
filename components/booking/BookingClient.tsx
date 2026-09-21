@@ -31,6 +31,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  User,
+  Heart,
 } from 'lucide-react';
 import { Currency } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -521,6 +523,9 @@ export interface BookingTourItem {
   included?: string[];
   excluded?: string[];
   itinerary?: { day: number; title: string; details: string }[];
+  min_guests?: number;
+  max_guests?: number | null;
+  guest_policy?: string | null;
 }
 
 export interface BookingVehicleItem {
@@ -706,6 +711,9 @@ export default function BookingClient() {
               included: Array.isArray(t.included) ? t.included : [],
               excluded: Array.isArray(t.excluded) ? t.excluded : [],
               itinerary: Array.isArray(t.itinerary) ? t.itinerary : [],
+              min_guests: t.min_guests ?? 1,
+              max_guests: t.max_guests ?? null,
+              guest_policy: t.guest_policy || null,
             }));
             setTourPackages(mappedTours);
           }
@@ -866,6 +874,21 @@ export default function BookingClient() {
         else if (days <= 14) setDuration('11-14 Days');
         else setDuration('15+ Days');
       }
+
+      // Guest Count Synchronization based on selected package policy
+      const minG = selectedTour.min_guests || 1;
+      const maxG = selectedTour.max_guests ?? null;
+      if (selectedTour.guest_policy === 'solo' || (minG === 1 && maxG === 1)) {
+        setGuests(1);
+      } else if (selectedTour.guest_policy === 'couple' || (minG === 2 && maxG === 2)) {
+        setGuests(2);
+      } else {
+        setGuests((prev) => {
+          if (prev < minG) return minG;
+          if (maxG && prev > maxG) return maxG;
+          return prev;
+        });
+      }
     }
   }, [selectedTour, selectedPackageId]);
 
@@ -943,11 +966,15 @@ export default function BookingClient() {
     ],
     itinerary: t.itinerary && t.itinerary.length > 0 ? t.itinerary : [
       { day: 1, title: 'Arrival & Welcome Circuit', details: `Warm welcome by chauffeur at Colombo International Airport (CMB) or pickup in ${selectedDestination}. Scenic transfer and private orientation tour.` },
-      { day: 2, title: 'Cultural Exploration & Sightseeing', details: 'Private guided excursions, heritage landmarks, and authentic culinary experiences curated to your pace.' }
+      { day: 2, title: 'Private Exploration & Highlights', details: 'Full day chauffeured excursion visiting cultural landmarks, panoramic viewpoints, and boutique lunch stops.' },
+      { day: 3, title: 'Scenic Countryside & Leisure', details: 'Leisurely morning followed by scenic drive, tea garden walk or lagoon cruise tailored to your itinerary.' },
     ],
     priceUSD: t.price_usd,
     priceLKR: t.price_lkr,
     featured: t.is_featured,
+    min_guests: t.min_guests,
+    max_guests: t.max_guests,
+    guest_policy: t.guest_policy,
   });
 
   const convertToVehicleDetail = (v: BookingVehicleItem): FleetVehicleDetail => ({
@@ -1057,7 +1084,7 @@ export default function BookingClient() {
 
   const whatsappUrl = siteSettings?.whatsapp_number
     ? `https://wa.me/${siteSettings.whatsapp_number.replace(/[^0-9]/g, '')}`
-    : 'https://wa.me/94770000000';
+    : 'https://wa.me/94775368357';
 
   // Handle promo code apply
   const handleApplyCoupon = async () => {
@@ -1173,7 +1200,7 @@ export default function BookingClient() {
     }
   };
 
-  const defaultWhatsapp = siteSettings?.whatsapp_number || '94761560046';
+  const defaultWhatsapp = siteSettings?.whatsapp_number || '94775368357';
   const cleanWhatsapp = defaultWhatsapp.replace(/\D/g, '');
   const whatsappReservationUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     `Hello Tripvibe Lanka! I have submitted a reservation for ${guests} guests to ${selectedDestination} (Ref: ${createdBooking?.reference_no || 'Custom Circuit'}). Please advise on final confirmation.`
@@ -1695,32 +1722,88 @@ export default function BookingClient() {
                   </div>
 
                   {/* Guests Counter */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 font-heading">
-                      Number of Guests (Adults &amp; Children)
-                    </label>
-                    <div className="flex items-center gap-4 bg-stone-50 p-2.5 sm:p-3 rounded-2xl border border-stone-200 w-fit">
-                      <button
-                        type="button"
-                        onClick={() => setGuests((prev) => Math.max(1, prev - 1))}
-                        className="w-11 h-11 rounded-full bg-white border border-stone-300 font-bold text-stone-700 hover:bg-stone-100 flex items-center justify-center transition-colors cursor-pointer text-lg active:scale-95"
-                        aria-label="Decrease guests"
-                      >
-                        -
-                      </button>
-                      <span className="text-base sm:text-lg font-bold font-heading text-slate-900 min-w-[3ch] text-center">
-                        {guests}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setGuests((prev) => Math.min(20, prev + 1))}
-                        className="w-11 h-11 rounded-full bg-white border border-stone-300 font-bold text-stone-700 hover:bg-stone-100 flex items-center justify-center transition-colors cursor-pointer text-lg active:scale-95"
-                        aria-label="Increase guests"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
+                  {(() => {
+                    const effectiveMinGuests = selectedTour ? (selectedTour.min_guests || 1) : 1;
+                    const effectiveMaxGuests = selectedTour ? (selectedTour.max_guests || 20) : 20;
+                    const isLockedGuests = Boolean(
+                      selectedTour && (
+                        selectedTour.guest_policy === 'solo' ||
+                        selectedTour.guest_policy === 'couple' ||
+                        (selectedTour.min_guests && selectedTour.max_guests && selectedTour.min_guests === selectedTour.max_guests)
+                      )
+                    );
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 font-heading">
+                            Number of Guests (Adults &amp; Children)
+                          </label>
+                          {selectedTour && (
+                            <span className="text-[11px] font-semibold text-[#FF6B00]">
+                              {selectedTour.title}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 bg-stone-50 p-2.5 sm:p-3 rounded-2xl border border-stone-200 w-fit">
+                          <button
+                            type="button"
+                            disabled={isLockedGuests || guests <= effectiveMinGuests}
+                            onClick={() => setGuests((prev) => Math.max(effectiveMinGuests, prev - 1))}
+                            className="w-11 h-11 rounded-full bg-white border border-stone-300 font-bold text-stone-700 hover:bg-stone-100 flex items-center justify-center transition-colors cursor-pointer text-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Decrease guests"
+                          >
+                            -
+                          </button>
+                          <div className="flex items-center gap-1.5 min-w-[3ch] justify-center">
+                            {isLockedGuests && <Lock className="w-3.5 h-3.5 text-stone-400" />}
+                            <span className="text-base sm:text-lg font-bold font-heading text-slate-900 text-center">
+                              {guests}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={isLockedGuests || guests >= effectiveMaxGuests}
+                            onClick={() => setGuests((prev) => Math.min(effectiveMaxGuests, prev + 1))}
+                            className="w-11 h-11 rounded-full bg-white border border-stone-300 font-bold text-stone-700 hover:bg-stone-100 flex items-center justify-center transition-colors cursor-pointer text-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Increase guests"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {/* Capacity Note */}
+                        {selectedTour ? (
+                          <div className="text-xs text-stone-500 flex items-center gap-1.5 mt-1">
+                            {selectedTour.guest_policy === 'solo' || (selectedTour.min_guests === 1 && selectedTour.max_guests === 1) ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+                                <User className="w-3 h-3 text-sky-600" />
+                                Solo Package · Strictly 1 guest
+                              </span>
+                            ) : selectedTour.guest_policy === 'couple' || (selectedTour.min_guests === 2 && selectedTour.max_guests === 2) ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                                <Heart className="w-3 h-3 text-rose-600" />
+                                Couple Package · Strictly 2 guests
+                              </span>
+                            ) : selectedTour.guest_policy === 'family' || (selectedTour.min_guests && selectedTour.min_guests >= 3) ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                <Users className="w-3 h-3 text-emerald-600" />
+                                Family Package · Allowed range {selectedTour.min_guests} to {selectedTour.max_guests || '20'} guests
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-stone-500">
+                                Min {effectiveMinGuests} guest(s) required for this package.
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-stone-400 mt-1">
+                            Solo, Couple, and Family packages can also be chosen in the next step.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1837,7 +1920,22 @@ export default function BookingClient() {
                         return (
                           <div
                             key={pkg.id}
-                            onClick={() => setSelectedPackageId(pkg.id)}
+                            onClick={() => {
+                              setSelectedPackageId(pkg.id);
+                              const minG = pkg.min_guests || 1;
+                              const maxG = pkg.max_guests ?? null;
+                              if (pkg.guest_policy === 'solo' || (minG === 1 && maxG === 1)) {
+                                setGuests(1);
+                              } else if (pkg.guest_policy === 'couple' || (minG === 2 && maxG === 2)) {
+                                setGuests(2);
+                              } else {
+                                setGuests((prev) => {
+                                  if (prev < minG) return minG;
+                                  if (maxG && prev > maxG) return maxG;
+                                  return prev;
+                                });
+                              }
+                            }}
                             className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3.5 ${
                               isSelected
                                 ? 'border-[#FF6B00] bg-orange-50/40 shadow-xs ring-1 ring-[#FF6B00]/30'
@@ -1851,6 +1949,23 @@ export default function BookingClient() {
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                     {pkg.duration_days} Days / {pkg.duration_nights} Nights
                                   </span>
+                                  {/* Guest Policy Badge on Card */}
+                                  {pkg.guest_policy === 'solo' || (pkg.min_guests === 1 && pkg.max_guests === 1) ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                                      <User className="w-2.5 h-2.5 text-sky-600" />
+                                      Solo (1)
+                                    </span>
+                                  ) : pkg.guest_policy === 'couple' || (pkg.min_guests === 2 && pkg.max_guests === 2) ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                                      <Heart className="w-2.5 h-2.5 text-rose-600" />
+                                      Couple (2)
+                                    </span>
+                                  ) : pkg.guest_policy === 'family' || (pkg.min_guests && pkg.min_guests >= 3) ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                      <Users className="w-2.5 h-2.5 text-emerald-600" />
+                                      Family ({pkg.min_guests}{pkg.max_guests ? `–${pkg.max_guests}` : '+'})
+                                    </span>
+                                  ) : null}
                                   {pkg.is_featured && (
                                     <span className="text-[10px] font-bold text-[#FF6B00] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60">
                                       Curated
@@ -2407,7 +2522,18 @@ export default function BookingClient() {
                     </div>
                     <div className="flex justify-between text-stone-600">
                       <span>Party Size</span>
-                      <strong className="text-slate-900">{guests} Guests</strong>
+                      <div className="flex items-center gap-1.5">
+                        <strong className="text-slate-900">{guests} {guests === 1 ? 'Guest' : 'Guests'}</strong>
+                        {selectedTour && (
+                          selectedTour.guest_policy === 'solo' || (selectedTour.min_guests === 1 && selectedTour.max_guests === 1) ? (
+                            <span className="text-[10px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded">Solo</span>
+                          ) : selectedTour.guest_policy === 'couple' || (selectedTour.min_guests === 2 && selectedTour.max_guests === 2) ? (
+                            <span className="text-[10px] font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">Couple</span>
+                          ) : selectedTour.guest_policy === 'family' || (selectedTour.min_guests && selectedTour.min_guests >= 3) ? (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Family</span>
+                          ) : null
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-stone-600">
                       <span>Private Tour Plan</span>

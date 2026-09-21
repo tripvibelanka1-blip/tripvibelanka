@@ -187,13 +187,13 @@ export default function WhyUs({ onOpenBooking }: WhyUsProps) {
 
               <div className="pt-2 flex flex-col sm:flex-row gap-2">
                 <a
-                  href="https://wa.me/94761560046?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20plan%20a%20private%20tour."
+                  href="https://wa.me/94775368357?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20plan%20a%20private%20tour."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                 >
                   <MessageCircle className="w-3.5 h-3.5 fill-white" />
-                  <span>Chat: 076 156 0046</span>
+                  <span>Chat: 077 536 8357</span>
                 </a>
 
                 {onOpenBooking && (

@@ -19,6 +19,10 @@ import {
   Loader2,
   MapPin,
   UploadCloud,
+  Users,
+  User,
+  Heart,
+  Info,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { TourUpdate, TourItineraryItem, DestinationRecord } from '@/types/database';
@@ -49,6 +53,9 @@ interface TourFormData {
   duration_nights: number;
   price_usd: number;
   price_lkr: number;
+  min_guests: number;
+  max_guests: number | null;
+  guest_policy: 'solo' | 'couple' | 'family' | 'custom';
   description: string;
   highlights: string[];
   included: string[];
@@ -71,6 +78,9 @@ const defaultFormData: TourFormData = {
   duration_nights: 0,
   price_usd: 0,
   price_lkr: 0,
+  min_guests: 1,
+  max_guests: null,
+  guest_policy: 'custom',
   description: '',
   highlights: [''],
   included: [''],
@@ -192,6 +202,17 @@ export default function EditTourPage() {
           duration_nights: tour.duration_nights ?? 0,
           price_usd: Number(tour.price_usd) || 0,
           price_lkr: Number(tour.price_lkr) || 0,
+          min_guests: tour.min_guests ?? 1,
+          max_guests: tour.max_guests ?? null,
+          guest_policy: (tour.guest_policy as 'solo' | 'couple' | 'family' | 'custom') || (
+            (tour.min_guests === 1 && tour.max_guests === 1)
+              ? 'solo'
+              : (tour.min_guests === 2 && tour.max_guests === 2)
+              ? 'couple'
+              : (tour.min_guests && tour.min_guests >= 3)
+              ? 'family'
+              : 'custom'
+          ),
           description: tour.description || '',
           highlights:
             tour.highlights && tour.highlights.length > 0
@@ -548,6 +569,9 @@ export default function EditTourPage() {
         duration_nights: Number(formData.duration_nights) || 0,
         price_usd: Number(formData.price_usd) || 0,
         price_lkr: Number(formData.price_lkr) || 0,
+        min_guests: Math.max(1, Number(formData.min_guests) || 1),
+        max_guests: formData.max_guests ? Math.max(Number(formData.min_guests) || 1, Number(formData.max_guests)) : null,
+        guest_policy: formData.guest_policy || 'custom',
         description: formData.description.trim(),
         highlights: cleanedHighlights,
         included: cleanedIncluded,
@@ -898,7 +922,7 @@ export default function EditTourPage() {
                   Duration & Pricing Schedule
                 </h2>
                 <p className="text-[11px] text-slate-500">
-                  Days, nights, and dual-currency rates
+                  Days, nights, and dual-currency rates (per person pricing)
                 </p>
               </div>
             </div>
@@ -954,6 +978,251 @@ export default function EditTourPage() {
                   disabled={isSubmitting}
                   usdRequired={true}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2.5: Guest Capacity & Package Suitability */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+              <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#FF6B00] flex items-center justify-center border border-orange-100">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">
+                  Guest Capacity &amp; Package Policy
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  Configure whether this tour is tailored for Solo travelers, Couples, Families, or Custom party sizes
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Policy Presets */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Package Guest Mode
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Solo Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      guest_policy: 'solo',
+                      min_guests: 1,
+                      max_guests: 1,
+                    }));
+                  }}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                    formData.guest_policy === 'solo'
+                      ? 'border-[#FF6B00] bg-orange-50/60 ring-2 ring-orange-500/20 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
+                      <User className="w-3.5 h-3.5" />
+                    </div>
+                    {formData.guest_policy === 'solo' && (
+                      <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Solo Package</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Strictly 1 Person</div>
+                  </div>
+                </button>
+
+                {/* Couple Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      guest_policy: 'couple',
+                      min_guests: 2,
+                      max_guests: 2,
+                    }));
+                  }}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                    formData.guest_policy === 'couple'
+                      ? 'border-[#FF6B00] bg-orange-50/60 ring-2 ring-orange-500/20 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
+                      <Heart className="w-3.5 h-3.5" />
+                    </div>
+                    {formData.guest_policy === 'couple' && (
+                      <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Couple Package</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Strictly 2 Persons</div>
+                  </div>
+                </button>
+
+                {/* Family Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      guest_policy: 'family',
+                      min_guests: Math.max(3, prev.min_guests),
+                      max_guests: prev.max_guests && prev.max_guests >= 3 ? prev.max_guests : 8,
+                    }));
+                  }}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                    formData.guest_policy === 'family'
+                      ? 'border-[#FF6B00] bg-orange-50/60 ring-2 ring-orange-500/20 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                    {formData.guest_policy === 'family' && (
+                      <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Family / Group</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Min 3+ Configurable</div>
+                  </div>
+                </button>
+
+                {/* Custom / Flexible Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      guest_policy: 'custom',
+                      min_guests: 1,
+                      max_guests: null,
+                    }));
+                  }}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                    formData.guest_policy === 'custom'
+                      ? 'border-[#FF6B00] bg-orange-50/60 ring-2 ring-orange-500/20 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    {formData.guest_policy === 'custom' && (
+                      <span className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">Custom / Open</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Any Traveler Count</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Min and Max Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <label
+                  htmlFor="min-guests"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Minimum Guests Required <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="min-guests"
+                    type="number"
+                    min={1}
+                    max={formData.max_guests || 50}
+                    required
+                    disabled={isSubmitting || formData.guest_policy === 'solo' || formData.guest_policy === 'couple'}
+                    value={formData.min_guests}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                      setFormData((prev) => ({
+                        ...prev,
+                        min_guests: val,
+                        max_guests: prev.max_guests && prev.max_guests < val ? val : prev.max_guests,
+                      }));
+                    }}
+                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-semibold disabled:opacity-60 disabled:bg-slate-100"
+                  />
+                  {(formData.guest_policy === 'solo' || formData.guest_policy === 'couple') && (
+                    <span className="absolute right-3 top-2.5 text-[11px] font-medium text-slate-400">
+                      Locked ({formData.min_guests})
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Customers cannot book this tour for fewer than this count.
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="max-guests"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                >
+                  Maximum Guests Allowed
+                </label>
+                <div className="relative">
+                  <input
+                    id="max-guests"
+                    type="number"
+                    min={formData.min_guests}
+                    max={50}
+                    disabled={isSubmitting || formData.guest_policy === 'solo' || formData.guest_policy === 'couple'}
+                    value={formData.max_guests ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? null : Math.max(formData.min_guests, parseInt(e.target.value) || formData.min_guests);
+                      setFormData((prev) => ({
+                        ...prev,
+                        max_guests: val,
+                      }));
+                    }}
+                    placeholder="No upper limit (up to vehicle capacity)"
+                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 focus:bg-white transition-all font-semibold disabled:opacity-60 disabled:bg-slate-100"
+                  />
+                  {(formData.guest_policy === 'solo' || formData.guest_policy === 'couple') && (
+                    <span className="absolute right-3 top-2.5 text-[11px] font-medium text-slate-400">
+                      Locked ({formData.max_guests})
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Leave empty if party size is unrestricted.
+                </p>
+              </div>
+            </div>
+
+            {/* Live Explanation Banner */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5 text-xs text-slate-600">
+              <Info className="w-4 h-4 text-[#FF6B00] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-slate-800">Tourist Booking Behavior: </span>
+                {formData.guest_policy === 'solo' && (
+                  <span>This tour is strictly marked for <strong>1 solo traveler</strong>. In the booking flow, the traveler count is automatically locked to 1.</span>
+                )}
+                {formData.guest_policy === 'couple' && (
+                  <span>This tour is strictly marked for <strong>2 travelers (Couple Package)</strong>. In the booking flow, the traveler count is automatically locked to 2.</span>
+                )}
+                {formData.guest_policy === 'family' && (
+                  <span>This tour is configured for families/groups. Customers must select between <strong>{formData.min_guests}</strong> and <strong>{formData.max_guests || 'fleet maximum'}</strong> travelers.</span>
+                )}
+                {formData.guest_policy === 'custom' && (
+                  <span>Flexible package. Customers can select from <strong>{formData.min_guests}</strong> {formData.max_guests ? `to ${formData.max_guests}` : 'or more'} travelers.</span>
+                )}
               </div>
             </div>
           </div>

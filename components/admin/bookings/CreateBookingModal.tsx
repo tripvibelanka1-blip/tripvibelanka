@@ -96,6 +96,15 @@ export default function CreateBookingModal({
     if (tour) {
       const basePrice = currency === 'USD' ? Number(tour.price_usd || 0) : Number(tour.price_lkr || 0);
       setTotalAmount(basePrice);
+      if (tour.guest_policy === 'solo' || (tour.min_guests === 1 && tour.max_guests === 1)) {
+        setAdults(1);
+        setChildren(0);
+      } else if (tour.guest_policy === 'couple' || (tour.min_guests === 2 && tour.max_guests === 2)) {
+        setAdults(2);
+        setChildren(0);
+      } else if (tour.min_guests && tour.min_guests > 1 && (adults + children) < tour.min_guests) {
+        setAdults(tour.min_guests);
+      }
     }
   };
 
@@ -221,18 +230,43 @@ export default function CreateBookingModal({
                 Tour Package *
               </label>
               <CustomSelect
-                options={tours.map((t) => ({
-                  value: t.id,
-                  label: t.title,
-                  badge: `${t.duration_days}D/${t.duration_nights}N`,
-                  description: `$${t.price_usd} / Rs. ${t.price_lkr.toLocaleString()}`,
-                  icon: <Compass className="w-3.5 h-3.5 text-[#FF6B00]" />,
-                }))}
+                options={tours.map((t) => {
+                  const policyBadge =
+                    t.guest_policy === 'solo' || (t.min_guests === 1 && t.max_guests === 1)
+                      ? 'Solo (1)'
+                      : t.guest_policy === 'couple' || (t.min_guests === 2 && t.max_guests === 2)
+                      ? 'Couple (2)'
+                      : t.guest_policy === 'family' || (t.min_guests && t.min_guests >= 3)
+                      ? `Family (${t.min_guests}+)`
+                      : `${t.duration_days}D/${t.duration_nights}N`;
+
+                  return {
+                    value: t.id,
+                    label: t.title,
+                    badge: policyBadge,
+                    description: `$${t.price_usd} / Rs. ${t.price_lkr.toLocaleString()}`,
+                    icon: <Compass className="w-3.5 h-3.5 text-[#FF6B00]" />,
+                  };
+                })}
                 value={selectedTourId}
                 onChange={(val) => handleTourChange(val)}
                 placeholder={tours.length === 0 ? "Custom Tour / Itinerary" : "Select tour package..."}
                 showDescriptionInTrigger
               />
+              {(() => {
+                const selTour = tours.find((t) => t.id === selectedTourId);
+                if (!selTour) return null;
+                if (selTour.guest_policy === 'solo' || (selTour.min_guests === 1 && selTour.max_guests === 1)) {
+                  return <p className="text-[11px] text-sky-700 mt-1">👤 Solo Package: Preset for 1 guest.</p>;
+                }
+                if (selTour.guest_policy === 'couple' || (selTour.min_guests === 2 && selTour.max_guests === 2)) {
+                  return <p className="text-[11px] text-rose-700 mt-1">👥 Couple Package: Preset for 2 guests.</p>;
+                }
+                if (selTour.guest_policy === 'family' || (selTour.min_guests && selTour.min_guests >= 3)) {
+                  return <p className="text-[11px] text-emerald-700 mt-1">👨‍👩‍👧‍👦 Family Package: Min {selTour.min_guests || 3} travelers required.</p>;
+                }
+                return null;
+              })()}
             </div>
 
             <div>

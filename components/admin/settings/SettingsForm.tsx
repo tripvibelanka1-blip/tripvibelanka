@@ -419,7 +419,7 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
                   value={settings.company_phone}
                   onChange={(e) => handleChange('company_phone', e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00]"
-                  placeholder="+94 77 000 0000"
+                  placeholder="+94 77 536 8357"
                 />
               </div>
 
@@ -434,7 +434,7 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
                   value={settings.whatsapp_number}
                   onChange={(e) => handleChange('whatsapp_number', e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
-                  placeholder="+94770000000"
+                  placeholder="+94775368357"
                 />
                 <p className="text-[10px] text-slate-400">
                   Used by the floating WhatsApp chat widget. Include country code (+94).

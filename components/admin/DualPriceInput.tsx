@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Lock, Unlock, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
 import TrustTooltip from '@/components/admin/TrustTooltip';
+import PerPersonTooltip from '@/components/admin/PerPersonTooltip';
 
 import { useCurrency } from '@/context/CurrencyContext';
 
@@ -15,6 +16,7 @@ interface DualPriceInputProps {
   usdLabel?: string;
   lkrLabel?: string;
   usdRequired?: boolean;
+  isPerPerson?: boolean;
   className?: string;
 }
 
@@ -27,6 +29,7 @@ export default function DualPriceInput({
   usdLabel = 'Package Price (USD)',
   lkrLabel = 'Domestic Price (LKR)',
   usdRequired = true,
+  isPerPerson = true,
   className = '',
 }: DualPriceInputProps) {
   const { exchangeRate, isLoading: isFetchingRate, isFallback } = useCurrency();
@@ -119,10 +122,15 @@ export default function DualPriceInput({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* USD Input (Master Anchor) */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-              {usdLabel} {usdRequired && <span className="text-rose-500">*</span>}
-            </label>
+          <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                {usdLabel} {usdRequired && <span className="text-rose-500">*</span>}
+              </label>
+              {isPerPerson && (
+                <PerPersonTooltip priceUsd={priceUsd} />
+              )}
+            </div>
             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
               Master Anchor
             </span>
@@ -144,7 +152,9 @@ export default function DualPriceInput({
             />
           </div>
           <p className="text-[10px] text-slate-400 mt-1">
-            Always stored as the master price to eliminate currency arbitrage risks.
+            {isPerPerson
+              ? 'Price is per 1 person. Total = Rate × Number of Guests.'
+              : 'Always stored as the master price to eliminate currency arbitrage risks.'}
           </p>
         </div>
 
@@ -185,8 +195,8 @@ export default function DualPriceInput({
           <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
             <span>
               {isLocked
-                ? `Auto-synced @ 1 USD = ${exchangeRate.toFixed(2)} LKR`
-                : 'Custom fixed rate entered (won’t shift with USD changes)'}
+                ? `Auto-synced @ 1 USD = ${exchangeRate.toFixed(2)} LKR${isPerPerson ? ' · Per 1 person' : ''}`
+                : `Custom fixed rate entered${isPerPerson ? ' (per 1 person)' : ''}`}
             </span>
             {!isLocked && (
               <button

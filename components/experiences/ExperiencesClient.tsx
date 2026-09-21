@@ -163,7 +163,7 @@ export default function ExperiencesClient() {
     }
   };
 
-  const defaultWhatsapp = siteSettings?.whatsapp_number || '94761560046';
+  const defaultWhatsapp = siteSettings?.whatsapp_number || '94775368357';
   const cleanWhatsapp = defaultWhatsapp.replace(/\D/g, '');
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Hello Tripvibe Lanka! I would like to inquire about booking your bespoke private experiences.'

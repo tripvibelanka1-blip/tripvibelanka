@@ -110,6 +110,34 @@ export async function submitBookingWithCurrencyLock(
     const children = Math.max(0, Number(input.children) || 0);
     const travelersCount = adults + children;
 
+    const supabase = await createClient();
+
+    // 1.5 Validate tour guest constraints server-side if tourId is provided
+    if (input.tourId) {
+      const { data: tourRecord } = await supabase
+        .from('tours')
+        .select('title, min_guests, max_guests, guest_policy')
+        .eq('id', input.tourId)
+        .maybeSingle();
+
+      if (tourRecord) {
+        const minG = tourRecord.min_guests || 1;
+        const maxG = tourRecord.max_guests ?? null;
+        if (travelersCount < minG) {
+          return {
+            success: false,
+            error: `Selected package "${tourRecord.title}" requires at least ${minG} traveler${minG > 1 ? 's' : ''}. Headcount provided: ${travelersCount}.`,
+          };
+        }
+        if (maxG && travelersCount > maxG) {
+          return {
+            success: false,
+            error: `Selected package "${tourRecord.title}" allows a maximum of ${maxG} traveler${maxG > 1 ? 's' : ''}. Headcount provided: ${travelersCount}.`,
+          };
+        }
+      }
+    }
+
     // 2. Fetch server-side verified exchange rate (anti-arbitrage safeguard)
     const { rate: liveRate } = await getServerExchangeRate();
 
@@ -206,7 +234,6 @@ export async function submitBookingWithCurrencyLock(
     };
 
     // 7. Insert into Supabase
-    const supabase = await createClient();
     const { data: booking, error: insertError } = await supabase
       .from('bookings')
       .insert(bookingPayload)

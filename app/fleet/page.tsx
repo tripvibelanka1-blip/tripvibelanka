@@ -87,7 +87,7 @@ export default async function FleetPage() {
     description:
       'Chauffeured private touring vans, sedans, and coaches for island-wide Sri Lanka journeys.',
     url: 'https://tripvibelanka.com/fleet',
-    telephone: '+94770857319',
+    telephone: '+94775368357',
     areaServed: {
       '@type': 'Country',
       name: 'Sri Lanka',

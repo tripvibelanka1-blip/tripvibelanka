@@ -14,6 +14,9 @@ import {
   ArrowUpRight,
   MessageCircle,
   Car,
+  User,
+  Users,
+  Heart,
 } from 'lucide-react';
 import { Currency } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -36,6 +39,9 @@ export interface TourDetailItem {
   priceUSD: number;
   priceLKR: number;
   featured?: boolean;
+  min_guests?: number;
+  max_guests?: number | null;
+  guest_policy?: string | null;
 }
 
 interface TourDetailDrawerProps {
@@ -80,7 +86,7 @@ export default function TourDetailDrawer({
     return `Rs. ${finalLkr.toLocaleString()}`;
   };
 
-  const cleanWhatsappNumber = '94761560046';
+  const cleanWhatsappNumber = '94775368357';
   const whatsappUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(
     `Hello Tripvibe Lanka! I am interested in customizing the "${tour.title}" tour package (${tour.duration}). Could you share more details?`
   )}`;
@@ -97,11 +103,28 @@ export default function TourDetailDrawer({
         >
           {/* Top Sticky Header */}
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-20">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200/80">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{tour.category} Private Circuit</span>
               </span>
+              {/* Capacity Pill */}
+              {tour.guest_policy === 'solo' || (tour.min_guests === 1 && tour.max_guests === 1) ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+                  <User className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Solo Package (1 Person)</span>
+                </span>
+              ) : tour.guest_policy === 'couple' || (tour.min_guests === 2 && tour.max_guests === 2) ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+                  <Heart className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Couple Package (2 Persons)</span>
+                </span>
+              ) : tour.guest_policy === 'family' || (tour.min_guests && tour.min_guests >= 3) ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <Users className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Family / Group ({tour.min_guests}{tour.max_guests ? `–${tour.max_guests}` : '+'} Guests)</span>
+                </span>
+              ) : null}
               {tour.featured && (
                 <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Curated

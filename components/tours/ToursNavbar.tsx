@@ -256,13 +256,13 @@ export default function ToursNavbar({
               </button>
 
               <a
-                href="https://wa.me/94761560046?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20inquire%20about%20a%20luxury%20tour."
+                href="https://wa.me/94775368357?text=Hello%20Tripvibe%20Lanka!%20I%20would%20like%20to%20inquire%20about%20a%20luxury%20tour."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
-                <span>WhatsApp: 076 156 0046 (24/7)</span>
+                <span>WhatsApp: 077 536 8357 (24/7)</span>
               </a>
             </div>
           </div>

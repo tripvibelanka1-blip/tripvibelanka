@@ -14,6 +14,9 @@ import {
   Loader2,
   CheckCircle2,
   X,
+  User,
+  Users,
+  Heart,
 } from 'lucide-react';
 import { Tour } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
@@ -180,6 +183,28 @@ export default function ToursTable({
                           {tour.category && (
                             <span className="inline-flex items-center text-[10px] font-bold text-orange-800 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg">
                               {tour.category}
+                            </span>
+                          )}
+                          {/* Guest Capacity Badge */}
+                          {tour.guest_policy === 'solo' || (tour.min_guests === 1 && tour.max_guests === 1) ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-lg" title="Strictly 1 Solo Traveler">
+                              <User className="w-2.5 h-2.5 text-sky-600" />
+                              Solo (1)
+                            </span>
+                          ) : tour.guest_policy === 'couple' || (tour.min_guests === 2 && tour.max_guests === 2) ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-800 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg" title="Strictly 2 Persons Couple Package">
+                              <Heart className="w-2.5 h-2.5 text-rose-600" />
+                              Couple (2)
+                            </span>
+                          ) : tour.guest_policy === 'family' || (tour.min_guests && tour.min_guests >= 3) ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg" title={`Family / Group Package: Min ${tour.min_guests || 3} to ${tour.max_guests || 'unlimited'}`}>
+                              <Users className="w-2.5 h-2.5 text-emerald-600" />
+                              Family ({tour.min_guests || 3}{tour.max_guests ? `-${tour.max_guests}` : '+'})
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg" title={`Min ${tour.min_guests || 1} guest(s)`}>
+                              <Users className="w-2.5 h-2.5 text-slate-500" />
+                              {tour.min_guests && tour.min_guests > 1 ? `Min ${tour.min_guests}` : 'Open'}
                             </span>
                           )}
                           {destinationName && (

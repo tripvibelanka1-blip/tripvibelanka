@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Currency } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createClient } from '@/utils/supabase/client';
-import { Clock, CheckCircle2, ArrowUpRight, MapPin, Loader2, Sparkles, Compass } from 'lucide-react';
+import { Clock, CheckCircle2, ArrowUpRight, MapPin, Loader2, Sparkles, Compass, User, Users, Heart } from 'lucide-react';
 
 interface TourPackagesProps {
   currency: Currency;
@@ -25,6 +25,9 @@ interface TourCardItem {
   highlights: string[];
   priceUSD: number;
   priceLKR: number;
+  min_guests?: number;
+  max_guests?: number | null;
+  guest_policy?: string | null;
 }
 
 export default function TourPackages({ currency, onSelectPackage }: TourPackagesProps) {
@@ -113,6 +116,9 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
                     : ['Executive AC vehicle & driver guide', 'Handpicked luxury stays', 'Private scenic excursions'],
                 priceUSD: Number(item.price_usd) || 0,
                 priceLKR: Number(item.price_lkr) || 0,
+                min_guests: item.min_guests ?? 1,
+                max_guests: item.max_guests ?? null,
+                guest_policy: item.guest_policy || null,
               };
             });
 
@@ -242,12 +248,28 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-                    {/* Single Discreet Top Badge */}
-                    <div className="absolute top-4 left-4">
+                    {/* Top Badges */}
+                    <div className="absolute top-4 left-4 flex items-center gap-1.5 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-950/70 backdrop-blur-md text-white border border-white/20 shadow-sm">
                         <Clock className="w-3.5 h-3.5 text-amber-400" />
                         {pkg.duration}
                       </span>
+                      {pkg.guest_policy === 'solo' || (pkg.min_guests === 1 && pkg.max_guests === 1) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-500/90 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                          <User className="w-3 h-3 text-sky-100" />
+                          <span>Solo</span>
+                        </span>
+                      ) : pkg.guest_policy === 'couple' || (pkg.min_guests === 2 && pkg.max_guests === 2) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/90 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                          <Heart className="w-3 h-3 text-rose-100" />
+                          <span>Couple</span>
+                        </span>
+                      ) : pkg.guest_policy === 'family' || (pkg.min_guests && pkg.min_guests >= 3) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600/90 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                          <Users className="w-3 h-3 text-emerald-100" />
+                          <span>Family ({pkg.min_guests}{pkg.max_guests ? `–${pkg.max_guests}` : '+'})</span>
+                        </span>
+                      ) : null}
                     </div>
 
                     {pkg.featured && (

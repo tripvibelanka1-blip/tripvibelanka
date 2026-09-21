@@ -9,6 +9,8 @@ export interface TourItineraryItem {
   details: string;
 }
 
+export type GuestPolicyType = 'solo' | 'couple' | 'family' | 'custom';
+
 export interface Tour {
   id: string;
   title: string;
@@ -21,6 +23,9 @@ export interface Tour {
   duration_nights: number;
   price_usd: number;
   price_lkr: number;
+  min_guests?: number;
+  max_guests?: number | null;
+  guest_policy?: GuestPolicyType | null;
   description: string;
   highlights: string[];
   included: string[];
@@ -147,6 +152,9 @@ export interface Booking {
     price_usd: number;
     price_lkr: number;
     cover_image: string | null;
+    min_guests?: number;
+    max_guests?: number | null;
+    guest_policy?: string | null;
   } | null;
 }
 

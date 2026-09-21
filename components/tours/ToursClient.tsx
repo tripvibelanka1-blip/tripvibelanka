@@ -128,6 +128,9 @@ export default function ToursClient() {
               priceUSD: Number(item.price_usd) || 0,
               priceLKR: Number(item.price_lkr) || 0,
               featured: Boolean(item.is_featured),
+              min_guests: item.min_guests ?? 1,
+              max_guests: item.max_guests ?? null,
+              guest_policy: item.guest_policy || null,
             };
           });
 
@@ -228,7 +231,7 @@ export default function ToursClient() {
     setSortBy('featured');
   };
 
-  const defaultWhatsapp = siteSettings?.whatsapp_number || '94761560046';
+  const defaultWhatsapp = siteSettings?.whatsapp_number || '94775368357';
   const cleanWhatsapp = defaultWhatsapp.replace(/\D/g, '');
   const whatsappUrl = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(
     'Hello Tripvibe Lanka! I would like to inquire about your private tour packages.'

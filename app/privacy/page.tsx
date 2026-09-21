@@ -301,8 +301,8 @@ export default function PrivacyPage() {
           <p>Colombo, Sri Lanka</p>
           <p>
             Phone / WhatsApp:{' '}
-            <a href="tel:+94761560046" className="text-[#FF6B00] font-semibold hover:underline">
-              076 156 0046
+            <a href="tel:+94775368357" className="text-[#FF6B00] font-semibold hover:underline">
+              077 536 8357
             </a>
           </p>
           <p>

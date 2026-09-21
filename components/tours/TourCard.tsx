@@ -10,6 +10,9 @@ import {
   ArrowUpRight,
   Eye,
   Car,
+  User,
+  Users,
+  Heart,
 } from 'lucide-react';
 import { Currency } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -56,11 +59,27 @@ export default function TourCard({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/15 to-transparent" />
 
           {/* Top Badges */}
-          <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5">
+          <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-950/75 backdrop-blur-md text-white border border-white/20 shadow-xs">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               <span>{tour.duration}</span>
             </span>
+            {tour.guest_policy === 'solo' || (tour.min_guests === 1 && tour.max_guests === 1) ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-500/90 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                <User className="w-3 h-3 text-sky-100" />
+                <span>Solo</span>
+              </span>
+            ) : tour.guest_policy === 'couple' || (tour.min_guests === 2 && tour.max_guests === 2) ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/90 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                <Heart className="w-3 h-3 text-rose-100" />
+                <span>Couple</span>
+              </span>
+            ) : tour.guest_policy === 'family' || (tour.min_guests && tour.min_guests >= 3) ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-600/90 backdrop-blur-md text-white border border-white/20 shadow-xs">
+                <Users className="w-3 h-3 text-emerald-100" />
+                <span>Family ({tour.min_guests}{tour.max_guests ? `–${tour.max_guests}` : '+'})</span>
+              </span>
+            ) : null}
           </div>
 
           <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-1.5">

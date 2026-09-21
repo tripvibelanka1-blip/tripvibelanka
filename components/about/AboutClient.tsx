@@ -281,8 +281,8 @@ export default function AboutClient() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxIndex]);
 
-  const phone = siteSettings?.company_phone || '076 156 0046';
-  const rawWhatsapp = siteSettings?.whatsapp_number || '94761560046';
+  const phone = siteSettings?.company_phone || '077 536 8357';
+  const rawWhatsapp = siteSettings?.whatsapp_number || '94775368357';
   const cleanWhatsappDigits = rawWhatsapp.replace(/\D/g, '');
   const whatsappUrl = `https://wa.me/${cleanWhatsappDigits}?text=${encodeURIComponent(
     'Hello Tripvibe Lanka! I would like to plan a bespoke private tour in Sri Lanka.'

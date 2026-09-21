@@ -529,7 +529,7 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
 
                 <div className="pt-2 flex flex-wrap items-center gap-3">
                   <a
-                    href="https://wa.me/94770857319?text=Hello%20TripVibe%20Lanka!%20I%20am%20looking%20for%20a%20specialized%20vehicle%20class%20for%20my%20tour."
+                    href="https://wa.me/94775368357?text=Hello%20TripVibe%20Lanka!%20I%20am%20looking%20for%20a%20specialized%20vehicle%20class%20for%20my%20tour."
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs hover:shadow-md transition-all cursor-pointer"

@@ -15,6 +15,9 @@ export interface TourPackage {
   featured?: boolean;
   locations: string[];
   itinerary: { day: number; title: string; desc: string }[];
+  minGuests?: number;
+  maxGuests?: number | null;
+  guestPolicy?: 'solo' | 'couple' | 'family' | 'custom' | string;
 }
 
 export interface Destination {

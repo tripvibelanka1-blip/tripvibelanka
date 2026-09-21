@@ -118,15 +118,15 @@ export default function Footer({ onOpenBooking }: FooterProps) {
   };
 
   // Resolved dynamic links
-  const whatsappNum = siteSettings?.whatsapp_number || '076 156 0046';
-  const cleanWhatsappDigits = whatsappNum.replace(/\D/g, '') || '94761560046';
+  const whatsappNum = siteSettings?.whatsapp_number || '077 536 8357';
+  const cleanWhatsappDigits = whatsappNum.replace(/\D/g, '') || '94775368357';
   const formattedWhatsapp = cleanWhatsappDigits.startsWith('94')
     ? cleanWhatsappDigits
     : cleanWhatsappDigits.startsWith('0')
     ? `94${cleanWhatsappDigits.slice(1)}`
     : `94${cleanWhatsappDigits}`;
 
-  const phoneNum = siteSettings?.company_phone || '+94 76 156 0046';
+  const phoneNum = siteSettings?.company_phone || '+94 77 536 8357';
   const cleanPhoneHref = `tel:${phoneNum.replace(/[^\d+]/g, '')}`;
 
   const facebookUrl = siteSettings?.facebook_url || 'https://www.facebook.com/tripvibelanka';

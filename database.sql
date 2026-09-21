@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS tours (
   duration_nights INTEGER NOT NULL DEFAULT 0,
   price_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
   price_lkr NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  min_guests INTEGER NOT NULL DEFAULT 1,
+  max_guests INTEGER,
+  guest_policy TEXT DEFAULT 'custom',
   description TEXT,
   highlights JSONB DEFAULT '[]'::jsonb, -- Array of strings
   included JSONB DEFAULT '[]'::jsonb,   -- Array of strings
@@ -89,6 +92,9 @@ ALTER TABLE tours ADD COLUMN IF NOT EXISTS locations JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS min_guests INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS max_guests INTEGER;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS guest_policy TEXT DEFAULT 'custom';
 
 -- Enable Row Level Security (RLS) on Tours
 ALTER TABLE tours ENABLE ROW LEVEL SECURITY;
@@ -696,8 +702,8 @@ CREATE TABLE IF NOT EXISTS site_settings (
   -- Company Contacts (Section 2 & 18)
   company_name TEXT DEFAULT 'TripVibe Lanka',
   company_email TEXT DEFAULT 'info@tripvibelanka.com',
-  company_phone TEXT DEFAULT '+94 77 000 0000',
-  whatsapp_number TEXT DEFAULT '+94770000000',
+  company_phone TEXT DEFAULT '+94 77 536 8357',
+  whatsapp_number TEXT DEFAULT '+94775368357',
   office_address TEXT DEFAULT 'Colombo, Sri Lanka',
   
   -- Social Media URLs (Section 2 & 18)
@@ -1160,3 +1166,11 @@ INSERT INTO vehicles (
   true
 )
 ON CONFLICT DO NOTHING;
+
+-- Migration: Update site_settings primary contact & WhatsApp numbers
+UPDATE site_settings 
+SET whatsapp_number = '+94775368357',
+    company_phone = '+94 77 536 8357'
+WHERE id = 1;
+ALTER TABLE site_settings ALTER COLUMN whatsapp_number SET DEFAULT '+94775368357';
+ALTER TABLE site_settings ALTER COLUMN company_phone SET DEFAULT '+94 77 536 8357';

@@ -154,21 +154,21 @@ export default function PolicyLayout({
 
               <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <a
-                  href="https://wa.me/94761560046?text=Hello%20Tripvibe%20Lanka!%20I%20have%20a%20question%20regarding%20your%20terms%20and%20policies."
+                  href="https://wa.me/94775368357?text=Hello%20Tripvibe%20Lanka!%20I%20have%20a%20question%20regarding%20your%20terms%20and%20policies."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition-colors text-white font-semibold text-xs shadow-xs"
                 >
                   <MessageCircle className="w-4 h-4 fill-white" />
-                  <span>WhatsApp: 076 156 0046</span>
+                  <span>WhatsApp: 077 536 8357</span>
                 </a>
 
                 <a
-                  href="tel:+94761560046"
+                  href="tel:+94775368357"
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-semibold text-xs border border-white/10"
                 >
                   <Phone className="w-3.5 h-3.5" />
-                  <span>+94 76 156 0046</span>
+                  <span>+94 77 536 8357</span>
                 </a>
               </div>
             </div>

@@ -295,7 +295,7 @@ export default function VehicleDetailDrawer({
                 </span>
               </div>
               <a
-                href={`https://wa.me/94770857319?text=${whatsappMessage}`}
+                href={`https://wa.me/94775368357?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 shadow-xs"

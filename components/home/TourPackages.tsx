@@ -243,7 +243,8 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
                       src={pkg.image}
                       alt={pkg.title}
                       fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      quality={65}
+                      sizes="(max-width: 640px) 90vw, (max-width: 768px) 45vw, 30vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />

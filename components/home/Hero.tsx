@@ -9,9 +9,10 @@ import { createClient } from '@/utils/supabase/client';
 interface HeroProps {
   onOpenBooking: (packageId?: string) => void;
   onSelectDestination?: (destName: string) => void;
+  initialCards?: HeroCardItem[];
 }
 
-interface HeroCardItem {
+export interface HeroCardItem {
   id: string;
   title: string;
   subtitle: string;
@@ -19,11 +20,16 @@ interface HeroCardItem {
   destinationName: string;
 }
 
-export default function Hero({ onOpenBooking, onSelectDestination }: HeroProps) {
-  const [cards, setCards] = useState<HeroCardItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export default function Hero({ onOpenBooking, onSelectDestination, initialCards }: HeroProps) {
+  const [cards, setCards] = useState<HeroCardItem[]>(initialCards || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialCards);
 
   useEffect(() => {
+    if (initialCards !== undefined) {
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     async function loadHeroDestinations() {
@@ -105,10 +111,11 @@ export default function Hero({ onOpenBooking, onSelectDestination }: HeroProps) 
       {/* Background Image: Mirissa Sunset / Ceylon Landscape */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/hero.jpg"
+          src="/hero.webp"
           alt="Sri Lanka Sunrise & Luxury Private Tours"
           fill
-          priority
+          priority={true}
+          quality={60}
           sizes="100vw"
           className="object-cover object-center scale-105"
         />
@@ -163,7 +170,8 @@ export default function Hero({ onOpenBooking, onSelectDestination }: HeroProps) 
                 src={dest.image}
                 alt={dest.title}
                 fill
-                sizes="(max-width: 640px) 210px, (max-width: 768px) 230px, 250px"
+                quality={65}
+                sizes="(max-width: 640px) 180px, 220px"
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
 

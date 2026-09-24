@@ -480,26 +480,39 @@ export default function Footer({ onOpenBooking }: FooterProps) {
 
           {/* Copyright Bar with PayHere Required Policy Links */}
           <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 pt-6 pb-4 border-t border-slate-200/70 gap-3">
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-              <p>© {new Date().getFullYear()} Tripvibe Lanka. All rights reserved.</p>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 whitespace-nowrap">
+              <p className="whitespace-nowrap">© {new Date().getFullYear()} Tripvibe Lanka. All rights reserved.</p>
               <span className="hidden sm:inline text-slate-300">·</span>
-              <nav aria-label="Legal Links" className="flex items-center gap-3 text-slate-500">
-                <Link href="/terms" className="hover:text-[#FF6B00] transition-colors">
+              <nav aria-label="Legal Links" className="flex items-center gap-3 text-slate-500 whitespace-nowrap">
+                <Link href="/terms" className="hover:text-[#FF6B00] transition-colors whitespace-nowrap">
                   Terms &amp; Conditions
                 </Link>
                 <span>·</span>
-                <Link href="/privacy" className="hover:text-[#FF6B00] transition-colors">
+                <Link href="/privacy" className="hover:text-[#FF6B00] transition-colors whitespace-nowrap">
                   Privacy Policy
                 </Link>
                 <span>·</span>
-                <Link href="/refund-policy" className="hover:text-[#FF6B00] transition-colors">
+                <Link href="/refund-policy" className="hover:text-[#FF6B00] transition-colors whitespace-nowrap">
                   Refund &amp; Cancellation
                 </Link>
               </nav>
             </div>
-            <p className="flex items-center gap-1 font-medium text-slate-600 text-[11px] sm:text-xs">
-              ❤️ Made with love in Sri Lanka · Licensed and Verified Private Tour Operator
-            </p>
+            <div className="flex flex-col items-center md:items-end gap-1 font-medium text-slate-600 text-[11px] sm:text-xs whitespace-nowrap">
+              <p className="flex items-center gap-1 whitespace-nowrap">
+                ❤️ Made with love in Sri Lanka · Licensed and Verified Private Tour Operator
+              </p>
+              <p className="text-[11px] text-slate-500 whitespace-nowrap">
+                Engineered by{' '}
+                <a
+                  href="https://www.instagram.com/_knight_graphics_/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-slate-700 hover:text-[#FF6B00] hover:underline transition-colors"
+                >
+                  Knight Graphics
+                </a>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -509,8 +522,9 @@ export default function Footer({ onOpenBooking }: FooterProps) {
             alt="Sri Lanka Landscape Illustration"
             className="object-cover object-top"
             fill
-            priority
-            src="/images/sri-lanka-footer-illustration.png"
+            loading="lazy"
+            quality={55}
+            src="/images/sri-lanka-footer-illustration.webp"
             sizes="100vw"
           />
         </div>

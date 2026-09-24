@@ -14,7 +14,10 @@ import DestinationDetailDrawer, {
   LinkedTourSummary,
   LinkedActivitySummary,
 } from './DestinationDetailDrawer';
-import Footer from '@/components/home/Footer';
+import dynamic from 'next/dynamic';
+
+const DynamicFooter = dynamic(() => import('@/components/home/Footer'));
+const DynamicDestinationDetailDrawer = dynamic(() => import('./DestinationDetailDrawer'));
 import { SiteSettings } from '@/types/database';
 
 export default function DestinationsClient() {
@@ -286,7 +289,7 @@ export default function DestinationsClient() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {filteredDestinations.map((destination) => {
+              {filteredDestinations.map((destination, index) => {
                 const linkedTours = getLinkedToursForDestination(destination);
                 return (
                   <DestinationCard
@@ -295,6 +298,7 @@ export default function DestinationsClient() {
                     linkedToursCount={linkedTours.length}
                     onOpenDrawer={handleOpenDrawer}
                     onOpenBooking={(destName) => handleOpenBooking(destName)}
+                    isPriority={index === 0}
                   />
                 );
               })}
@@ -342,7 +346,7 @@ export default function DestinationsClient() {
       </main>
 
       {/* Slide-over Detailed Dossier Drawer */}
-      <DestinationDetailDrawer
+      <DynamicDestinationDetailDrawer
         destination={selectedDestinationForDrawer}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -366,7 +370,7 @@ export default function DestinationsClient() {
       />
 
       {/* Universal Footer */}
-      <Footer onOpenBooking={() => handleOpenBooking()} />
+      <DynamicFooter onOpenBooking={() => handleOpenBooking()} />
     </div>
   );
 }

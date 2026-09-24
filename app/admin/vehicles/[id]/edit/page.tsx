@@ -204,7 +204,13 @@ export default function EditVehiclePage() {
 
       const { data: publicUrlData } = supabase.storage
         .from('vehicle-images')
-        .getPublicUrl(filename);
+        .getPublicUrl(filename, {
+          transform: {
+            width: 1200,
+            height: 675,
+            quality: 65,
+          },
+        });
 
       setCoverImage(publicUrlData.publicUrl);
     } catch (err: any) {
@@ -242,7 +248,13 @@ export default function EditVehiclePage() {
 
         const { data: publicUrlData } = supabase.storage
           .from('vehicle-images')
-          .getPublicUrl(filename);
+          .getPublicUrl(filename, {
+            transform: {
+              width: 1200,
+              height: 675,
+              quality: 65,
+            },
+          });
 
         uploadedUrls.push(publicUrlData.publicUrl);
       }
@@ -815,7 +827,7 @@ export default function EditVehiclePage() {
                 <input
                   type="file"
                   ref={fileInputRef}
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/webp"
                   onChange={handleCoverUpload}
                   className="hidden"
                 />
@@ -839,7 +851,8 @@ export default function EditVehiclePage() {
                       <>
                         <UploadCloud className="w-8 h-8 text-slate-400 mx-auto" />
                         <p className="text-xs font-bold text-slate-700">Upload vehicle photo</p>
-                        <p className="text-[11px] text-slate-400">JPG, PNG, or WebP up to 10MB</p>
+                        <p className="text-[11px] text-slate-400 mt-1">JPG or WebP up to 500KB. Recommended: 1200 × 675px (16:9)</p>
+                        <p className="text-[10px] text-[#FF6B00] mt-0.5">Images are auto-compressed and optimized on upload.</p>
                       </>
                     )}
                   </div>
@@ -867,7 +880,7 @@ export default function EditVehiclePage() {
                 type="file"
                 multiple
                 ref={galleryInputRef}
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/webp"
                 onChange={handleGalleryUpload}
                 className="hidden"
               />

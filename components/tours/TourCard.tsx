@@ -23,6 +23,7 @@ interface TourCardProps {
   currency: Currency;
   onOpenDrawer: (tour: TourDetailItem) => void;
   onBookTour: (tourId: string) => void;
+  priority?: boolean;
 }
 
 export default function TourCard({
@@ -30,6 +31,7 @@ export default function TourCard({
   currency,
   onOpenDrawer,
   onBookTour,
+  priority = false,
 }: TourCardProps) {
   const { exchangeRate } = useCurrency();
 
@@ -43,6 +45,28 @@ export default function TourCard({
 
   return (
     <article className="group bg-white rounded-3xl overflow-hidden border border-slate-200/90 shadow-2xs hover:shadow-xl hover:border-orange-500/30 transition-all duration-300 flex flex-col justify-between">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TouristTrip",
+            "name": tour.title,
+            "description": tour.tagline,
+            "offers": {
+              "@type": "Offer",
+              "price": tour.priceUSD,
+              "priceCurrency": "USD",
+              "url": `https://www.tripvibelanka.com/booking?package=${tour.id}`
+            },
+            "touristType": tour.category,
+            "itinerary": {
+              "@type": "ItemList",
+              "name": tour.title
+            }
+          })
+        }}
+      />
       <div>
         {/* Card Media Preview */}
         <div
@@ -53,7 +77,9 @@ export default function TourCard({
             src={tour.image}
             alt={tour.title}
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            quality={65}
+            priority={priority}
+            sizes="(max-width: 768px) 95vw, (max-width: 1200px) 48vw, 32vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/15 to-transparent" />
@@ -113,7 +139,7 @@ export default function TourCard({
           <div className="space-y-1 sm:space-y-1.5">
             <h3
               onClick={() => onOpenDrawer(tour)}
-              className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-[#FF6B00] transition-colors leading-snug font-heading cursor-pointer"
+              className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-brand-text transition-colors leading-snug font-heading cursor-pointer"
             >
               {tour.title}
             </h3>
@@ -148,7 +174,7 @@ export default function TourCard({
       <div className="p-4 sm:p-6 pt-3 sm:pt-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
         <div className="flex items-baseline justify-between">
           <div>
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 block font-semibold">
               Starting From
             </span>
             <div className="flex items-baseline gap-1">
@@ -168,6 +194,7 @@ export default function TourCard({
           <button
             type="button"
             onClick={() => onOpenDrawer(tour)}
+            aria-label={`Inspect itinerary for ${tour.title}`}
             className="w-full py-3 sm:py-2.5 px-3 rounded-full text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
           >
             <span>Itinerary</span>
@@ -176,6 +203,7 @@ export default function TourCard({
 
           <Link
             href={`/booking?package=${tour.id}`}
+            aria-label={`Reserve ${tour.title} — ${tour.duration}`}
             className="w-full py-3 sm:py-2.5 px-3 rounded-full text-xs font-semibold text-white bg-[#FF6B00] hover:bg-[#E55F00] shadow-sm shadow-orange-500/20 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-[0.98]"
           >
             <span>Reserve</span>

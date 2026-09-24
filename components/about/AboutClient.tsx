@@ -80,7 +80,7 @@ const DEFAULT_TRIPADVISOR_URL =
 const REAL_GUEST_MOMENTS = [
   {
     id: 1,
-    src: '/gallery/sigiriya-tourists.png',
+    src: '/gallery/sigiriya-tourists.webp',
     alt: 'Tripvibe Lanka guests and private guide in front of Sigiriya Rock Fortress',
     title: 'Ancient Sigiriya Rock Citadel',
     location: 'Sigiriya, Cultural Triangle',
@@ -389,8 +389,8 @@ export default function AboutClient() {
             </div>
 
             <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
-              <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 text-[#FF6B00] flex items-center justify-center shrink-0">
-                <Car className="w-4 h-4 text-[#FF6B00]" />
+              <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 text-brand-text flex items-center justify-center shrink-0">
+                <Car className="w-4 h-4 text-brand-text" />
               </div>
               <div className="flex flex-col text-left">
                 <span className="text-xs font-bold text-slate-900">Private Chauffeur Fleet</span>
@@ -408,7 +408,7 @@ export default function AboutClient() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
               {/* Left Column: Narrative */}
               <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
+                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand-text">
                   <Compass className="w-4 h-4" />
                   <span>Our Story</span>
                 </div>
@@ -509,7 +509,7 @@ export default function AboutClient() {
         {/* ========================================================== */}
         <section id="team" className="py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand-text">
               <Users className="w-4 h-4" />
               <span>Who We Are</span>
             </div>
@@ -540,7 +540,7 @@ export default function AboutClient() {
 
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 font-heading">Luca (Luka)</h3>
-                  <span className="text-xs font-semibold text-[#FF6B00] uppercase tracking-wider block mt-0.5">
+                  <span className="text-xs font-semibold text-brand-text uppercase tracking-wider block mt-0.5">
                     Senior Route Specialist &amp; Cultural Storyteller
                   </span>
                 </div>
@@ -568,7 +568,7 @@ export default function AboutClient() {
             <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-orange-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-[#FF6B00] font-bold text-xl font-heading shadow-2xs group-hover:scale-105 transition-transform">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-brand-text font-bold text-xl font-heading shadow-2xs group-hover:scale-105 transition-transform">
                     M
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
@@ -578,7 +578,7 @@ export default function AboutClient() {
 
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 font-heading">Mishal (Micha)</h3>
-                  <span className="text-xs font-semibold text-[#FF6B00] uppercase tracking-wider block mt-0.5">
+                  <span className="text-xs font-semibold text-brand-text uppercase tracking-wider block mt-0.5">
                     Island Concierge &amp; Halal Hospitality Lead
                   </span>
                 </div>
@@ -616,7 +616,7 @@ export default function AboutClient() {
 
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 font-heading">Director Abdul</h3>
-                  <span className="text-xs font-semibold text-[#FF6B00] uppercase tracking-wider block mt-0.5">
+                  <span className="text-xs font-semibold text-brand-text uppercase tracking-wider block mt-0.5">
                     Executive Host &amp; VIP Airport Welcome
                   </span>
                 </div>
@@ -649,8 +649,8 @@ export default function AboutClient() {
         <section id="moments" className="py-20 sm:py-28 bg-white border-y border-stone-200/80 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200/80 shadow-2xs">
-                <Camera className="w-3.5 h-3.5 text-[#FF6B00]" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-orange-50 text-brand-text border border-orange-200/80 shadow-2xs">
+                <Camera className="w-3.5 h-3.5 text-brand-text" />
                 <span>Real Travelers · Real Moments</span>
               </div>
 
@@ -719,7 +719,7 @@ export default function AboutClient() {
                           {activeMapStopIndex + 1} of {REAL_GUEST_MOMENTS.length}: {currentMoment.location}
                         </span>
                       </div>
-                      <span className="font-mono text-[11px] font-bold text-[#FF6B00] bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/60">
+                      <span className="font-mono text-[11px] font-bold text-brand-text bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/60">
                         {currentMoment.tag}
                       </span>
                     </div>
@@ -738,8 +738,9 @@ export default function AboutClient() {
                           src={currentMoment.src}
                           alt={currentMoment.alt}
                           fill
-                          sizes="100vw"
+                          sizes={activeMapStopIndex === 0 ? "(max-width: 640px) 95vw, (max-width: 1024px) 70vw, 666px" : "100vw"}
                           priority={activeMapStopIndex === 0}
+                          quality={activeMapStopIndex === 0 ? 70 : 75}
                           className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
@@ -747,7 +748,7 @@ export default function AboutClient() {
                         {/* Top Location Badge */}
                         <div className="absolute top-3.5 left-3.5 z-10">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-xs">
-                            <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
+                            <MapPin className="w-3.5 h-3.5 text-brand-text" />
                             <span>{currentMoment.location}</span>
                           </span>
                         </div>
@@ -785,7 +786,7 @@ export default function AboutClient() {
                           <button
                             type="button"
                             onClick={() => setLightboxIndex(activeMapStopIndex)}
-                            className="text-[11px] font-bold text-[#FF6B00] hover:underline cursor-pointer flex items-center gap-1"
+                            className="text-[11px] font-bold text-brand-text hover:underline cursor-pointer flex items-center gap-1"
                           >
                             <span>Fullscreen</span>
                             <span>↗</span>
@@ -856,7 +857,9 @@ export default function AboutClient() {
                         src={item.src}
                         alt={item.alt}
                         fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
+                        priority={idx === 0}
+                        quality={idx === 0 ? 70 : 75}
+                        sizes={idx === 0 ? "(max-width: 640px) 95vw, (max-width: 1024px) 70vw, 666px" : "(max-width: 768px) 100vw, 50vw"}
                         className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
@@ -864,7 +867,7 @@ export default function AboutClient() {
                       {/* Location Badge */}
                       <div className="absolute top-4 left-4 z-10">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-black/55 backdrop-blur-md text-white border border-white/20 shadow-xs">
-                          <MapPin className="w-3 h-3 text-[#FF6B00]" />
+                          <MapPin className="w-3 h-3 text-brand-text" />
                           <span>{item.location}</span>
                         </span>
                       </div>
@@ -921,7 +924,7 @@ export default function AboutClient() {
                       {/* Location Badge */}
                       <div className="absolute top-3.5 left-3.5 z-10">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/55 backdrop-blur-md text-white border border-white/20 shadow-xs">
-                          <MapPin className="w-3 h-3 text-[#FF6B00]" />
+                          <MapPin className="w-3 h-3 text-brand-text" />
                           <span>{item.location}</span>
                         </span>
                       </div>
@@ -978,7 +981,7 @@ export default function AboutClient() {
                       {/* Location Badge */}
                       <div className="absolute top-4 left-4 z-10">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-black/55 backdrop-blur-md text-white border border-white/20 shadow-xs">
-                          <MapPin className="w-3 h-3 text-[#FF6B00]" />
+                          <MapPin className="w-3 h-3 text-brand-text" />
                           <span>{item.location}</span>
                         </span>
                       </div>
@@ -1018,7 +1021,7 @@ export default function AboutClient() {
             {/* Inclusions Banner */}
             <div className="mt-12 p-6 sm:p-8 rounded-3xl bg-[#FAF9F6] border border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xs">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#FF6B00] shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand-text shrink-0">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
@@ -1133,7 +1136,7 @@ export default function AboutClient() {
               <div className="lg:col-span-5 space-y-4">
                 <div className="p-7 sm:p-8 rounded-3xl bg-white border border-emerald-200/90 shadow-xs space-y-6">
                   <div className="space-y-1 border-b border-stone-100 pb-4">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#FF6B00]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-brand-text">
                       The Tripvibe Standard
                     </span>
                     <h3 className="text-xl font-bold text-slate-900 font-heading">
@@ -1239,7 +1242,7 @@ export default function AboutClient() {
             <div className="absolute -right-16 -bottom-16 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 w-full space-y-7">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 border border-orange-200 text-[#FF6B00] text-xs font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100/80 border border-orange-200 text-brand-text text-xs font-bold uppercase tracking-wider">
                 <Clock className="w-3.5 h-3.5" />
                 <span>Ready to Start Planning?</span>
               </div>
@@ -1344,7 +1347,7 @@ export default function AboutClient() {
             {/* Top Bar: Title & Close Button */}
             <div className="p-4 sm:p-5 flex items-center justify-between border-b border-stone-800 text-white">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#FF6B00]" />
+                <MapPin className="w-4 h-4 text-brand-text" />
                 <span className="text-sm font-semibold font-heading">
                   {REAL_GUEST_MOMENTS[lightboxIndex].location}
                 </span>

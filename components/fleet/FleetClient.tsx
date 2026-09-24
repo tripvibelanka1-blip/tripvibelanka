@@ -296,7 +296,7 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {filteredVehicles.map((vehicle) => {
+              {filteredVehicles.map((vehicle, index) => {
                 const passCount = vehicle.passenger_capacity || 3;
                 const bagCount = vehicle.luggage_capacity || 2;
                 const passText =
@@ -320,13 +320,15 @@ export default function FleetClient({ initialVehicles }: FleetClientProps) {
                   >
                     <div>
                       {/* Cover Photo */}
-                      <div className="relative h-60 w-full overflow-hidden bg-stone-100">
+                      <div className="relative aspect-[16/9] w-full overflow-hidden bg-stone-100">
                         {vehicle.cover_image ? (
                           <Image
                             src={vehicle.cover_image}
                             alt={vehicle.name}
                             fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            priority={index === 0}
+                            quality={65}
+                            sizes="(max-width: 640px) 95vw, (max-width: 1024px) 48vw, 32vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (

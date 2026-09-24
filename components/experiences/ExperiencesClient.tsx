@@ -225,7 +225,7 @@ export default function ExperiencesClient() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredExperiences.map((experience) => (
+              {filteredExperiences.map((experience, index) => (
                 <ExperienceCard
                   key={experience.id}
                   experience={experience}
@@ -233,6 +233,7 @@ export default function ExperiencesClient() {
                   exchangeRate={exchangeRate}
                   onOpenDrawer={handleOpenDrawer}
                   onOpenBooking={(addonId, loc) => handleOpenBooking(addonId, loc)}
+                  priority={index === 0}
                 />
               ))}
             </div>

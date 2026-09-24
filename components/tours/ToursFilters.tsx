@@ -92,7 +92,11 @@ export default function ToursFilters({
             <div className="flex items-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-2xl bg-stone-50 border border-stone-200/90 text-xs text-stone-700">
               <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 shrink-0" />
               <span className="text-stone-400 font-medium hidden md:inline">Sort:</span>
+              <label htmlFor="tour-sort" className="sr-only">
+                Sort tours by
+              </label>
               <select
+                id="tour-sort"
                 value={sortBy}
                 onChange={(e) => onSortChange(e.target.value as SortOptionKey)}
                 className="bg-transparent font-semibold text-stone-800 focus:outline-none cursor-pointer text-xs"
@@ -116,7 +120,7 @@ export default function ToursFilters({
           {/* Row 1: Tour Themes / Categories */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5 text-xs font-bold text-stone-500 uppercase tracking-wider shrink-0 min-w-[70px]">
-              <Sparkles className="w-3.5 h-3.5 text-[#FF6B00]" />
+              <Sparkles className="w-3.5 h-3.5 text-brand-text" />
               <span>Theme:</span>
             </div>
 
@@ -181,7 +185,7 @@ export default function ToursFilters({
               <span className="text-stone-400 font-medium">Active filters:</span>
 
               {selectedCategory !== 'All' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-200 text-[#FF6B00] text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-200 text-brand-text text-xs font-semibold">
                   <span>Theme: {selectedCategory}</span>
                   <button
                     type="button"
@@ -228,7 +232,7 @@ export default function ToursFilters({
             <button
               type="button"
               onClick={onResetFilters}
-              className="inline-flex items-center gap-1 text-xs font-bold text-[#FF6B00] hover:text-[#e05e00] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-brand-text hover:text-[#e05e00] hover:underline cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset All Filters</span>

@@ -52,7 +52,7 @@ export default function ToursHero({
 
         {/* Majestic Headline */}
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 font-heading leading-[1.15]">
-          Signature Private <span className="text-[#FF6B00]">Tour Packages</span>
+          Signature Private <span className="text-brand-text">Tour Packages</span>
         </h1>
 
         {/* Subhead */}

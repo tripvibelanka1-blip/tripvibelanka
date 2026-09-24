@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizeCss: true,
+  },
   images: {
     remotePatterns: [
       {
@@ -15,4 +18,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
+const analyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+export default analyzer(nextConfig);

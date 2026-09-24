@@ -78,7 +78,7 @@ export default function ToursNavbar({
             </div>
             <div className="flex flex-col">
               <span className="text-base sm:text-lg font-bold tracking-tight font-heading leading-tight flex items-center gap-1 text-slate-900">
-                Tripvibe<span className="text-[#FF6B00]">Lanka</span>
+                Tripvibe<span className="text-brand-text">Lanka</span>
               </span>
               <span className="text-[10px] uppercase tracking-widest font-medium hidden sm:inline-block text-slate-500">
                 Luxury Private Tours
@@ -231,7 +231,7 @@ export default function ToursNavbar({
                     className={`px-4 py-3 rounded-2xl text-base font-semibold transition-all flex items-center justify-between ${
                       isActive
                         ? 'bg-[#FF6B00] text-white shadow-sm shadow-orange-500/25'
-                        : 'text-slate-800 hover:bg-orange-50 hover:text-[#FF6B00]'
+                        : 'text-slate-800 hover:bg-orange-50 hover:text-brand-text'
                     }`}
                   >
                     <span>{link.name}</span>

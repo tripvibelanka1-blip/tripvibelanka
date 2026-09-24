@@ -280,14 +280,14 @@ export default function ToursClient() {
           {/* Tour Packages Grid */}
           {isLoading ? (
             <div className="p-12 sm:p-16 rounded-3xl bg-white border border-slate-200/80 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
+              <Loader2 className="w-8 h-8 text-brand-text animate-spin" />
               <span className="text-xs font-semibold text-slate-500 tracking-wide">
                 Loading signature tour packages...
               </span>
             </div>
           ) : filteredTours.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 sm:p-12 text-center max-w-xl mx-auto flex flex-col items-center justify-center space-y-3 shadow-2xs">
-              <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-200/60 flex items-center justify-center text-[#FF6B00]">
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-200/60 flex items-center justify-center text-brand-text">
                 <SlidersHorizontal className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 font-heading">
@@ -305,17 +305,23 @@ export default function ToursClient() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-8">
-              {filteredTours.map((tour) => (
-                <TourCard
-                  key={tour.id}
-                  tour={tour}
-                  currency={currency}
-                  onOpenDrawer={handleOpenDrawer}
-                  onBookTour={handleOpenBooking}
-                />
-              ))}
-            </div>
+            <section aria-labelledby="tours-heading">
+              <h2 id="tours-heading" className="sr-only">
+                Available Tour Packages
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-8">
+                {filteredTours.map((tour, index) => (
+                  <TourCard
+                    key={tour.id}
+                    tour={tour}
+                    currency={currency}
+                    onOpenDrawer={handleOpenDrawer}
+                    onBookTour={handleOpenBooking}
+                    priority={index === 0}
+                  />
+                ))}
+              </div>
+            </section>
           )}
         </div>
       </main>

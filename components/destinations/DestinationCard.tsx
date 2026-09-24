@@ -18,6 +18,7 @@ interface DestinationCardProps {
   linkedToursCount?: number;
   onOpenDrawer: (destination: DestinationItem) => void;
   onOpenBooking: (destinationName: string) => void;
+  isPriority?: boolean;
 }
 
 const DEFAULT_COVER =
@@ -35,6 +36,7 @@ export default function DestinationCard({
   linkedToursCount = 0,
   onOpenDrawer,
   onOpenBooking,
+  isPriority = false,
 }: DestinationCardProps) {
   const coverUrl = destination.cover_image?.trim() || DEFAULT_COVER;
 
@@ -52,7 +54,9 @@ export default function DestinationCard({
           src={coverUrl}
           alt={destination.name}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          quality={65}
+          priority={isPriority}
+          sizes="(max-width: 640px) 95vw, (max-width: 1024px) 48vw, 32vw"
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

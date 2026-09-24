@@ -19,6 +19,7 @@ interface ExperienceCardProps {
   exchangeRate?: number;
   onOpenDrawer: (experience: ExperienceItem) => void;
   onOpenBooking: (addonId: string, location?: string) => void;
+  priority?: boolean;
 }
 
 const DEFAULT_COVER =
@@ -37,6 +38,7 @@ export default function ExperienceCard({
   exchangeRate = 300,
   onOpenDrawer,
   onOpenBooking,
+  priority = false,
 }: ExperienceCardProps) {
   const coverUrl = experience.cover_image?.trim() || DEFAULT_COVER;
   const priceNum =
@@ -54,7 +56,9 @@ export default function ExperienceCard({
           src={coverUrl}
           alt={experience.title}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          priority={priority}
+          quality={60}
+          sizes="(max-width: 640px) 92vw, (max-width: 768px) 44vw, (max-width: 1024px) 44vw, 30vw"
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

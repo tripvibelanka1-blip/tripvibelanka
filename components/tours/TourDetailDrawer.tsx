@@ -104,7 +104,7 @@ export default function TourDetailDrawer({
           {/* Top Sticky Header */}
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-20">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-[#FF6B00] border border-orange-200/80">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-brand-text border border-orange-200/80">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{tour.category} Private Circuit</span>
               </span>
@@ -170,7 +170,7 @@ export default function TourDetailDrawer({
             {/* Title & Tagline */}
             <div className="space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <MapPin className="w-4 h-4 text-[#FF6B00] shrink-0" />
+                <MapPin className="w-4 h-4 text-brand-text shrink-0" />
                 <span className="text-slate-700 font-semibold">{tour.locations.join(' → ')}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-950 font-heading leading-snug">
@@ -213,7 +213,7 @@ export default function TourDetailDrawer({
                 <ul className="grid grid-cols-1 gap-2.5">
                   {tour.highlights.map((h, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
-                      <CheckCircle2 className="w-4 h-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-brand-text shrink-0 mt-0.5" />
                       <span className="leading-relaxed">{h}</span>
                     </li>
                   ))}
@@ -243,7 +243,7 @@ export default function TourDetailDrawer({
 
                       <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs group-hover:border-orange-300 transition-colors space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-orange-50 text-[#FF6B00]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-orange-50 text-brand-text">
                             Day {item.day || index + 1}
                           </span>
                         </div>

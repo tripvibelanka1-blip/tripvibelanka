@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import AboutClient from '@/components/about/AboutClient';
 import { SchemaScript } from '@/components/SchemaScript';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,7 @@ export default function AboutPage() {
   return (
     <>
       <SchemaScript schema={aboutSchema} />
+      <Breadcrumb items={[{ name: "About", href: "/about" }]} />
       <AboutClient />
     </>
   );

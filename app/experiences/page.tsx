@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import ExperiencesClient from '@/components/experiences/ExperiencesClient';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,7 @@ export default function ExperiencesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Breadcrumb items={[{ name: "Experiences", href: "/experiences" }]} />
       <ExperiencesClient />
     </>
   );

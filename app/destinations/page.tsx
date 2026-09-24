@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import DestinationsClient from '@/components/destinations/DestinationsClient';
 import { Loader2 } from 'lucide-react';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,7 @@ export default function DestinationsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Breadcrumb items={[{ name: "Destinations", href: "/destinations" }]} />
       <Suspense
         fallback={
           <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center space-y-4">

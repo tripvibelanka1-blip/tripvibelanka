@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { createClient } from '@/utils/supabase/server';
 import FleetClient from '@/components/fleet/FleetClient';
 import { FleetVehicleDetail } from '@/components/fleet/VehicleDetailDrawer';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -120,6 +121,7 @@ export default async function FleetPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Breadcrumb items={[{ name: "Fleet", href: "/fleet" }]} />
       <FleetClient initialVehicles={vehicles} />
     </>
   );

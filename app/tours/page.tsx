@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import ToursClient from '@/components/tours/ToursClient';
 import { ToursFAQ } from '@/components/ToursFAQ';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,7 @@ export default function ToursPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <Breadcrumb items={[{ name: "Tours", href: "/tours" }]} />
       <ToursClient />
       <ToursFAQ />
     </>

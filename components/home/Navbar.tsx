@@ -337,15 +337,21 @@ export default function Navbar({
       </header>
 
       {/* Mobile Slide-out Drawer */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-md md:hidden transition-opacity"
+      <div
+        className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${
+          mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+        }`}
+      >
+        <div 
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
           onClick={() => setMobileMenuOpen(false)}
+        />
+        <div
+          className={`absolute top-24 inset-x-4 bg-white rounded-3xl p-6 shadow-2xl space-y-5 border border-slate-100 transform-gpu transition-all duration-300 ${
+            mobileMenuOpen ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-4 scale-95 opacity-0'
+          }`}
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className="absolute top-24 inset-x-4 bg-white/95 backdrop-blur-2xl rounded-3xl p-6 border border-white/40 shadow-2xl space-y-5"
-            onClick={(e) => e.stopPropagation()}
-          >
             <div className="flex flex-col space-y-2">
               {NAV_LINKS.map((link) => {
                 const isActive = isLinkActive(link);
@@ -394,7 +400,6 @@ export default function Navbar({
             </div>
           </div>
         </div>
-      )}
     </>
   );
 }

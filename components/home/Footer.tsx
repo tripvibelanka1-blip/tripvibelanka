@@ -479,27 +479,29 @@ export default function Footer({ onOpenBooking }: FooterProps) {
           </div>
 
           {/* Copyright Bar with PayHere Required Policy Links */}
-          <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 pt-6 pb-4 border-t border-slate-200/70 gap-3">
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 whitespace-nowrap">
+          <div className="flex flex-col lg:flex-row justify-between items-center text-xs text-slate-500 pt-6 pb-4 border-t border-slate-200/70 gap-4 text-center lg:text-left px-4">
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
               <p className="whitespace-nowrap">© {new Date().getFullYear()} Tripvibe Lanka. All rights reserved.</p>
-              <span className="hidden sm:inline text-slate-300">·</span>
-              <nav aria-label="Legal Links" className="flex items-center gap-3 text-slate-500 whitespace-nowrap">
+              <span className="hidden md:inline text-slate-300">·</span>
+              <nav aria-label="Legal Links" className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 text-slate-500">
                 <Link href="/terms" className="hover:text-[#FF6B00] transition-colors whitespace-nowrap">
                   Terms &amp; Conditions
                 </Link>
-                <span>·</span>
+                <span className="hidden sm:inline">·</span>
                 <Link href="/privacy" className="hover:text-[#FF6B00] transition-colors whitespace-nowrap">
                   Privacy Policy
                 </Link>
-                <span>·</span>
+                <span className="hidden sm:inline">·</span>
                 <Link href="/refund-policy" className="hover:text-[#FF6B00] transition-colors whitespace-nowrap">
                   Refund &amp; Cancellation
                 </Link>
               </nav>
             </div>
-            <div className="flex flex-col items-center md:items-end gap-1 font-medium text-slate-600 text-[11px] sm:text-xs whitespace-nowrap">
-              <p className="flex items-center gap-1 whitespace-nowrap">
-                ❤️ Made with love in Sri Lanka · Licensed and Verified Private Tour Operator
+            <div className="flex flex-col items-center lg:items-end gap-1.5 font-medium text-slate-600 text-[11px] sm:text-xs">
+              <p className="flex flex-wrap items-center justify-center lg:justify-end gap-1 text-center lg:text-right">
+                <span className="whitespace-nowrap">❤️ Made with love in Sri Lanka</span>
+                <span className="hidden sm:inline">·</span>
+                <span className="text-center">Licensed and Verified Private Tour Operator</span>
               </p>
               <p className="text-[11px] text-slate-500 whitespace-nowrap">
                 Engineered by{' '}

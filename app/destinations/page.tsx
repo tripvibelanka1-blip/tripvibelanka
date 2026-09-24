@@ -6,9 +6,12 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Sri Lanka Destinations Guide | Handcrafted Luxury Sanctuaries | Tripvibe Lanka',
+  title: "Sri Lanka Destinations | Places to Visit | Tripvibe Lanka",
   description:
-    'Explore Sri Lanka’s most breathtaking destinations, from the ancient rock fortress of Sigiriya to the mist-veiled peaks of Ella, colonial Nuwara Eliya, and the golden shores of Mirissa. Private chauffeur guides and luxury bespoke itineraries.',
+    "Discover the best destinations in Sri Lanka — Sigiriya, Kandy, Ella, Yala, Mirissa, Colombo and more. Private guided tours to every location.",
+  alternates: {
+    canonical: "https://www.tripvibelanka.com/destinations",
+  },
   keywords: [
     'Sri Lanka Destinations',
     'Sigiriya Rock Fortress',

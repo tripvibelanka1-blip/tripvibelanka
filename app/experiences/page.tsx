@@ -5,9 +5,12 @@ import ExperiencesClient from '@/components/experiences/ExperiencesClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Sri Lanka Experiences & Activities | Handcrafted Private Excursions | Tripvibe Lanka',
+  title: "Sri Lanka Experiences & Activities | Tripvibe Lanka",
   description:
-    'Discover signature handcrafted activities across Sri Lanka, from sunrise hot air balloon rides over Sigiriya to private wildlife safaris, tea factory masterclasses, and coastal marine encounters. Private transport and certified specialist guides.',
+    "Curated Sri Lanka experiences — Village tours, tea factory visits, wildlife safaris, whale watching, and more. All private, all exclusive.",
+  alternates: {
+    canonical: "https://www.tripvibelanka.com/experiences",
+  },
   keywords: [
     'Sri Lanka Experiences',
     'Sri Lanka Activities',

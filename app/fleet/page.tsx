@@ -7,9 +7,9 @@ import { FleetVehicleDetail } from '@/components/fleet/VehicleDetailDrawer';
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export const metadata: Metadata = {
-  title: 'Executive Chauffeur Fleet & Luxury Vehicles | TripVibe Lanka',
+  title: "Executive Chauffeur Fleet | Private Vehicles Sri Lanka | Tripvibe Lanka",
   description:
-    'Explore TripVibe Lanka executive fleet: luxury private touring vans, sedans, and coaches with certified English-speaking chauffeurs, climate control, and Wi-Fi.',
+    "Travel Sri Lanka in comfort. Our executive fleet includes fully air-conditioned vehicles with certified chauffeur-guides and onboard Wi-Fi.",
   keywords: [
     'Sri Lanka chauffeur fleet',
     'private van hire Sri Lanka',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     'airport transfer Colombo private van',
   ],
   alternates: {
-    canonical: 'https://tripvibelanka.com/fleet',
+    canonical: "https://www.tripvibelanka.com/fleet",
   },
   openGraph: {
     title: 'Executive Chauffeur Fleet & Luxury Vehicles | TripVibe Lanka',

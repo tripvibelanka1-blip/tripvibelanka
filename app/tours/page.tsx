@@ -1,13 +1,17 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import ToursClient from '@/components/tours/ToursClient';
+import { ToursFAQ } from '@/components/ToursFAQ';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Tour Packages Sri Lanka | Handcrafted Private Luxury Itineraries | Tripvibe Lanka',
+  title: "Sri Lanka Private Tour Packages | Tripvibe Lanka",
   description:
-    'Discover bespoke private tour packages across Sri Lanka. Certified chauffeur guides, executive AC fleet, handpicked luxury stays, and 100% customizable itineraries from Colombo to Sigiriya, Ella & Yala.',
+    "Browse handcrafted private Sri Lanka tour packages from 5 to 14 days. Sigiriya, Kandy, Ella, Yala & more. 100% private from $250/person.",
+  alternates: {
+    canonical: "https://www.tripvibelanka.com/tours",
+  },
   keywords: [
     'Sri Lanka Tour Packages',
     'Private Chauffeur Tours Sri Lanka',
@@ -50,6 +54,7 @@ export default function ToursPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ToursClient />
+      <ToursFAQ />
     </>
   );
 }

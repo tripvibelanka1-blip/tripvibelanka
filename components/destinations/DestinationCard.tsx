@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { SchemaScript } from '../SchemaScript';
 import {
   MapPin,
   Calendar,
@@ -48,6 +49,25 @@ export default function DestinationCard({
 
   return (
     <article className="group relative flex flex-col bg-white rounded-3xl overflow-hidden border border-stone-200/90 shadow-sm hover:shadow-xl hover:border-orange-200/80 transition-all duration-300">
+      <SchemaScript
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "TouristDestination",
+          "name": destination.name,
+          "description": destination.description || destination.tag || "",
+          "url": `https://www.tripvibelanka.com/destinations/${destination.id}`,
+          "image": coverUrl,
+          "touristType": "Leisure tourists, Luxury travellers",
+          "includesAttraction": {
+            "@type": "TouristAttraction",
+            "name": destination.name,
+            "containedInPlace": {
+              "@type": "Country",
+              "name": "Sri Lanka"
+            }
+          }
+        }}
+      />
       {/* Visual Cover Header */}
       <div className="relative w-full h-64 sm:h-72 overflow-hidden bg-stone-100">
         <Image

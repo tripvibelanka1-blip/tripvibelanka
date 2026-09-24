@@ -2,13 +2,17 @@ import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import BookingClient from '@/components/booking/BookingClient';
 import { Loader2 } from 'lucide-react';
+import { ToursFAQ } from '@/components/ToursFAQ';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Book Your Private Sri Lanka Tour | Official Reservation | Tripvibe Lanka',
+  title: "Book a Private Sri Lanka Tour | Tripvibe Lanka",
   description:
-    'Reserve your private Sri Lanka tour package with certified chauffeur guides, executive air-conditioned vehicles, and bespoke itineraries. Secure your travel dates with a 20% advance deposit.',
+    "Request your bespoke private Sri Lanka itinerary. Tell us your dates, budget, and interests — we'll craft the perfect journey. Starting from $250/person.",
+  alternates: {
+    canonical: "https://www.tripvibelanka.com/booking",
+  },
   keywords: [
     'Book Sri Lanka Tour',
     'Sri Lanka Private Tour Reservation',
@@ -59,6 +63,7 @@ export default function BookingPage() {
       >
         <BookingClient />
       </Suspense>
+      <ToursFAQ />
     </>
   );
 }

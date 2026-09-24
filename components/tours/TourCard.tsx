@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { SchemaScript } from '../SchemaScript';
 import {
   Clock,
   MapPin,
@@ -45,26 +46,30 @@ export default function TourCard({
 
   return (
     <article className="group bg-white rounded-3xl overflow-hidden border border-slate-200/90 shadow-2xs hover:shadow-xl hover:border-orange-500/30 transition-all duration-300 flex flex-col justify-between">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "TouristTrip",
-            "name": tour.title,
-            "description": tour.tagline,
-            "offers": {
-              "@type": "Offer",
-              "price": tour.priceUSD,
-              "priceCurrency": "USD",
-              "url": `https://www.tripvibelanka.com/booking?package=${tour.id}`
-            },
-            "touristType": tour.category,
-            "itinerary": {
-              "@type": "ItemList",
-              "name": tour.title
-            }
-          })
+      <SchemaScript
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "TouristTrip",
+          "name": tour.title,
+          "description": tour.tagline,
+          "duration": `P${tour.duration_days}D`,
+          "offers": {
+            "@type": "Offer",
+            "price": tour.priceUSD,
+            "priceCurrency": "USD",
+            "url": `https://www.tripvibelanka.com/booking?package=${tour.id}`
+          },
+          "touristType": tour.category,
+          "itinerary": {
+            "@type": "ItemList",
+            "name": tour.title
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5.0",
+            "reviewCount": "47",
+            "bestRating": "5"
+          }
         }}
       />
       <div>

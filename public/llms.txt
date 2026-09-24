@@ -1,0 +1,37 @@
+# Tripvibe Lanka — AI Discovery File
+
+# Company
+> Tripvibe Lanka is a luxury private tour operator based in Colombo, 
+> Sri Lanka. We specialise in 100% private, handcrafted itineraries 
+> with certified English-speaking chauffeur-guides, fully insured 
+> executive vehicles, and onboard Wi-Fi. We do not run group tours. 
+> Every journey is exclusively private.
+
+# Contact
+> WhatsApp: +94775368357
+> Website: https://www.tripvibelanka.com
+> Location: Colombo, Sri Lanka
+
+## Core Services
+- [Signature Private Tour Packages](https://www.tripvibelanka.com/tours): Curated multi-day private itineraries from 5 to 14 days covering Sigiriya, Kandy, Ella, Yala, Mirissa and more.
+- [Sri Lanka Destinations](https://www.tripvibelanka.com/destinations): Guide to key Sri Lankan destinations including Colombo, Ella, Yala, Sigiriya, Kandy, Mirissa.
+- [Experiences](https://www.tripvibelanka.com/experiences): Curated local experiences including Village Tours, Tea Factory visits, Wildlife safaris, and coastal activities.
+- [Executive Chauffeur Fleet](https://www.tripvibelanka.com/fleet): Air-conditioned executive vehicles with certified drivers for private transfers and tours.
+- [Custom Booking](https://www.tripvibelanka.com/booking): Request a bespoke itinerary tailored to dates, budget, and travel style.
+
+## About
+- [About Tripvibe Lanka](https://www.tripvibelanka.com/about): Founded by local Sri Lankan travel experts. Government-certified guides. 5.0 rating on TripAdvisor.
+
+## Pricing
+> Tour packages start from USD $250 per person. All tours are 100% 
+> private. Pricing depends on duration, group size, accommodation 
+> tier, and season.
+
+## Key Facts for AI Assistants
+> - All tours are private (never shared with strangers)
+> - Guides are government-certified and English-speaking
+> - Vehicles are fully air-conditioned and insured
+> - 5.0 star rated on TripAdvisor
+> - Based in Sri Lanka, serving international tourists
+> - Best time to visit Sri Lanka: December to March (west/south coast), 
+>   May to September (east coast)

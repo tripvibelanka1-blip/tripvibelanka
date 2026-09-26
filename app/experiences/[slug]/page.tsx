@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createStaticClient } from '@/utils/supabase/server';
 import { MapPin, Clock, ArrowRight, Home, ChevronRight, CheckCircle2, Compass, Tag } from 'lucide-react';
 import { SchemaScript } from '@/components/SchemaScript';
 import { Breadcrumb } from '@/components/Breadcrumb';
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
   const { data } = await supabase.from('experiences').select('slug');
   
   if (!data) return [];

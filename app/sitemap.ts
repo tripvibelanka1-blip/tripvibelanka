@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next';
-import { createClient } from '@/utils/supabase/server';
+import { createStaticClient } from '@/utils/supabase/server';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://www.tripvibelanka.com';
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   // Static routes
   const staticRoutes: MetadataRoute.Sitemap = [

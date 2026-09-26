@@ -47,3 +47,13 @@ export function createAdminClient() {
   });
 }
 
+/**
+ * Static client for use in generateStaticParams (build-time)
+ * Uses anon key and no cookies.
+ */
+export function createStaticClient() {
+  return createSupabaseClient(supabaseUrl!, supabaseKey!, {
+    auth: { persistSession: false },
+  });
+}
+

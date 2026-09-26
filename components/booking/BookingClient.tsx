@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import {
   X,
@@ -1147,6 +1148,79 @@ export default function BookingClient() {
     );
   };
 
+  const triggerPayHereCheckout = async (booking: Booking) => {
+    try {
+      setIsSubmittingBooking(true);
+      // 1. Fetch Hash from API
+      const res = await fetch('/api/payhere/hash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: booking.id,
+          amount: booking.advance_amount,
+          currency: booking.currency
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to securely initialize payment gateway');
+      const data = await res.json();
+
+      // 2. Configure PayHere Object
+      const payment = {
+        sandbox: data.env === 'sandbox',
+        merchant_id: data.merchantId,
+        return_url: window.location.href,
+        cancel_url: window.location.href,
+        notify_url: `${window.location.origin}/api/payhere/notify`,
+        order_id: booking.id,
+        items: `Advance Payment - ${booking.reference_no}`,
+        amount: booking.advance_amount,
+        currency: booking.currency,
+        hash: data.hash,
+        first_name: booking.customer_name.split(' ')[0] || '',
+        last_name: booking.customer_name.split(' ')[1] || '',
+        email: booking.customer_email,
+        phone: booking.customer_phone,
+        address: 'Colombo',
+        city: 'Colombo',
+        country: booking.customer_country || 'Sri Lanka',
+      };
+
+      // 3. Define Callbacks
+      (window as any).payhere.onCompleted = function (orderId: string) {
+        console.log("Payment completed. OrderID:" + orderId);
+        setBookingConfirmed(true);
+        setStep(7);
+        setIsSubmittingBooking(false);
+      };
+
+      (window as any).payhere.onDismissed = function () {
+        console.log("Payment dismissed");
+        setTravelerError("Payment was canceled. You can still pay later via bank transfer or contact us to confirm your booking.");
+        setBookingConfirmed(true);
+        setStep(7);
+        setIsSubmittingBooking(false);
+      };
+
+      (window as any).payhere.onError = function (error: any) {
+        console.log("Error:" + error);
+        setTravelerError("Payment failed: " + error);
+        setBookingConfirmed(true);
+        setStep(7);
+        setIsSubmittingBooking(false);
+      };
+
+      // 4. Start Payment
+      (window as any).payhere.startPayment(payment);
+
+    } catch (err: any) {
+      setTravelerError(err.message || 'Payment setup failed. Please contact us.');
+      setBookingConfirmed(true);
+      setStep(7);
+      setIsSubmittingBooking(false);
+    }
+  };
+
   // Handle final booking confirmation
   const handleFinalSubmit = async () => {
     setIsSubmittingBooking(true);
@@ -1188,14 +1262,13 @@ export default function BookingClient() {
 
       if (result.success && result.booking) {
         setCreatedBooking(result.booking);
-        setBookingConfirmed(true);
-        setStep(7);
+        triggerPayHereCheckout(result.booking);
       } else {
         setTravelerError(result.error || 'Failed to submit reservation. Please try again.');
+        setIsSubmittingBooking(false);
       }
     } catch (err: any) {
       setTravelerError(err.message || 'An unexpected error occurred. Please contact concierge on WhatsApp.');
-    } finally {
       setIsSubmittingBooking(false);
     }
   };
@@ -3279,6 +3352,7 @@ export default function BookingClient() {
         }}
         whatsappUrl={whatsappUrl}
       />
+      <Script src="https://www.payhere.lk/lib/payhere.js" strategy="lazyOnload" />
     </div>
   );
 }

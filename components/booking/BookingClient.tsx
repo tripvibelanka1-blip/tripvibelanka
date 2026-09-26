@@ -1241,8 +1241,8 @@ export default function BookingClient() {
         .filter(Boolean) as any[];
 
       const basePriceUsdCalc = selectedTour
-        ? selectedTour.price_usd * guests
-        : 250 * guests;
+        ? selectedTour.price_usd
+        : 250;
 
       const result = await submitBookingWithCurrencyLock({
         tourId: selectedPackageId || null,

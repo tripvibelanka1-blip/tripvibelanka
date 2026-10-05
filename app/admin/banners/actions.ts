@@ -198,5 +198,3 @@ export async function deleteBanner(id: string): Promise<ActionResult<boolean>> {
   }
 }
 
-// Re-export rate-limited public coupon validator for backwards compatibility
-export { validateCouponCode, type CouponValidationResult } from '@/lib/supabase/coupon-actions';

@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { revalidatePath } from 'next/cache';
 import { Banner, BannerInsert } from '@/types/database';
 
@@ -16,7 +17,7 @@ export interface ActionResult<T = any> {
  */
 export async function getAdminBanners(): Promise<ActionResult<Banner[]>> {
   try {
-    const supabase = await createClient();
+    const { supabase } = await requireAdmin();
     const { data, error } = await supabase
       .from('banners')
       .select('*')
@@ -35,7 +36,7 @@ export async function getAdminBanners(): Promise<ActionResult<Banner[]>> {
  */
 export async function getBannerById(id: string): Promise<ActionResult<Banner>> {
   try {
-    const supabase = await createClient();
+    const { supabase } = await requireAdmin();
     const { data, error } = await supabase
       .from('banners')
       .select('*')
@@ -77,10 +78,12 @@ export async function getActivePublicBanner(): Promise<ActionResult<Banner | nul
 }
 
 /**
- * Create or update a promotional banner
+ * Create or update a promotional banner (Admin-Only)
  */
 export async function upsertBanner(payload: BannerInsert & { id?: string }): Promise<ActionResult<Banner>> {
   try {
+    const { supabase } = await requireAdmin();
+
     if (!payload.title || !payload.title.trim()) {
       return { data: null, error: 'Promotion title is required' };
     }
@@ -91,15 +94,13 @@ export async function upsertBanner(payload: BannerInsert & { id?: string }): Pro
       return { data: null, error: 'Button link target is required' };
     }
 
-    const supabase = await createClient();
-
     const bannerData = {
       badge_text: payload.badge_text?.trim() || 'Limited Seasonal Offer',
       title: payload.title.trim(),
       description: payload.description?.trim() || null,
       coupon_code: payload.coupon_code?.trim() ? payload.coupon_code.trim().toUpperCase() : null,
       discount_type: payload.discount_type || 'percentage',
-      discount_value: Number(payload.discount_value ?? 15),
+      discount_value: Number(payload.discount_value ?? 0),
       button_text: payload.button_text.trim(),
       button_link: payload.button_link.trim(),
       validity_text: payload.validity_text?.trim() || null,
@@ -147,11 +148,11 @@ export async function upsertBanner(payload: BannerInsert & { id?: string }): Pro
 }
 
 /**
- * Toggle active/inactive status of a promotional banner
+ * Toggle active/inactive status of a promotional banner (Admin-Only)
  */
 export async function toggleBannerStatus(id: string, currentStatus: boolean): Promise<ActionResult<Banner>> {
   try {
-    const supabase = await createClient();
+    const { supabase } = await requireAdmin();
     const nextStatus = !currentStatus;
 
     const { data, error } = await supabase
@@ -176,11 +177,11 @@ export async function toggleBannerStatus(id: string, currentStatus: boolean): Pr
 }
 
 /**
- * Delete a promotional banner
+ * Delete a promotional banner (Admin-Only)
  */
 export async function deleteBanner(id: string): Promise<ActionResult<boolean>> {
   try {
-    const supabase = await createClient();
+    const { supabase } = await requireAdmin();
     const { error } = await supabase
       .from('banners')
       .delete()
@@ -197,96 +198,5 @@ export async function deleteBanner(id: string): Promise<ActionResult<boolean>> {
   }
 }
 
-export interface CouponValidationResult {
-  isValid: boolean;
-  error?: string;
-  couponCode?: string;
-  discountType?: 'percentage' | 'fixed';
-  discountValue?: number;
-  discountAmount?: number;
-  bannerTitle?: string;
-}
-
-/**
- * Validate customer coupon code against active promotional banners
- * and calculate the exact discounted amount in real-time
- */
-export async function validateCouponCode(
-  code: string,
-  subtotal: number,
-  currency: 'USD' | 'LKR' = 'USD',
-  exchangeRate: number = 328.0
-): Promise<CouponValidationResult> {
-  try {
-    const cleanCode = code?.trim().toUpperCase();
-    if (!cleanCode) {
-      return { isValid: false, error: 'Please enter a promo code' };
-    }
-
-    if (subtotal <= 0) {
-      return { isValid: false, error: 'Cannot apply coupon to zero subtotal' };
-    }
-
-    const supabase = await createClient();
-    const today = new Date().toISOString().split('T')[0];
-
-    // Find matching banner by coupon_code (case-insensitive)
-    const { data: banner, error } = await supabase
-      .from('banners')
-      .select('*')
-      .ilike('coupon_code', cleanCode)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[validateCouponCode] DB Error:', error);
-      return { isValid: false, error: 'Failed to validate coupon code' };
-    }
-
-    if (!banner) {
-      return { isValid: false, error: `Coupon code "${cleanCode}" is invalid or expired` };
-    }
-
-    // Verify date range schedule
-    if (banner.start_date && banner.start_date > today) {
-      return { isValid: false, error: `This promotion starts on ${banner.start_date}` };
-    }
-
-    if (banner.end_date && banner.end_date < today) {
-      return { isValid: false, error: `Coupon code "${cleanCode}" expired on ${banner.end_date}` };
-    }
-
-    const discountType = banner.discount_type || 'percentage';
-    const discountValue = Number(banner.discount_value) || 15;
-    let calculatedDiscount = 0;
-
-    if (discountType === 'percentage') {
-      calculatedDiscount = Math.round(subtotal * (discountValue / 100) * 100) / 100;
-    } else {
-      // Fixed amount discount
-      if (currency === 'USD') {
-        calculatedDiscount = discountValue;
-      } else {
-        // Converted fixed discount for LKR
-        calculatedDiscount = Math.round(discountValue * (exchangeRate || 328.0));
-      }
-    }
-
-    // Ensure discount does not exceed subtotal
-    calculatedDiscount = Math.min(calculatedDiscount, subtotal);
-
-    return {
-      isValid: true,
-      couponCode: cleanCode,
-      discountType,
-      discountValue,
-      discountAmount: calculatedDiscount,
-      bannerTitle: banner.title,
-    };
-  } catch (err: any) {
-    console.error('[validateCouponCode] Unexpected error:', err);
-    return { isValid: false, error: 'Error calculating coupon discount' };
-  }
-}
-
+// Re-export rate-limited public coupon validator for backwards compatibility
+export { validateCouponCode, type CouponValidationResult } from '@/lib/supabase/coupon-actions';

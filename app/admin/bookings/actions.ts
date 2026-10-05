@@ -1,22 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { BookingStatus, PaymentStatus } from '@/types/database';
 
 /**
- * Update the overall lifecycle booking status
+ * Update the overall lifecycle booking status (Admin-Only)
  */
 export async function updateBookingStatus(bookingId: string, status: BookingStatus | string) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Unauthorized. Please log in as an admin.' };
-    }
+    const supabase = await requireAdmin();
 
     const { data, error } = await supabase
       .from('bookings')
@@ -39,18 +32,11 @@ export async function updateBookingStatus(bookingId: string, status: BookingStat
 }
 
 /**
- * Update the payment status (e.g. pending, advance_paid, fully_paid, refunded)
+ * Update the payment status (Admin-Only)
  */
 export async function updatePaymentStatus(bookingId: string, status: PaymentStatus | string) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Unauthorized. Please log in as an admin.' };
-    }
+    const supabase = await requireAdmin();
 
     const updates: Record<string, any> = {
       payment_status: status as PaymentStatus,
@@ -79,18 +65,11 @@ export async function updatePaymentStatus(bookingId: string, status: PaymentStat
 }
 
 /**
- * Mark 80% remaining balance as settled upon guest arrival (collected by driver/guide)
+ * Mark 80% remaining balance as settled upon guest arrival (Admin-Only)
  */
 export async function markBalanceCollected(bookingId: string) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Unauthorized. Please log in as an admin.' };
-    }
+    const supabase = await requireAdmin();
 
     const { data, error } = await supabase
       .from('bookings')
@@ -114,21 +93,14 @@ export async function markBalanceCollected(bookingId: string) {
 }
 
 /**
- * Update dispatch logistics: assigned driver/guide and operator notes
+ * Update dispatch logistics: assigned driver/guide and operator notes (Admin-Only)
  */
 export async function updateDispatchInfo(
   bookingId: string,
   payload: { driver: string; notes: string }
 ) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Unauthorized. Please log in as an admin.' };
-    }
+    const supabase = await requireAdmin();
 
     const { data, error } = await supabase
       .from('bookings')
@@ -152,18 +124,11 @@ export async function updateDispatchInfo(
 }
 
 /**
- * Delete a booking record with confirmation
+ * Delete a booking record with confirmation (Admin-Only)
  */
 export async function deleteBooking(bookingId: string) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Unauthorized. Please log in as an admin.' };
-    }
+    const supabase = await requireAdmin();
 
     const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
 
@@ -185,21 +150,14 @@ export interface CancelBookingPayload {
 }
 
 /**
- * Cancel a booking and process policy-calculated refund status
+ * Cancel a booking and process policy-calculated refund status (Admin-Only)
  */
 export async function cancelBookingWithRefund(
   bookingId: string,
   payload: CancelBookingPayload
 ) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Unauthorized. Please log in as an admin.' };
-    }
+    const supabase = await requireAdmin();
 
     const todayStr = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -234,4 +192,3 @@ export async function cancelBookingWithRefund(
     return { error: err.message || 'Failed to cancel booking and apply refund.' };
   }
 }
-

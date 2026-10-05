@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { revalidatePath } from 'next/cache';
 import { Enquiry, EnquiryInsert, EnquiryStatus, EnquiryType } from '@/types/database';
 
@@ -17,14 +18,14 @@ export interface EnquiryStats {
 }
 
 /**
- * Fetch enquiries with optional status or category filter
+ * Fetch enquiries with optional status or category filter (Admin-Only)
  */
 export async function getEnquiries(
   status?: EnquiryStatus | 'all',
   type?: EnquiryType | 'all'
 ): Promise<ActionResult<Enquiry[]>> {
   try {
-    const supabase = await createClient();
+    const supabase = await requireAdmin();
     let query = supabase
       .from('enquiries')
       .select('*')
@@ -49,11 +50,11 @@ export async function getEnquiries(
 }
 
 /**
- * Fetch aggregate KPI stats for the enquiries module
+ * Fetch aggregate KPI stats for the enquiries module (Admin-Only)
  */
 export async function getEnquiryStats(): Promise<ActionResult<EnquiryStats>> {
   try {
-    const supabase = await createClient();
+    const supabase = await requireAdmin();
     const { data, error } = await supabase
       .from('enquiries')
       .select('status');
@@ -78,14 +79,14 @@ export async function getEnquiryStats(): Promise<ActionResult<EnquiryStats>> {
 }
 
 /**
- * Update the status of an enquiry (unread -> in_progress -> resolved)
+ * Update the status of an enquiry (unread -> in_progress -> resolved) (Admin-Only)
  */
 export async function updateEnquiryStatus(
   id: string,
   status: EnquiryStatus
 ): Promise<ActionResult<Enquiry>> {
   try {
-    const supabase = await createClient();
+    const supabase = await requireAdmin();
     const { data, error } = await supabase
       .from('enquiries')
       .update({
@@ -108,14 +109,14 @@ export async function updateEnquiryStatus(
 }
 
 /**
- * Update internal CRM follow-up notes for an enquiry
+ * Update internal CRM follow-up notes for an enquiry (Admin-Only)
  */
 export async function updateAdminNotes(
   id: string,
   adminNotes: string
 ): Promise<ActionResult<Enquiry>> {
   try {
-    const supabase = await createClient();
+    const supabase = await requireAdmin();
     const { data, error } = await supabase
       .from('enquiries')
       .update({
@@ -129,6 +130,7 @@ export async function updateAdminNotes(
     if (error) throw error;
 
     revalidatePath('/admin/enquiries');
+    revalidatePath('/admin');
     return { data: data as Enquiry, error: null };
   } catch (err: any) {
     console.error('[updateAdminNotes] Error:', err);
@@ -137,11 +139,11 @@ export async function updateAdminNotes(
 }
 
 /**
- * Delete an enquiry permanently from the database
+ * Delete an enquiry permanently from the database (Admin-Only)
  */
 export async function deleteEnquiry(id: string): Promise<ActionResult<boolean>> {
   try {
-    const supabase = await createClient();
+    const supabase = await requireAdmin();
     const { error } = await supabase
       .from('enquiries')
       .delete()

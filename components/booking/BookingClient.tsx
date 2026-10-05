@@ -34,11 +34,13 @@ import {
   Search,
   User,
   Heart,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react';
 import { Currency } from '@/types/tourism';
 import { useCurrency } from '@/context/CurrencyContext';
-import { validateCouponCode, CouponValidationResult } from '@/app/admin/banners/actions';
-import { submitBookingWithCurrencyLock } from '@/lib/supabase/booking-actions';
+import { validateCouponCode, CouponValidationResult } from '@/lib/supabase/coupon-actions';
+import { submitBooking, quoteBooking, getBookingPaymentStatus } from '@/lib/supabase/booking-actions';
 import { Booking, SiteSettings } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
 import Navbar from '@/components/home/Navbar';
@@ -628,10 +630,69 @@ export default function BookingClient() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
-  // Submission state
+  // Submission & Security state
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+  const [bookingAccessToken, setBookingAccessToken] = useState<string | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [paymentState, setPaymentState] = useState<'idle' | 'verifying' | 'confirmed' | 'unpaid' | 'failed'>('idle');
+  const [isPollingStatus, setIsPollingStatus] = useState(false);
+  const idempotencyKeyRef = useRef<string>(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  );
+
+  // Authoritative Server Quote State (Step 6)
+  const [serverQuote, setServerQuote] = useState<{
+    totalCents: number;
+    totalAmount: number;
+    advanceAmount: number;
+    remainingBalance: number;
+    currency: 'USD' | 'LKR';
+    exchangeRate: number;
+    discountAmount: number;
+  } | null>(null);
+  const [isLoadingQuote, setIsLoadingQuote] = useState<boolean>(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  // G2: Restore mid-payment booking session on page refresh
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = sessionStorage.getItem('tvl_pending_booking');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.bookingId && parsed?.accessToken) {
+          getBookingPaymentStatus(parsed.bookingId, parsed.accessToken).then((res) => {
+            if (res.success) {
+              setBookingAccessToken(parsed.accessToken);
+              setCreatedBooking({
+                id: parsed.bookingId,
+                reference_no: parsed.referenceNo || res.referenceNo || 'TVL-RESERVED',
+                advance_amount: parsed.advanceAmount,
+                total_amount: parsed.totalAmount,
+                remaining_balance: parsed.remainingBalance,
+                currency: parsed.currency || 'USD',
+              } as any);
+
+              if (res.paymentStatus === 'advance_paid' || res.paymentStatus === 'fully_paid') {
+                setPaymentState('confirmed');
+                setStep(7);
+              } else if (res.paymentStatus === 'pending') {
+                setPaymentState('unpaid');
+                setStep(7);
+              }
+            }
+          }).catch((err) => {
+            console.warn('[sessionStorage] Status check failed:', err);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[sessionStorage] Recovery error:', e);
+    }
+  }, []);
 
   // Load authentic data from Supabase
   useEffect(() => {
@@ -893,18 +954,18 @@ export default function BookingClient() {
     }
   }, [selectedTour, selectedPackageId]);
 
+  const durationDays = selectedTour?.duration_days || 1;
+
   const baseRate = selectedTour
     ? currency === 'USD'
       ? selectedTour.price_usd
       : selectedTour.price_lkr
-    : currency === 'USD'
-    ? 250
-    : 250 * (exchangeRate || 310);
+    : 0;
 
   const vehicleExtra = selectedVehObj
-    ? currency === 'USD'
-      ? selectedVehObj.price_per_day_usd || 0
-      : selectedVehObj.price_per_day_lkr || 0
+    ? (currency === 'USD'
+        ? selectedVehObj.price_per_day_usd || 0
+        : selectedVehObj.price_per_day_lkr || 0) * durationDays
     : 0;
 
   const addonsTotal = selectedAddons.reduce((acc, addonId) => {
@@ -927,9 +988,52 @@ export default function BookingClient() {
     return currency === 'USD' ? val : val * (exchangeRate || 310);
   }, [appliedCoupon, subtotalBeforeDiscount, currency, exchangeRate]);
 
-  const finalTotal = Math.max(0, subtotalBeforeDiscount - discountAmount);
-  const advanceDeposit = Math.round(finalTotal * 0.2); // 20% Advance
-  const balanceOnArrival = Math.max(0, finalTotal - advanceDeposit); // 80% Balance
+  const estimatedFinalTotal = Math.max(0, subtotalBeforeDiscount - discountAmount);
+  const estimatedAdvanceDeposit = Math.round(estimatedFinalTotal * 0.2); // 20% Advance
+  const estimatedBalanceOnArrival = Math.max(0, estimatedFinalTotal - estimatedAdvanceDeposit); // 80% Balance
+
+  // Authoritative prices: use serverQuote when in step 6 and available, otherwise estimates
+  const finalTotal = (step === 6 && serverQuote) ? serverQuote.totalAmount : estimatedFinalTotal;
+  const advanceDeposit = (step === 6 && serverQuote) ? serverQuote.advanceAmount : estimatedAdvanceDeposit;
+  const balanceOnArrival = (step === 6 && serverQuote) ? serverQuote.remainingBalance : estimatedBalanceOnArrival;
+  const activeDiscount = (step === 6 && serverQuote) ? serverQuote.discountAmount : discountAmount;
+
+  // A3: Synchronize 100% authoritative server quote whenever in Step 6
+  useEffect(() => {
+    if (step === 6 && selectedTour?.id && selectedVehObj?.id) {
+      let isMounted = true;
+      setIsLoadingQuote(true);
+      setQuoteError(null);
+
+      quoteBooking({
+        tourId: selectedTour.id,
+        vehicleId: selectedVehObj.id,
+        activityIds: selectedAddons,
+        adults: guests,
+        children: 0,
+        currency,
+        couponCode: appliedCoupon?.couponCode || null,
+      })
+        .then((res) => {
+          if (!isMounted) return;
+          setIsLoadingQuote(false);
+          if (res.success && res.quote) {
+            setServerQuote(res.quote);
+          } else {
+            setQuoteError(res.error || 'Failed to fetch locked quote from server');
+          }
+        })
+        .catch((err) => {
+          if (!isMounted) return;
+          setIsLoadingQuote(false);
+          setQuoteError(err.message || 'Error communicating with quote engine');
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [step, selectedTour?.id, selectedVehObj?.id, selectedAddons, guests, currency, appliedCoupon?.couponCode]);
 
   // Find active destination record from database
   const selectedDestObj = destinationsData.find(
@@ -1121,12 +1225,38 @@ export default function BookingClient() {
         setTravelerError('Please select an estimated travel start date.');
         return;
       }
+      const minDate = new Date(Date.now() + 864e5).toISOString().split('T')[0];
+      if (startDate < minDate) {
+        setTravelerError('Please choose a travel departure date at least 24 hours in the future.');
+        return;
+      }
+      setTravelerError(null);
+    }
+
+    if (step === 3) {
+      if (selectedVehObj) {
+        const capacity = selectedVehObj.capacity_passengers || 3;
+        if (guests > capacity) {
+          setTravelerError(`Selected vehicle (${selectedVehObj.name}) accommodates up to ${capacity} passengers. Please choose a larger vehicle for ${guests} guests.`);
+          return;
+        }
+      }
       setTravelerError(null);
     }
 
     if (step === 5) {
       if (!fullName.trim() || !email.trim() || !phone.trim()) {
         setTravelerError('Please provide your full name, email address, and WhatsApp phone number.');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setTravelerError('Please enter a valid email address.');
+        return;
+      }
+      const phoneRegex = /^\+?[0-9\s\-()]{7,25}$/;
+      if (!phoneRegex.test(phone.trim())) {
+        setTravelerError('Please enter a valid WhatsApp or contact phone number (at least 7 digits).');
         return;
       }
       setTravelerError(null);
@@ -1148,39 +1278,83 @@ export default function BookingClient() {
     );
   };
 
-  const triggerPayHereCheckout = async (booking: Booking) => {
+  // Poll server-side payment verification (authoritative)
+  const pollPaymentStatus = (bookingId: string, token: string) => {
+    setIsPollingStatus(true);
+    let attempts = 0;
+    const maxAttempts = 15; // 15 * 2s = 30 seconds
+
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await getBookingPaymentStatus(bookingId, token);
+        if (res.success && res.paymentStatus === 'advance_paid') {
+          setPaymentState('confirmed');
+          setBookingConfirmed(true);
+          setIsPollingStatus(false);
+          clearInterval(pollInterval);
+          return;
+        }
+      } catch (err) {
+        console.error('Status polling error:', err);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        setIsPollingStatus(false);
+        // If still verifying after 30s, give customer reassurance and option to check again
+        setPaymentState((current) => (current === 'verifying' ? 'unpaid' : current));
+      }
+    }, 2000);
+  };
+
+  const triggerPayHereCheckout = async (booking: Booking, token?: string) => {
+    const activeToken = token || bookingAccessToken;
     try {
       setIsSubmittingBooking(true);
-      // 1. Fetch Hash from API
+      setTravelerError(null);
+
+      // Verify PayHere SDK presence
+      if (typeof window === 'undefined' || !(window as any).payhere) {
+        throw new Error('Payment gateway is loading. Please wait a brief moment and try again.');
+      }
+
+      if (!activeToken) {
+        throw new Error('Session authentication missing. Please try submitting again.');
+      }
+
+      // 1. Fetch Hash with orderId AND secret access_token
       const res = await fetch('/api/payhere/hash', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: booking.id,
-          amount: booking.advance_amount,
-          currency: booking.currency
-        })
+          accessToken: activeToken,
+        }),
       });
 
-      if (!res.ok) throw new Error('Failed to securely initialize payment gateway');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to securely initialize payment gateway');
+      }
       const data = await res.json();
 
-      // 2. Configure PayHere Object
+      // 2. Configure PayHere Object with server-verified parameters
       const payment = {
         sandbox: data.env === 'sandbox',
         merchant_id: data.merchantId,
         return_url: window.location.href,
         cancel_url: window.location.href,
-        notify_url: `${window.location.origin}/api/payhere/notify`,
+        notify_url: data.notifyUrl || `${window.location.origin}/api/payhere/notify`,
         order_id: booking.id,
         items: `Advance Payment - ${booking.reference_no}`,
-        amount: booking.advance_amount,
-        currency: booking.currency,
+        amount: data.amount,
+        currency: data.currency,
         hash: data.hash,
-        first_name: booking.customer_name.split(' ')[0] || '',
-        last_name: booking.customer_name.split(' ')[1] || '',
-        email: booking.customer_email,
-        phone: booking.customer_phone,
+        first_name: (booking.customer_name || 'Traveler').split(' ')[0],
+        last_name: (booking.customer_name || '').split(' ')[1] || 'Guest',
+        email: booking.customer_email || 'info@tripvibelanka.com',
+        phone: booking.customer_phone || '+94000000000',
         address: 'Colombo',
         city: 'Colombo',
         country: booking.customer_country || 'Sri Lanka',
@@ -1188,81 +1362,128 @@ export default function BookingClient() {
 
       // 3. Define Callbacks
       (window as any).payhere.onCompleted = function (orderId: string) {
-        console.log("Payment completed. OrderID:" + orderId);
-        setBookingConfirmed(true);
+        console.log("PayHere popup completed. OrderID:" + orderId + ". Verifying server-side...");
         setStep(7);
+        setPaymentState('verifying');
         setIsSubmittingBooking(false);
+        pollPaymentStatus(booking.id, activeToken);
       };
 
       (window as any).payhere.onDismissed = function () {
-        console.log("Payment dismissed");
-        setTravelerError("Payment was canceled. You can still pay later via bank transfer or contact us to confirm your booking.");
-        setBookingConfirmed(true);
-        setStep(7);
+        console.log("PayHere payment dismissed");
         setIsSubmittingBooking(false);
+        setPaymentState('unpaid');
+        setTravelerError("Payment popup was closed. Your reservation dates are held for 24 hours. You can retry paying online or complete via bank transfer.");
+        setStep(7);
       };
 
       (window as any).payhere.onError = function (error: any) {
-        console.log("Error:" + error);
-        setTravelerError("Payment failed: " + error);
-        setBookingConfirmed(true);
-        setStep(7);
+        console.log("PayHere Error:", error);
         setIsSubmittingBooking(false);
+        setPaymentState('failed');
+        setTravelerError("Payment failed or was declined: " + (typeof error === 'string' ? error : 'Transaction not completed.'));
+        setStep(7);
       };
 
       // 4. Start Payment
       (window as any).payhere.startPayment(payment);
 
     } catch (err: any) {
-      setTravelerError(err.message || 'Payment setup failed. Please contact us.');
-      setBookingConfirmed(true);
-      setStep(7);
       setIsSubmittingBooking(false);
+      setTravelerError(err.message || 'Payment setup failed. Please contact us.');
+      if (booking?.id) {
+        setPaymentState('unpaid');
+        setStep(7);
+      }
     }
   };
 
-  // Handle final booking confirmation
+  // Handle final booking confirmation (Server computes all money & prices)
   const handleFinalSubmit = async () => {
     setIsSubmittingBooking(true);
     setTravelerError(null);
 
     try {
-      const selectedActivitiesInput = selectedAddons
-        .map((id) => {
-          const exp = experiencesList.find((e) => e.id === id);
-          if (!exp) return null;
-          return {
-            activity_id: exp.id,
-            title: exp.title,
-            price_per_person_usd: exp.price,
-            quantity: guests,
-          };
-        })
-        .filter(Boolean) as any[];
+      // 1. Client-side input pre-flight validation
+      if (!startDate) {
+        setTravelerError('Please choose your travel start date.');
+        setIsSubmittingBooking(false);
+        return;
+      }
 
-      const basePriceUsdCalc = selectedTour
-        ? selectedTour.price_usd
-        : 250;
+      if (!selectedTour?.id || !selectedVehObj?.id) {
+        setTravelerError('A tour package and executive vehicle must be selected. For custom circuits, please use "Request Quote on WhatsApp".');
+        setIsSubmittingBooking(false);
+        return;
+      }
 
-      const result = await submitBookingWithCurrencyLock({
-        tourId: selectedPackageId || null,
+      if (selectedVehObj) {
+        const capacity = selectedVehObj.capacity_passengers || 3;
+        if (guests > capacity) {
+          setTravelerError(`The selected vehicle (${selectedVehObj.name}) accommodates up to ${capacity} passengers. Please select a larger vehicle for ${guests} guests.`);
+          setIsSubmittingBooking(false);
+          return;
+        }
+      }
+
+      // 2. Submit only IDs and guest counts - server computes all prices!
+      const result = await submitBooking({
+        tourId: selectedTour.id,
+        vehicleId: selectedVehObj.id,
+        activityIds: selectedAddons,
         customerName: fullName.trim(),
         customerEmail: email.trim(),
         customerPhone: phone.trim(),
+        customerCountry: 'International',
         pickupLocation: selectedDestination,
         specialRequests: notes.trim() || null,
-        travelDate: startDate || new Date().toISOString().split('T')[0],
+        travelDate: startDate,
         adults: guests,
-        selectedActivities: selectedActivitiesInput,
-        basePriceUsd: basePriceUsdCalc,
+        children: 0,
         currency: currency,
         couponCode: appliedCoupon?.couponCode || null,
-        discountAmount: discountAmount,
+        idempotencyKey: idempotencyKeyRef.current,
+        expectedTotalCents: serverQuote?.totalCents ?? undefined,
       });
 
-      if (result.success && result.booking) {
-        setCreatedBooking(result.booking);
-        triggerPayHereCheckout(result.booking);
+      if (result.success && result.booking && result.accessToken) {
+        setCreatedBooking(result.booking as any);
+        setBookingAccessToken(result.accessToken);
+
+        // G2: Keep in sessionStorage so a mid-payment refresh can resume
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(
+            'tvl_pending_booking',
+            JSON.stringify({
+              bookingId: result.booking.id,
+              accessToken: result.accessToken,
+              referenceNo: result.booking.reference_no,
+              totalAmount: result.booking.total_amount,
+              advanceAmount: result.booking.advance_amount,
+              remainingBalance: result.booking.remaining_balance,
+              currency: result.booking.currency,
+            })
+          );
+        }
+
+        await triggerPayHereCheckout(result.booking as any, result.accessToken);
+      } else if (result.code === 'PRICE_CHANGED') {
+        setTravelerError('Exchange rates or package prices have updated. Please review the updated quote before confirming.');
+        if (selectedTour?.id && selectedVehObj?.id) {
+          const fresh = await quoteBooking({
+            tourId: selectedTour.id,
+            vehicleId: selectedVehObj.id,
+            activityIds: selectedAddons,
+            adults: guests,
+            children: 0,
+            currency,
+            couponCode: appliedCoupon?.couponCode || null,
+          });
+          if (fresh.success && fresh.quote) {
+            setServerQuote(fresh.quote);
+          }
+        }
+        setIsSubmittingBooking(false);
       } else {
         setTravelerError(result.error || 'Failed to submit reservation. Please try again.');
         setIsSubmittingBooking(false);
@@ -1272,6 +1493,7 @@ export default function BookingClient() {
       setIsSubmittingBooking(false);
     }
   };
+
 
   const defaultWhatsapp = siteSettings?.whatsapp_number || '94775368357';
   const cleanWhatsapp = defaultWhatsapp.replace(/\D/g, '');
@@ -2666,90 +2888,225 @@ export default function BookingClient() {
                     )}
                   </div>
 
-                  {/* Currency Lock Assurance Strip */}
-                  <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2.5">
-                    <Lock className="w-4 h-4 text-[#FF6B00] shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">Guaranteed Fixed Currency Rate</p>
-                      <p className="text-amber-800/90 mt-0.5">
-                        Your quoted total is locked in {currency}. Pay only a 20% advance deposit today. The remaining 80% balance is payable upon chauffeur arrival in Sri Lanka.
+                  {/* Custom Bespoke Circuit Notice or Locked Quote Confirmation */}
+                  {!selectedTour || !selectedVehObj ? (
+                    <div className="p-5 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <PhoneCall className="w-4 h-4 text-emerald-600" />
+                        <span className="font-bold text-sm">Bespoke Custom Circuit Selected</span>
+                      </div>
+                      <p className="text-emerald-800 leading-relaxed">
+                        Custom itineraries are individually planned with our senior travel specialists. Since your circuit does not use a standard fixed package, your reservation is finalized via WhatsApp concierge consultation with customized pricing.
                       </p>
                     </div>
-                  </div>
+                  ) : (
+                    /* Currency Lock Assurance Strip */
+                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2.5">
+                      <Lock className="w-4 h-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold">Guaranteed Fixed Currency Rate</p>
+                          {isLoadingQuote && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-[#FF6B00] font-semibold">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Fetching authoritative quote...
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-amber-800/90 mt-0.5">
+                          Your quoted total is locked in {currency}. Pay only a 20% advance deposit today ({formatCurrency(advanceDeposit, currency)}). The remaining 80% balance is payable upon chauffeur arrival in Sri Lanka.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {quoteError && (
+                    <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{quoteError}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* STEP 7: CONFIRMATION & VOUCHER */}
+              {/* STEP 7: CONFIRMATION & VOUCHER STATE MACHINE */}
               {step === 7 && (
                 <div className="space-y-6 animate-in fade-in duration-300 text-center py-4">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-8 h-8" />
-                  </div>
+                  {/* 1. Verifying State */}
+                  {paymentState === 'verifying' && (
+                    <div className="space-y-4 py-8">
+                      <div className="w-16 h-16 rounded-full bg-orange-50 text-[#FF6B00] border border-orange-200 flex items-center justify-center mx-auto shadow-xs">
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                      </div>
+                      <div className="space-y-2">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-50 text-orange-800 border border-orange-200">
+                          Confirming Gateway Settlement
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-bold font-heading text-slate-900">
+                          Verifying Your Payment...
+                        </h2>
+                        <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
+                          Please keep this page open. We are confirming your advance payment with PayHere.
+                        </p>
+                        <p className="text-xs font-mono font-bold text-slate-900 pt-1">
+                          Ref: {createdBooking?.reference_no || 'TVL-PENDING'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      Reservation Docket Issued
-                    </span>
-                    <h2 className="text-2xl sm:text-3xl font-bold font-heading text-slate-900">
-                      Your Journey Is Reserved!
-                    </h2>
-                    <p className="text-xs sm:text-sm text-stone-600 max-w-lg mx-auto">
-                      Reference Number:{' '}
-                      <span className="font-mono font-bold text-slate-900 text-sm sm:text-base">
-                        {createdBooking?.reference_no || 'TVL-PENDING'}
-                      </span>
-                    </p>
-                  </div>
+                  {/* 2. Confirmed & Paid State */}
+                  {(paymentState === 'confirmed' || bookingConfirmed) && (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
 
-                  {/* Voucher Summary Card */}
-                  <div className="p-6 rounded-2xl bg-stone-50 border border-stone-200 text-left space-y-3 text-xs sm:text-sm max-w-md mx-auto">
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Lead Traveler:</span>
-                      <strong className="text-slate-900">{fullName}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Destination:</span>
-                      <strong className="text-slate-900">{selectedDestination}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Start Date:</span>
-                      <strong className="text-slate-900">{startDate}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Advance Deposit (20%):</span>
-                      <strong className="text-[#FF6B00] font-bold">
-                        {formatCurrency(advanceDeposit, currency)}
-                      </strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Balance on Arrival (80%):</span>
-                      <strong className="text-slate-900 font-bold">
-                        {formatCurrency(balanceOnArrival, currency)}
-                      </strong>
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          Reservation Docket Confirmed
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-bold font-heading text-slate-900">
+                          Your Journey Is Reserved!
+                        </h2>
+                        <p className="text-xs sm:text-sm text-stone-600 max-w-lg mx-auto">
+                          Reference Number:{' '}
+                          <span className="font-mono font-bold text-slate-900 text-sm sm:text-base">
+                            {createdBooking?.reference_no || 'TVL-PENDING'}
+                          </span>
+                        </p>
+                      </div>
 
-                  {/* WhatsApp Notification Button */}
-                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a
-                      href={whatsappReservationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full sm:w-auto px-6 py-3 rounded-full text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md flex items-center justify-center gap-2"
-                    >
-                      <PhoneCall className="w-4 h-4" />
-                      <span>Connect with Concierge on WhatsApp</span>
-                    </a>
+                      {/* Voucher Summary Card */}
+                      <div className="p-6 rounded-2xl bg-stone-50 border border-stone-200 text-left space-y-3 text-xs sm:text-sm max-w-md mx-auto">
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Lead Traveler:</span>
+                          <strong className="text-slate-900">{fullName}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Destination:</span>
+                          <strong className="text-slate-900">{selectedDestination}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Start Date:</span>
+                          <strong className="text-slate-900">{startDate}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Advance Deposit (20% Paid):</span>
+                          <strong className="text-emerald-700 font-bold">
+                            {formatCurrency(createdBooking?.advance_amount || advanceDeposit, currency)}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Balance on Arrival (80%):</span>
+                          <strong className="text-slate-900 font-bold">
+                            {formatCurrency(createdBooking?.remaining_balance || balanceOnArrival, currency)}
+                          </strong>
+                        </div>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      className="w-full sm:w-auto px-5 py-3 rounded-full text-xs sm:text-sm font-semibold bg-white border border-stone-300 text-stone-800 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span>Print Voucher</span>
-                    </button>
-                  </div>
+                      {/* Actions */}
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <a
+                          href={whatsappReservationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto px-6 py-3 rounded-full text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md flex items-center justify-center gap-2"
+                        >
+                          <PhoneCall className="w-4 h-4" />
+                          <span>Connect with Concierge on WhatsApp</span>
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="w-full sm:w-auto px-5 py-3 rounded-full text-xs sm:text-sm font-semibold bg-white border border-stone-300 text-stone-800 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>Print Voucher</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 3. Unpaid / Payment Pending / Failed State */}
+                  {paymentState !== 'verifying' && paymentState !== 'confirmed' && !bookingConfirmed && (
+                    <div className="space-y-5 py-4">
+                      <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+                        <AlertTriangle className="w-8 h-8" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
+                          Reservation Held · Advance Payment Pending
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-bold font-heading text-slate-900">
+                          Complete Your Advance Deposit
+                        </h2>
+                        <p className="text-xs sm:text-sm text-stone-600 max-w-lg mx-auto">
+                          Your travel dates and custom itinerary are reserved for 24 hours under Reference Number:{' '}
+                          <span className="font-mono font-bold text-slate-900 text-sm">
+                            {createdBooking?.reference_no || 'TVL-PENDING'}
+                          </span>
+                        </p>
+                      </div>
+
+                      {travelerError && (
+                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 max-w-md mx-auto text-left flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <span>{travelerError}</span>
+                        </div>
+                      )}
+
+                      {/* Payment Summary */}
+                      <div className="p-6 rounded-2xl bg-stone-50 border border-stone-200 text-left space-y-3 text-xs sm:text-sm max-w-md mx-auto">
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Lead Traveler:</span>
+                          <strong className="text-slate-900">{fullName}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Advance Due (20%):</span>
+                          <strong className="text-[#FF6B00] font-bold">
+                            {formatCurrency(createdBooking?.advance_amount || advanceDeposit, currency)}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Remaining Balance on Arrival (80%):</span>
+                          <strong className="text-slate-900 font-bold">
+                            {formatCurrency(createdBooking?.remaining_balance || balanceOnArrival, currency)}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+                        {createdBooking && (
+                          <button
+                            type="button"
+                            disabled={isSubmittingBooking}
+                            onClick={() => triggerPayHereCheckout(createdBooking, bookingAccessToken || undefined)}
+                            className="w-full sm:w-auto px-6 py-3.5 rounded-full text-xs sm:text-sm font-bold bg-[#FF6B00] hover:bg-[#E55F00] text-white shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          >
+                            {isSubmittingBooking ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-4 h-4" />
+                            )}
+                            <span>Retry PayHere Online</span>
+                          </button>
+                        )}
+
+                        <a
+                          href={whatsappReservationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto px-6 py-3.5 rounded-full text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md flex items-center justify-center gap-2"
+                        >
+                          <PhoneCall className="w-4 h-4" />
+                          <span>Pay via Bank / WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2778,10 +3135,20 @@ export default function BookingClient() {
                       <span>Continue</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
+                  ) : !selectedTour || !selectedVehObj ? (
+                    <a
+                      href={whatsappReservationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <PhoneCall className="w-4 h-4" />
+                      <span>Request Bespoke Quote on WhatsApp</span>
+                    </a>
                   ) : (
                     <button
                       type="button"
-                      disabled={isSubmittingBooking}
+                      disabled={isSubmittingBooking || isLoadingQuote}
                       onClick={handleFinalSubmit}
                       className="px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold bg-[#FF6B00] hover:bg-[#E55F00] text-white shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
@@ -2789,6 +3156,11 @@ export default function BookingClient() {
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span>Locking Rate &amp; Generating Voucher...</span>
+                        </>
+                      ) : isLoadingQuote ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Validating Locked Quote...</span>
                         </>
                       ) : (
                         <>
@@ -2971,35 +3343,56 @@ export default function BookingClient() {
                   </div>
                 )}
 
-                {discountAmount > 0 && (
+                {activeDiscount > 0 && (
                   <div className="flex justify-between text-emerald-700 font-semibold">
                     <span>Promo Discount</span>
-                    <span>-{formatCurrency(discountAmount, currency)}</span>
+                    <span>-{formatCurrency(activeDiscount, currency)}</span>
                   </div>
                 )}
 
                 <div className="pt-3 border-t border-stone-200 flex justify-between items-baseline">
-                  <span className="text-sm font-heading font-bold text-slate-900">Total Quoted</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-heading font-bold text-slate-900">
+                      {step === 6 && serverQuote ? 'Total Quoted' : 'Estimated Total'}
+                    </span>
+                    {step < 6 ? (
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-200">
+                        Estimate
+                      </span>
+                    ) : serverQuote ? (
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded border border-emerald-200">
+                        Locked Rate
+                      </span>
+                    ) : null}
+                  </div>
                   <span className="text-xl font-bold font-heading text-slate-900">
-                    {formatCurrency(finalTotal, currency)}
+                    {!selectedTour || !selectedVehObj ? 'On Request' : formatCurrency(finalTotal, currency)}
                   </span>
                 </div>
 
                 {/* Advance vs Balance Breakdown */}
-                <div className="p-3.5 rounded-2xl bg-orange-50/60 border border-orange-200/70 space-y-1.5 mt-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-orange-950">20% Advance to Secure Dates:</span>
-                    <strong className="text-[#FF6B00] text-sm">
-                      {formatCurrency(advanceDeposit, currency)}
-                    </strong>
+                {!selectedTour || !selectedVehObj ? (
+                  <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-[11px] text-stone-600 mt-2">
+                    Custom circuits are priced individually. Final advance deposit is agreed upon with our concierge.
                   </div>
-                  <div className="flex justify-between items-center text-[11px] text-stone-600">
-                    <span>80% Balance on Chauffeur Arrival:</span>
-                    <span className="font-semibold text-slate-900">
-                      {formatCurrency(balanceOnArrival, currency)}
-                    </span>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-orange-50/60 border border-orange-200/70 space-y-1.5 mt-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-semibold text-orange-950">
+                        {step === 6 && serverQuote ? '20% Advance to Secure Dates:' : 'Estimated 20% Advance:'}
+                      </span>
+                      <strong className="text-[#FF6B00] text-sm">
+                        {formatCurrency(advanceDeposit, currency)}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] text-stone-600">
+                      <span>80% Balance on Chauffeur Arrival:</span>
+                      <span className="font-semibold text-slate-900">
+                        {formatCurrency(balanceOnArrival, currency)}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Trust Guarantees */}

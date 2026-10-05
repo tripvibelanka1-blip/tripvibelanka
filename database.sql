@@ -413,9 +413,7 @@ DROP POLICY IF EXISTS "Allow authenticated full access to bookings" ON bookings;
 CREATE POLICY "Allow authenticated full access to bookings" 
   ON bookings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Allow public insert bookings" ON bookings;
-CREATE POLICY "Allow public insert bookings" 
-  ON bookings FOR INSERT TO anon, authenticated WITH CHECK (true);
+-- Public insert removed for security; bookings are inserted via secure server actions using service_role
 
 DROP POLICY IF EXISTS "Allow public view own booking by reference" ON bookings;
 CREATE POLICY "Allow public view own booking by reference" 
@@ -1174,3 +1172,176 @@ SET whatsapp_number = '+94775368357',
 WHERE id = 1;
 ALTER TABLE site_settings ALTER COLUMN whatsapp_number SET DEFAULT '+94775368357';
 ALTER TABLE site_settings ALTER COLUMN company_phone SET DEFAULT '+94 77 536 8357';
+
+
+
+-- ==========================================================
+-- 23. SECURITY HARDENING: App Metadata Role-Based RLS & Schema
+-- ==========================================================
+
+-- 1. Helper function: check if authenticated user holds admin role in app_metadata
+CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER AS $$
+  SELECT coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin';
+$$;
+
+-- 2. Bookings Table Hardening
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON bookings FROM anon;
+
+-- Drop all broad or insecure policies
+DROP POLICY IF EXISTS "Allow public insert bookings" ON bookings;
+DROP POLICY IF EXISTS "Allow public view own booking by reference" ON bookings;
+DROP POLICY IF EXISTS "Allow authenticated full access to bookings" ON bookings;
+DROP POLICY IF EXISTS "Allow authenticated staff access to bookings" ON bookings;
+DROP POLICY IF EXISTS "admin only bookings" ON bookings;
+
+-- Only authenticated users with app_metadata.role = 'admin' can access bookings
+CREATE POLICY "admin only bookings" 
+  ON bookings 
+  FOR ALL 
+  TO authenticated
+  USING (public.is_admin()) 
+  WITH CHECK (public.is_admin());
+
+-- Ensure columns, constraints and indexes
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS idempotency_key UUID UNIQUE,
+  ADD COLUMN IF NOT EXISTS request_hash TEXT,
+  ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bookings_reference_uniq') THEN
+    ALTER TABLE bookings ADD CONSTRAINT bookings_reference_uniq UNIQUE (reference_no);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bookings_amount_pos') THEN
+    ALTER TABLE bookings ADD CONSTRAINT bookings_amount_pos CHECK (advance_amount > 0 AND total_amount > 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bookings_currency_ok') THEN
+    ALTER TABLE bookings ADD CONSTRAINT bookings_currency_ok CHECK (currency IN ('LKR', 'USD'));
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_payhere_pid 
+  ON bookings(payhere_payment_id) 
+  WHERE payhere_payment_id IS NOT NULL;
+
+-- 3. Promotional Banners Table & Strict RLS Policies
+CREATE TABLE IF NOT EXISTS banners (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  badge_text TEXT NOT NULL DEFAULT 'Limited Seasonal Offer',
+  title TEXT NOT NULL,
+  description TEXT,
+  coupon_code TEXT,
+  discount_type TEXT DEFAULT 'percentage',
+  discount_value NUMERIC(10, 2) DEFAULT 15.00,
+  button_text TEXT NOT NULL DEFAULT 'Book Your Tour',
+  button_link TEXT NOT NULL DEFAULT '/booking',
+  validity_text TEXT,
+  start_date DATE,
+  end_date DATE,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access to active banners" ON banners;
+CREATE POLICY "Allow public read access to active banners"
+  ON banners 
+  FOR SELECT 
+  TO anon, authenticated
+  USING (is_active = true);
+
+DROP POLICY IF EXISTS "Allow authenticated full access to banners" ON banners;
+DROP POLICY IF EXISTS "admin only banners" ON banners;
+CREATE POLICY "admin only banners"
+  ON banners 
+  FOR ALL 
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- 4. Enquiries CRM Module Hardening
+ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated full access to enquiries" ON enquiries;
+DROP POLICY IF EXISTS "admin only enquiries" ON enquiries;
+CREATE POLICY "admin only enquiries"
+  ON enquiries 
+  FOR ALL 
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Allow public insert to enquiries" ON enquiries;
+CREATE POLICY "Allow public insert to enquiries"
+  ON enquiries 
+  FOR INSERT 
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- 5. Site Settings Singleton Hardening
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated full access to site_settings" ON site_settings;
+DROP POLICY IF EXISTS "Allow public read access to site_settings" ON site_settings;
+CREATE POLICY "Allow public read access to site_settings"
+  ON site_settings 
+  FOR SELECT 
+  TO anon, authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "admin only site_settings" ON site_settings;
+CREATE POLICY "admin only site_settings"
+  ON site_settings 
+  FOR ALL 
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- 6. Catalog Mutations Restricted to Admins Only
+DROP POLICY IF EXISTS "Allow authenticated full access to destinations" ON destinations;
+CREATE POLICY "admin only destinations" 
+  ON destinations FOR ALL TO authenticated 
+  USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Allow authenticated users full access to tours" ON tours;
+CREATE POLICY "admin only tours" 
+  ON tours FOR ALL TO authenticated 
+  USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Allow authenticated full access to activities" ON activities;
+CREATE POLICY "admin only activities" 
+  ON activities FOR ALL TO authenticated 
+  USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Allow authenticated full access to vehicles" ON vehicles;
+CREATE POLICY "admin only vehicles" 
+  ON vehicles FOR ALL TO authenticated 
+  USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- 7. Automated Stale Booking Expiry (pg_cron)
+-- Run this if pg_cron is enabled in Supabase:
+-- SELECT cron.schedule(
+--   'expire_stale_pending_bookings',
+--   '0 * * * *',
+--   $$
+--     UPDATE public.bookings 
+--     SET booking_status = 'cancelled', 
+--         payment_status = 'failed',
+--         admin_notes = coalesce(admin_notes, '') || ' [EXPIRED]: Automatically expired after 24 hours without advance deposit'
+--     WHERE payment_status = 'pending' 
+--       AND booking_status = 'pending' 
+--       AND created_at < NOW() - INTERVAL '24 hours';
+--   $$
+-- );
+
+-- 8. Admin User Provisioning Template
+-- To designate an administrator, run in Supabase SQL editor:
+-- UPDATE auth.users
+-- SET raw_app_meta_data = coalesce(raw_app_meta_data,'{}'::jsonb) || '{"role":"admin"}'
+-- WHERE email = 'info@tripvibelanka.com';
+

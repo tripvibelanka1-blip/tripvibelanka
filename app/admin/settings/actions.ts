@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { SiteSettings, SiteSettingsUpdate } from '@/types/database';
 
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -66,17 +67,7 @@ export async function updateSiteSettings(
   payload: SiteSettingsUpdate
 ): Promise<{ success: boolean; message: string; data?: SiteSettings }> {
   try {
-    const supabase = await createClient();
-
-    // Verify authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return { success: false, message: 'Unauthorized: Admin session required' };
-    }
+    const supabase = await requireAdmin();
 
     // Validation: Advance percentage
     if (payload.advance_percentage !== undefined) {

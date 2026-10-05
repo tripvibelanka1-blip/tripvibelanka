@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { Booking, Enquiry, Tour } from '@/types/database';
 
 export interface DashboardMetrics {
@@ -46,7 +46,7 @@ export interface DashboardMetrics {
  * for the Executive Command Center Dashboard
  */
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const supabase = await createClient();
+  const supabase = await requireAdmin();
 
   try {
     const today = new Date().toISOString().split('T')[0];

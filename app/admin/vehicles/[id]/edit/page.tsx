@@ -324,7 +324,7 @@ export default function EditVehiclePage() {
       if (error) throw error;
 
       setSuccessToast('Vehicle details updated successfully!');
-      setTimeout(() => setSuccessToast(null), 3000);
+      router.push('/admin/vehicles');
       router.refresh();
     } catch (err: any) {
       console.error('Failed to update vehicle:', err);

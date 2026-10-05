@@ -137,6 +137,9 @@ export interface Booking {
   payment_status: PaymentStatus;
   booking_status: BookingStatus;
   payhere_payment_id?: string | null;
+  vehicle_id?: string | null;
+  idempotency_key?: string | null;
+  access_token?: string | null;
   payment_method?: string;
   assigned_driver_guide?: string | null;
   admin_notes?: string | null;

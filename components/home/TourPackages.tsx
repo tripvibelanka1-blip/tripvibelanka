@@ -51,6 +51,7 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
             .from('tours')
             .select('*')
             .eq('is_active', true)
+            .eq('is_featured', true)
             .order('display_order', { ascending: true })
             .order('created_at', { ascending: false }),
           supabase
@@ -65,6 +66,7 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
             .from('tours')
             .select('*')
             .eq('is_active', true)
+            .eq('is_featured', true)
             .order('created_at', { ascending: false });
           data = fallbackRes.data;
         }
@@ -83,6 +85,10 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
               let locationsList: string[] = [];
               if (Array.isArray(rawLocations) && rawLocations.length > 0) {
                 locationsList = (rawLocations as string[]).filter((loc) => typeof loc === 'string' && loc.trim().length > 0);
+              } else if (item.destination_ids && Array.isArray(item.destination_ids) && item.destination_ids.length > 0) {
+                locationsList = item.destination_ids
+                  .map((id: string) => destMap.get(id))
+                  .filter(Boolean) as string[];
               } else if (item.destination_id && destMap.has(item.destination_id)) {
                 locationsList = [destMap.get(item.destination_id)!];
               } else {
@@ -142,7 +148,7 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
     };
   }, []);
 
-  const filteredPackages = selectedCategory === 'All'
+  const filteredPackages = (selectedCategory === 'All'
     ? packages
     : packages.filter((p) => {
         const cat = (p.category || '').toLowerCase();
@@ -151,7 +157,7 @@ export default function TourPackages({ currency, onSelectPackage }: TourPackages
         if (sel === 'cultural' && cat === 'signature') return true;
         if (sel === 'signature' && cat === 'cultural') return true;
         return false;
-      });
+      })).slice(0, 6);
 
   const formatPrice = (pkg: TourCardItem) => {
     if (currency === 'USD') {

@@ -60,7 +60,7 @@ export default function ExperiencesClient() {
         // 3. Fetch active tours for cross-referencing
         const toursPromise = supabase
           .from('tours')
-          .select('id, title, destination_id, locations, duration_days, duration_nights, price_usd, price_lkr')
+          .select('id, title, destination_id, destination_ids, locations, duration_days, duration_nights, price_usd, price_lkr')
           .eq('is_active', true);
 
         const [settingsRes, actRes, toursRes] = await Promise.allSettled([
@@ -129,6 +129,7 @@ export default function ExperiencesClient() {
 
     return tours
       .filter((t) => {
+        if (exp.destination_id && t.destination_ids && Array.isArray(t.destination_ids) && t.destination_ids.includes(exp.destination_id)) return true;
         if (exp.destination_id && t.destination_id === exp.destination_id) return true;
         if (Array.isArray(t.locations)) {
           return t.locations.some((loc: string) => {

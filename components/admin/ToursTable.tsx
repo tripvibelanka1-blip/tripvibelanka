@@ -136,8 +136,13 @@ export default function ToursTable({
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
                 {tours.map((tour) => {
-                  const destinationName =
-                    tour.destination_id && destinationMap.get(tour.destination_id);
+                  const destinationNames =
+                    tour.destination_ids
+                      ? tour.destination_ids
+                          .map((id) => destinationMap.get(id))
+                          .filter(Boolean)
+                          .join(', ')
+                      : (tour.destination_id ? destinationMap.get(tour.destination_id) : null);
 
                   return (
                     <tr
@@ -207,10 +212,10 @@ export default function ToursTable({
                               {tour.min_guests && tour.min_guests > 1 ? `Min ${tour.min_guests}` : 'Open'}
                             </span>
                           )}
-                          {destinationName && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg">
-                              <MapPin className="w-3 h-3 text-[#FF6B00]" />
-                              {destinationName}
+                          {destinationNames && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg max-w-[200px] truncate">
+                              <MapPin className="w-3 h-3 text-[#FF6B00] shrink-0" />
+                              <span className="truncate">{destinationNames}</span>
                             </span>
                           )}
                           {tour.is_featured && (

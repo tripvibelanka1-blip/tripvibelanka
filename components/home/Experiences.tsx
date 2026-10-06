@@ -32,7 +32,8 @@ export default function Experiences({ currency, onSelectExperience }: Experience
           .select('*, destination:destinations(name)')
           .eq('is_active', true)
           .order('display_order', { ascending: true })
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(6);
 
         if (error) {
           console.warn('[Experiences] Supabase query notice:', error.message);

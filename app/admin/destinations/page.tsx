@@ -23,7 +23,7 @@ export default async function AdminDestinationsPage() {
       .from('destinations')
       .select('*')
       .order('name', { ascending: true }),
-    supabase.from('tours').select('id, destination_id'),
+    supabase.from('tours').select('id, destination_id, destination_ids'),
     supabase.from('activities').select('id, destination_id'),
   ]);
 

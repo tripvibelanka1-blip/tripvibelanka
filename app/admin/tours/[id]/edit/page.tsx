@@ -25,9 +25,11 @@ import {
   Info,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
-import { TourUpdate, TourItineraryItem, DestinationRecord } from '@/types/database';
+import { TourUpdate, TourItineraryItem, DestinationRecord, Vehicle } from '@/types/database';
 import { compressImage } from '@/utils/imageCompression';
 import DestinationSelect from '@/components/admin/DestinationSelect';
+import MultiDestinationSelect from '@/components/admin/MultiDestinationSelect';
+import VehicleSelect from '@/components/admin/VehicleSelect';
 import TrustTooltip from '@/components/admin/TrustTooltip';
 import DualPriceInput from '@/components/admin/DualPriceInput';
 import AIContentHelper from '@/components/admin/AIContentHelper';
@@ -49,6 +51,8 @@ interface TourFormData {
   locations_input: string;
   display_order: number;
   destination_id: string;
+  destination_ids: string[];
+  vehicle_id: string;
   duration_days: number;
   duration_nights: number;
   price_usd: number;
@@ -74,6 +78,8 @@ const defaultFormData: TourFormData = {
   locations_input: '',
   display_order: 1,
   destination_id: '',
+  destination_ids: [],
+  vehicle_id: '',
   duration_days: 1,
   duration_nights: 0,
   price_usd: 0,
@@ -108,8 +114,10 @@ export default function EditTourPage() {
 
   const [formData, setFormData] = useState<TourFormData>(defaultFormData);
   const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingTour, setIsLoadingTour] = useState<boolean>(true);
   const [isLoadingDestinations, setIsLoadingDestinations] = useState<boolean>(true);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState<boolean>(true);
   const [tourNotFound, setTourNotFound] = useState<boolean>(false);
 
   // Cover Image upload states
@@ -170,15 +178,21 @@ export default function EditTourPage() {
 
       try {
         // Parallel fetch for speed
-        const [tourRes, destRes] = await Promise.all([
+        const [tourRes, destRes, vehicleRes] = await Promise.all([
           supabase.from('tours').select('*').eq('id', tourId).single(),
           supabase.from('destinations').select('*').order('name', { ascending: true }),
+          supabase.from('vehicles').select('*').eq('is_active', true).order('name', { ascending: true }),
         ]);
 
         if (destRes.data) {
           setDestinations(destRes.data);
         }
         setIsLoadingDestinations(false);
+        
+        if (vehicleRes.data) {
+          setVehicles(vehicleRes.data);
+        }
+        setIsLoadingVehicles(false);
 
         if (tourRes.error || !tourRes.data) {
           setTourNotFound(true);
@@ -198,6 +212,8 @@ export default function EditTourPage() {
           locations_input: locationsList,
           display_order: tour.display_order ?? 1,
           destination_id: tour.destination_id || '',
+          destination_ids: Array.isArray(tour.destination_ids) ? tour.destination_ids : [],
+          vehicle_id: tour.vehicle_id || '',
           duration_days: tour.duration_days ?? 1,
           duration_nights: tour.duration_nights ?? 0,
           price_usd: Number(tour.price_usd) || 0,
@@ -245,12 +261,15 @@ export default function EditTourPage() {
   // Field change handler
   const handleFieldChange = (
     field: keyof TourFormData,
-    value: string | number | boolean
+    value: string | number | boolean | string[]
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (field === 'destination_id' && typeof value === 'string') {
+        updated.destination_ids = updated.destination_ids.filter((id) => id !== value);
+      }
+      return updated as typeof prev;
+    });
   };
 
   // ----------------------------------------------------
@@ -565,6 +584,8 @@ export default function EditTourPage() {
         locations: cleanedLocations,
         display_order: Number(formData.display_order) || 0,
         destination_id: formData.destination_id ? formData.destination_id : null,
+        destination_ids: formData.destination_ids.length > 0 ? formData.destination_ids : undefined,
+        vehicle_id: formData.vehicle_id ? formData.vehicle_id : null,
         duration_days: Number(formData.duration_days) || 0,
         duration_nights: Number(formData.duration_nights) || 0,
         price_usd: Number(formData.price_usd) || 0,
@@ -877,11 +898,69 @@ export default function EditTourPage() {
                   onChange={(val) => handleFieldChange('destination_id', val)}
                   disabled={isSubmitting}
                   isLoading={isLoadingDestinations}
-                  placeholder="-- Select a Destination (Optional) --"
+                  placeholder="-- Select Primary Destination --"
                 />
               </div>
               <p className="mt-1 text-[11px] text-slate-400">
                 Categorizes this itinerary under a featured Sri Lankan region.
+              </p>
+            </div>
+
+            {/* Additional Destinations Select Dropdown */}
+            <div>
+              <label
+                htmlFor="multi-destination-select"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  Additional Destinations
+                </span>
+              </label>
+              <div className="relative">
+                <MultiDestinationSelect
+                  destinations={destinations.filter((d) => d.id !== formData.destination_id)}
+                  values={formData.destination_ids}
+                  onChange={(val) => handleFieldChange('destination_ids', val)}
+                  disabled={isSubmitting}
+                  isLoading={isLoadingDestinations}
+                  placeholder="-- Select Additional Destinations --"
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Links this itinerary to other featured destinations for discovery.
+              </p>
+            </div>
+
+            {/* Vehicle Select Dropdown */}
+            <div>
+              <label
+                htmlFor="vehicle-select"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-[#FF6B00]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                  Assigned Vehicle
+                </span>
+                {isLoadingVehicles && (
+                  <span className="text-[11px] font-normal text-slate-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-orange-500" />
+                    Fetching vehicles...
+                  </span>
+                )}
+              </label>
+              <div className="relative">
+                <VehicleSelect
+                  vehicles={vehicles}
+                  value={formData.vehicle_id}
+                  onChange={(val) => handleFieldChange('vehicle_id', val)}
+                  disabled={isSubmitting}
+                  isLoading={isLoadingVehicles}
+                  placeholder="-- Select a Vehicle (Optional) --"
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Connect a specific vehicle from your fleet to this tour package.
               </p>
             </div>
 
@@ -1911,6 +1990,16 @@ export default function EditTourPage() {
                   <span>
                     {destinations.find((d) => d.id === formData.destination_id)?.name ||
                       'Selected Destination'}
+                  </span>
+                </div>
+              )}
+              {formData.destination_ids && formData.destination_ids.length > 0 && (
+                <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 flex-wrap">
+                  <MapPin className="w-3 h-3 text-slate-400" />
+                  <span>
+                    + {formData.destination_ids
+                      .map(id => destinations.find((d) => d.id === id)?.name || 'Unknown')
+                      .join(', ')}
                   </span>
                 </div>
               )}

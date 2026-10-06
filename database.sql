@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS tours (
   locations JSONB DEFAULT '[]'::jsonb, -- Array of string route locations e.g. ["Colombo", "Sigiriya", "Kandy"]
   display_order INTEGER DEFAULT 0,
   destination_id UUID REFERENCES destinations(id) ON DELETE SET NULL,
+  destination_ids UUID[] DEFAULT '{}',
+  vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
   duration_days INTEGER NOT NULL DEFAULT 1,
   duration_nights INTEGER NOT NULL DEFAULT 0,
   price_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
@@ -92,6 +94,7 @@ ALTER TABLE tours ADD COLUMN IF NOT EXISTS locations JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS min_guests INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS max_guests INTEGER;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS guest_policy TEXT DEFAULT 'custom';
@@ -810,6 +813,7 @@ ALTER TABLE tours ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Cultural';
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS tagline TEXT;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS locations JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE tours ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+ALTER TABLE tours ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL;
 
 -- Optional: Seed top signature tours if desired
 INSERT INTO tours (

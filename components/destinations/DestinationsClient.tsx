@@ -66,7 +66,7 @@ export default function DestinationsClient() {
         // 3. Fetch active tours to link with destinations
         const toursPromise = supabase
           .from('tours')
-          .select('id, title, destination_id, locations, duration_days, duration_nights, price_usd, price_lkr, cover_image, category')
+          .select('id, title, destination_id, destination_ids, locations, duration_days, duration_nights, price_usd, price_lkr, cover_image, category')
           .eq('is_active', true);
 
         // 4. Fetch active activities
@@ -171,6 +171,7 @@ export default function DestinationsClient() {
     const destNameLower = dest.name.toLowerCase();
     return tours
       .filter((t) => {
+        if (t.destination_ids && Array.isArray(t.destination_ids) && t.destination_ids.includes(dest.id)) return true;
         if (t.destination_id && t.destination_id === dest.id) return true;
         if (Array.isArray(t.locations)) {
           return t.locations.some((loc: string) => {

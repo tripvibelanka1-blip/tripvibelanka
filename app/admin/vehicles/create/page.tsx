@@ -268,8 +268,8 @@ export default function CreateVehiclePage() {
       return;
     }
 
-    if (!formData.price_per_day_usd || formData.price_per_day_usd <= 0) {
-      setErrorBanner('Daily Rental Rate in USD is required.');
+    if (formData.price_per_day_usd === undefined || formData.price_per_day_usd === null || formData.price_per_day_usd < 0) {
+      setErrorBanner('Daily Rental Rate in USD cannot be negative.');
       return;
     }
 
@@ -575,10 +575,9 @@ export default function CreateVehiclePage() {
                   </span>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     step="any"
-                    required
-                    value={formData.price_per_day_usd || ''}
+                    value={formData.price_per_day_usd !== undefined ? formData.price_per_day_usd : ''}
                     onChange={(e) => handleFieldChange('price_per_day_usd', parseFloat(e.target.value) || 0)}
                     placeholder="e.g. 60"
                     className="w-full pl-8 pr-3.5 py-2.5 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] transition-all text-slate-900"

@@ -22,7 +22,7 @@ import { createClient } from '@/utils/supabase/client';
 
 interface DestinationsTableProps {
   initialDestinations: Destination[];
-  linkedTours?: { id: string; destination_id: string | null }[];
+  linkedTours?: { id: string; destination_id: string | null; destination_ids?: string[] }[];
   linkedActivities?: { id: string; destination_id: string | null }[];
 }
 
@@ -134,7 +134,7 @@ export default function DestinationsTable({
                 {destinations.map((dest) => {
                   const attractions = dest.popular_attractions || [];
                   const gallery = dest.gallery_images || [];
-                  const toursCount = linkedTours.filter((t) => t.destination_id === dest.id).length;
+                  const toursCount = linkedTours.filter((t) => (t.destination_ids && Array.isArray(t.destination_ids) && t.destination_ids.includes(dest.id)) || (t.destination_id === dest.id)).length;
                   const activitiesCount = linkedActivities.filter((a) => a.destination_id === dest.id).length;
 
                   return (
@@ -483,7 +483,7 @@ export default function DestinationsTable({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">
-                    {linkedTours.filter((t) => t.destination_id === previewDest.id).length} Tours
+                    {linkedTours.filter((t) => (t.destination_ids && Array.isArray(t.destination_ids) && t.destination_ids.includes(previewDest.id)) || (t.destination_id === previewDest.id)).length} Tours
                   </div>
                   <div className="text-[10px] text-slate-500">Linked packages</div>
                 </div>

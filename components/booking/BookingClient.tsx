@@ -529,6 +529,7 @@ export interface BookingTourItem {
   min_guests?: number;
   max_guests?: number | null;
   guest_policy?: string | null;
+  vehicle_id?: string | null;
 }
 
 export interface BookingVehicleItem {
@@ -600,9 +601,11 @@ export default function BookingClient() {
   const [duration, setDuration] = useState<string>('7 Days');
   const [guests, setGuests] = useState<number>(2);
   const [selectedVehicle, setSelectedVehicle] = useState<string>(initialVehicleParam || '');
+
   const [selectedAddons, setSelectedAddons] = useState<string[]>(
     initialAddonParam ? [initialAddonParam] : []
   );
+  const [addonCategoryFilter, setAddonCategoryFilter] = useState<string>('All');
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
@@ -627,6 +630,16 @@ export default function BookingClient() {
   // Promo code state
   const [couponInput, setCouponInput] = useState<string>(initialCouponParam || '');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
+
+  // Auto-select vehicle when package changes
+  useEffect(() => {
+    if (selectedPackageId && tourPackages.length > 0) {
+      const pkg = tourPackages.find((p) => p.id === selectedPackageId);
+      if (pkg?.vehicle_id) {
+        setSelectedVehicle(pkg.vehicle_id);
+      }
+    }
+  }, [selectedPackageId, tourPackages]);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
@@ -776,6 +789,7 @@ export default function BookingClient() {
               min_guests: t.min_guests ?? 1,
               max_guests: t.max_guests ?? null,
               guest_policy: t.guest_policy || null,
+              vehicle_id: t.vehicle_id || null,
             }));
             setTourPackages(mappedTours);
           }
@@ -1186,6 +1200,58 @@ export default function BookingClient() {
         price_lkr: t.price_lkr,
       }));
   };
+
+  const addonCategories = useMemo(() => {
+    const cats = new Set(experiencesList.map(a => a.category).filter(Boolean) as string[]);
+    return ['All', ...Array.from(cats)];
+  }, [experiencesList]);
+
+  const filteredExperiences = useMemo(() => {
+    if (addonCategoryFilter === 'All') return experiencesList;
+    return experiencesList.filter(a => a.category === addonCategoryFilter);
+  }, [experiencesList, addonCategoryFilter]);
+
+  const sortedTourPackages = useMemo(() => {
+    if (!tourPackages || tourPackages.length === 0) return [];
+
+    const isCouple = guests === 2;
+    const isSolo = guests === 1;
+    const isFamily = guests > 2;
+    const destName = (selectedDestination || '').toLowerCase();
+
+    return [...tourPackages].sort((a, b) => {
+      let scoreA = 0;
+      let scoreB = 0;
+
+      // 1. Guest policy matching (+200)
+      const getGuestScore = (pkg: BookingTourItem) => {
+        if (isSolo && pkg.guest_policy === 'solo') return 200;
+        if (isCouple && pkg.guest_policy === 'couple') return 200;
+        if (isFamily && pkg.guest_policy === 'family') return 200;
+        return 0;
+      };
+      
+      scoreA += getGuestScore(a);
+      scoreB += getGuestScore(b);
+
+      // 2. Destination matching (+100)
+      const getDestScore = (pkg: BookingTourItem) => {
+        if (!destName || destName === 'all island signature circuit') return 0;
+        const matchesDest = pkg.locations?.some(loc => loc.toLowerCase().includes(destName) || destName.includes(loc.toLowerCase()));
+        return matchesDest ? 100 : 0;
+      };
+
+      scoreA += getDestScore(a);
+      scoreB += getDestScore(b);
+
+      // We want descending order by score (higher score first)
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA;
+      }
+      
+      return 0;
+    });
+  }, [tourPackages, guests, selectedDestination]);
 
   const whatsappUrl = siteSettings?.whatsapp_number
     ? `https://wa.me/${siteSettings.whatsapp_number.replace(/[^0-9]/g, '')}`
@@ -1723,68 +1789,72 @@ export default function BookingClient() {
 
                   {/* 2. SELECTED DESTINATION FOCUS CARD */}
                   {selectedDestObj && selectedDestination !== 'All Island Signature Circuit' && (
-                    <div className="w-full max-w-full overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/90 via-amber-50/60 to-orange-50/40 border border-orange-200/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 shadow-2xs">
-                      <div className="flex items-start sm:items-center gap-3.5 min-w-0 w-full sm:w-auto flex-1">
-                        {selectedDestObj.cover_image ? (
-                          <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden shrink-0 border border-orange-200 shadow-sm mt-0.5 sm:mt-0">
-                            <Image
-                              src={selectedDestObj.cover_image}
-                              alt={selectedDestObj.name}
-                              fill
-                              className="object-cover"
-                              sizes="44px"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#FF6B00] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5 sm:mt-0">
-                            <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
-                          </div>
+                    <div className="w-full max-w-full overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/90 via-amber-50/60 to-orange-50/40 border border-orange-200/90 flex flex-col gap-3 shadow-2xs">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B00] bg-orange-100/90 px-2 py-0.5 rounded-full">
+                          Selected Destination Focus
+                        </span>
+                        {selectedDestObj.district && (
+                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            {selectedDestObj.district}
+                          </span>
                         )}
-                        <div className="min-w-0 flex-1 space-y-0.5">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B00] bg-orange-100/90 px-2 py-0.5 rounded-full">
-                              Selected Destination Focus
-                            </span>
-                            {selectedDestObj.district && (
-                              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                {selectedDestObj.district}
-                              </span>
-                            )}
-                            {selectedDestObj.best_time_to_visit && (
-                              <span className="text-[11px] font-medium text-stone-600">
-                                Best: {selectedDestObj.best_time_to_visit}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="text-sm sm:text-base font-bold font-heading text-slate-900 truncate mt-1">
-                            {selectedDestObj.name}
-                          </h3>
-                          <p className="text-xs text-stone-600 leading-relaxed break-words">
-                            {selectedDestObj.popular_attractions && selectedDestObj.popular_attractions.length > 0
-                              ? `Highlights: ${selectedDestObj.popular_attractions.slice(0, 3).join(' · ')}`
-                              : selectedDestObj.description || 'Authentic Sri Lankan regional sanctuary included in your itinerary.'}
-                          </p>
-                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0 self-end sm:self-center">
-                        <button
-                          type="button"
-                          onClick={() => setDrawerDestination(selectedDestObj)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-orange-200 text-xs font-bold text-[#FF6B00] hover:bg-orange-50 transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View Dossier</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const el = document.getElementById('destination-select-field');
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }}
-                          className="text-xs font-bold text-stone-600 hover:text-slate-900 hover:underline cursor-pointer px-2 py-1"
-                        >
-                          Change Destination →
-                        </button>
+                      
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                        <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                          {selectedDestObj.cover_image ? (
+                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shrink-0 border border-orange-200 shadow-sm mt-0.5">
+                              <Image
+                                src={selectedDestObj.cover_image}
+                                alt={selectedDestObj.name}
+                                fill
+                                className="object-cover"
+                                sizes="56px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#FF6B00] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                              <MapPin className="w-6 h-6" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            {selectedDestObj.best_time_to_visit && (
+                              <p className="text-[11px] font-medium text-stone-600">
+                                Best: {selectedDestObj.best_time_to_visit}
+                              </p>
+                            )}
+                            <h3 className="text-sm sm:text-base font-bold font-heading text-slate-900 truncate">
+                              {selectedDestObj.name}
+                            </h3>
+                            <p className="text-xs text-stone-600 leading-relaxed break-words">
+                              {selectedDestObj.popular_attractions && selectedDestObj.popular_attractions.length > 0
+                                ? `Highlights: ${selectedDestObj.popular_attractions.slice(0, 3).join(' · ')}`
+                                : selectedDestObj.description || 'Authentic Sri Lankan regional sanctuary included in your itinerary.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center w-full sm:w-auto justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setDrawerDestination(selectedDestObj)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-orange-200 text-xs font-bold text-[#FF6B00] hover:bg-orange-50 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View Dossier</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById('destination-select-field');
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }}
+                            className="text-xs font-bold text-stone-600 hover:text-slate-900 hover:underline cursor-pointer px-2 py-1"
+                          >
+                            Change Destination →
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1937,56 +2007,59 @@ export default function BookingClient() {
 
                     {/* Selected Destination Clarity Card */}
                     {selectedDestObj && (
-                      <div className="w-full max-w-full overflow-hidden p-4 rounded-2xl bg-gradient-to-br from-stone-50 via-white to-stone-50/80 border border-stone-200/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mt-2.5 shadow-2xs">
-                        <div className="flex items-start sm:items-center gap-3.5 min-w-0 w-full sm:w-auto flex-1">
-                          {selectedDestObj.cover_image ? (
-                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shrink-0 border border-stone-200 shadow-2xs mt-0.5 sm:mt-0">
-                              <Image
-                                src={selectedDestObj.cover_image}
-                                alt={selectedDestObj.name}
-                                fill
-                                className="object-cover"
-                                sizes="56px"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 rounded-xl bg-orange-100 text-[#FF6B00] flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-                              <MapPin className="w-6 h-6" />
-                            </div>
+                      <div className="w-full max-w-full overflow-hidden p-4 rounded-2xl bg-gradient-to-br from-stone-50 via-white to-stone-50/80 border border-stone-200/90 flex flex-col gap-3 shadow-2xs mt-2.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {selectedDestObj.district && (
+                            <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              {selectedDestObj.district}
+                            </span>
                           )}
-                          <div className="min-w-0 flex-1 space-y-0.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-sm font-bold text-slate-900 font-heading truncate">
-                                {selectedDestObj.name}
-                              </h4>
-                              {selectedDestObj.district && (
-                                <span className="text-[10px] font-semibold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200">
-                                  {selectedDestObj.district}
-                                </span>
-                              )}
-                              {selectedDestObj.best_time_to_visit && (
-                                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                  Best: {selectedDestObj.best_time_to_visit}
-                                </span>
-                              )}
-                            </div>
-                            {selectedDestObj.popular_attractions && selectedDestObj.popular_attractions.length > 0 && (
-                              <p className="text-xs text-stone-500 leading-relaxed break-words mt-1">
-                                <span className="font-semibold text-stone-700">Top Highlights:</span>{' '}
-                                {selectedDestObj.popular_attractions.slice(0, 4).join(' · ')}
-                              </p>
-                            )}
-                          </div>
+                          {selectedDestObj.best_time_to_visit && (
+                            <span className="text-[10px] font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                              Best: {selectedDestObj.best_time_to_visit}
+                            </span>
+                          )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setDrawerDestination(selectedDestObj)}
-                          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#FF6B00] bg-orange-50 hover:bg-[#FF6B00] hover:text-white transition-all cursor-pointer border border-orange-200/80 shrink-0 self-end sm:self-center shadow-2xs"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View Destination Dossier</span>
-                        </button>
+                        <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+                          <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                            {selectedDestObj.cover_image ? (
+                              <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-stone-200 shadow-2xs mt-0.5">
+                                <Image
+                                  src={selectedDestObj.cover_image}
+                                  alt={selectedDestObj.name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="64px"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-orange-100 text-[#FF6B00] flex items-center justify-center shrink-0 mt-0.5">
+                                <MapPin className="w-6 h-6" />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <h4 className="text-sm sm:text-base font-bold text-slate-900 font-heading truncate">
+                                {selectedDestObj.name}
+                              </h4>
+                              {selectedDestObj.popular_attractions && selectedDestObj.popular_attractions.length > 0 && (
+                                <p className="text-xs text-stone-600 leading-relaxed break-words">
+                                  <span className="font-semibold text-stone-800">Top Highlights:</span>{' '}
+                                  {selectedDestObj.popular_attractions.slice(0, 4).join(' · ')}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => setDrawerDestination(selectedDestObj)}
+                            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#FF6B00] bg-orange-50 hover:bg-[#FF6B00] hover:text-white transition-all cursor-pointer border border-orange-200/80 shrink-0 self-end sm:self-center shadow-2xs w-full sm:w-auto"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View Destination Dossier</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2206,7 +2279,7 @@ export default function BookingClient() {
                       </div>
 
                       {/* Live Supabase Tour Packages */}
-                      {tourPackages.map((pkg) => {
+                      {sortedTourPackages.map((pkg) => {
                         const isSelected = selectedPackageId === pkg.id;
                         const priceFmt = formatCurrency(
                           currency === 'USD' ? pkg.price_usd : pkg.price_lkr,
@@ -2374,7 +2447,10 @@ export default function BookingClient() {
                       Step 3: Executive Vehicle Selection
                     </h2>
                     <p className="text-xs sm:text-sm text-stone-600">
-                      All vehicles are private, air-conditioned, and operated by licensed tourist chauffeurs.
+                      All vehicles are private, air-conditioned, and operated by licensed tourist chauffeurs. 
+                      <span className="block mt-1 font-semibold text-orange-600">
+                        * Please note: The displayed vehicle prices are estimates. Final charges may vary according to total mileage and trip spendings.
+                      </span>
                     </p>
                   </div>
 
@@ -2410,7 +2486,7 @@ export default function BookingClient() {
                             {selectedVehObj.name}
                           </h3>
                           <p className="text-xs text-stone-600 leading-relaxed break-words">
-                            Chauffeured Daily Rate: {formatCurrency(currency === 'USD' ? selectedVehObj.price_per_day_usd || 60 : (selectedVehObj.price_per_day_lkr || (selectedVehObj.price_per_day_usd || 60) * (exchangeRate || 310)), currency)} / day · Private AC &amp; Dedicated Driver Included
+                            Chauffeured Daily Rate: {formatCurrency(currency === 'USD' ? (selectedVehObj.price_per_day_usd ?? 0) : (selectedVehObj.price_per_day_lkr || (selectedVehObj.price_per_day_usd ?? 0) * (exchangeRate || 310)), currency)} / day · Private AC &amp; Dedicated Driver Included
                           </p>
                         </div>
                       </div>
@@ -2429,7 +2505,7 @@ export default function BookingClient() {
                     {vehiclesList.map((veh) => {
                       const isSelected = selectedVehicle === veh.id;
                       const pricePerDayFmt = formatCurrency(
-                        currency === 'USD' ? (veh.price_per_day_usd || 60) : (veh.price_per_day_lkr || 18000),
+                        currency === 'USD' ? (veh.price_per_day_usd ?? 0) : (veh.price_per_day_lkr || (veh.price_per_day_usd ?? 0) * (exchangeRate || 310)),
                         currency
                       );
                       return (
@@ -2581,8 +2657,27 @@ export default function BookingClient() {
                     </div>
                   )}
 
+                  {/* Add-on Filters */}
+                  {addonCategories.length > 2 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0">
+                      {addonCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setAddonCategoryFilter(cat)}
+                          className={`snap-start whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs border ${
+                            addonCategoryFilter === cat
+                              ? 'bg-[#FF6B00] text-white border-[#FF6B00]'
+                              : 'bg-white text-stone-600 border-stone-200 hover:border-[#FF6B00] hover:text-[#FF6B00]'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="space-y-3">
-                    {experiencesList.map((act) => {
+                    {filteredExperiences.map((act) => {
                       const isSelected = selectedAddons.includes(act.id);
                       const priceFmt = formatCurrency(
                         currency === 'USD' ? act.price : (act.price_lkr || act.price * (exchangeRate || 310)),

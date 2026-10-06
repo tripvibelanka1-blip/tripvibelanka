@@ -19,6 +19,8 @@ export interface Tour {
   locations?: string[];
   display_order?: number | null;
   destination_id: string | null;
+  destination_ids?: string[];
+  vehicle_id?: string | null;
   duration_days: number;
   duration_nights: number;
   price_usd: number;

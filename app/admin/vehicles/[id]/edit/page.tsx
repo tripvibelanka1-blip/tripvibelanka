@@ -284,8 +284,8 @@ export default function EditVehiclePage() {
       return;
     }
 
-    if (!pricePerDayUsd || pricePerDayUsd <= 0) {
-      setErrorBanner('Daily Rental Rate in USD is required.');
+    if (pricePerDayUsd === undefined || pricePerDayUsd === null || pricePerDayUsd < 0) {
+      setErrorBanner('Daily Rental Rate in USD cannot be negative.');
       return;
     }
 
@@ -651,10 +651,9 @@ export default function EditVehiclePage() {
                   </span>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     step="any"
-                    required
-                    value={pricePerDayUsd || ''}
+                    value={pricePerDayUsd !== undefined ? pricePerDayUsd : ''}
                     onChange={(e) => setPricePerDayUsd(parseFloat(e.target.value) || 0)}
                     placeholder="e.g. 60"
                     className="w-full pl-8 pr-3.5 py-2.5 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/20 focus:border-[#FF6B00] transition-all text-slate-900"

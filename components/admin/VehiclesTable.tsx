@@ -124,6 +124,16 @@ export default function VehiclesTable({ initialVehicles }: VehiclesTableProps) {
 
     try {
       const supabase = createClient();
+
+      // Fix for foreign key constraint violation
+      // Manually set vehicle_id to null in bookings before deleting the vehicle
+      const { error: bookingsError } = await supabase
+        .from('bookings')
+        .update({ vehicle_id: null })
+        .eq('vehicle_id', vehicleToDelete.id);
+
+      if (bookingsError) throw bookingsError;
+
       const { error } = await supabase
         .from('vehicles')
         .delete()

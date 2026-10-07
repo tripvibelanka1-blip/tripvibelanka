@@ -1212,7 +1212,7 @@ CREATE POLICY "admin only bookings"
 ALTER TABLE bookings
   ADD COLUMN IF NOT EXISTS idempotency_key UUID UNIQUE,
   ADD COLUMN IF NOT EXISTS request_hash TEXT,
-  ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id);
+  ADD COLUMN IF NOT EXISTS vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL;
 
 DO $$
 BEGIN

@@ -45,6 +45,7 @@ import { Booking, SiteSettings } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
 import Navbar from '@/components/home/Navbar';
 import Footer from '@/components/home/Footer';
+import { ToursFAQ } from '@/components/ToursFAQ';
 import TourDetailDrawer, { TourDetailItem } from '@/components/tours/TourDetailDrawer';
 import VehicleDetailDrawer, { FleetVehicleDetail } from '@/components/fleet/VehicleDetailDrawer';
 import ExperienceDetailDrawer, { ExperienceItem, LinkedTourMini } from '@/components/experiences/ExperienceDetailDrawer';
@@ -3782,6 +3783,7 @@ export default function BookingClient() {
       )}
 
       {/* Universal Footer */}
+      <ToursFAQ />
       <Footer />
 
       {/* Interactive Slide-over Drawers for In-depth Clarity */}

@@ -90,10 +90,10 @@ const REAL_GUEST_MOMENTS = [
   {
     id: 2,
     src: '/gallery/ella-mountains.png',
-    alt: 'International couple exploring mountain viewpoints in Ella with Tripvibe guide Luca',
+    alt: 'International couple exploring mountain viewpoints in Ella with Tripvibe guide',
     title: 'Misty Ella Mountain Ranges',
     location: "Little Adam's Peak, Ella",
-    caption: 'Panoramic highland trails, morning mist, and unhurried exploration with Luca and the island team.',
+    caption: 'Panoramic highland trails, morning mist, and unhurried exploration with our expert island team.',
     tag: 'Highland Escapes',
   },
   {
@@ -181,7 +181,7 @@ const VERIFIED_REVIEWS = [
     author: 'Leonardo B.',
     country: 'Italy',
     date: 'Verified TripAdvisor Guest',
-    quote: 'Started as drivers, ended as friends. Luca was incredible, taking care of every tiny detail with patience and joy.',
+    quote: 'Started as drivers, ended as friends. Our guide was incredible, taking care of every tiny detail with patience and joy.',
     highlight: 'Started as drivers, ended as friends',
   },
   {
@@ -489,7 +489,7 @@ export default function AboutClient() {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500">
-                        Luca, Mishal, and Abdul: dedicated local companions who treat you like visiting family.
+                        Dedicated local companions who treat you like visiting family.
                       </p>
                     </div>
                   </div>
@@ -505,7 +505,7 @@ export default function AboutClient() {
         </section>
 
         {/* ========================================================== */}
-        {/* 3. WHO WE ARE: LUCA, MISHAL, ABDUL & THE TRIPVIBE FAMILY   */}
+        {/* 3. WHO WE ARE: OUR DIRECTORS & THE TRIPVIBE FAMILY         */}
         {/* ========================================================== */}
         <section id="team" className="py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
@@ -520,123 +520,86 @@ export default function AboutClient() {
             </h2>
 
             <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal">
-              Luca, Mishal, Director Abdul, and our island team are the real people you will meet on arrival. When you reserve with Tripvibe Lanka, you travel in the hands of people who treat your holiday with deep personal responsibility.
+              Our directors and island team are the real people you will meet on arrival. When you reserve with Tripvibe Lanka, you travel in the hands of people who treat your holiday with deep personal responsibility.
             </p>
           </div>
 
           {/* Team Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* 1. Luca (Luka) */}
-            <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-emerald-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
+
+
+            {/* 4. Najemudeen Mohammed Shafraz */}
+            <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-slate-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 font-bold text-xl font-heading shadow-2xs group-hover:scale-105 transition-transform">
-                    L
+                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-slate-200/80 shadow-2xs group-hover:scale-105 transition-transform bg-slate-100">
+                    <Image src="/Director - Najemudeen Mohammed Shafraz.jpeg" alt="Najemudeen Mohammed Shafraz" fill className="object-cover" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    Lead Chauffeur Guide
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-50 text-slate-800 border border-slate-200">
+                    Director
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-heading">Luca (Luka)</h3>
+                  <h3 className="text-xl font-bold text-slate-900 font-heading">Najemudeen M. Shafraz</h3>
                   <span className="text-xs font-semibold text-brand-text uppercase tracking-wider block mt-0.5">
-                    Senior Route Specialist &amp; Cultural Storyteller
+                    Director
                   </span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Celebrated across TripAdvisor for boundless generosity, passion, and cultural storytelling. Luca ensures every traveler feels completely at home, discovering hidden waterfalls and quiet viewpoint stops far away from mass tour buses.
+                  Leading the vision and strategic direction of Tripvibe Lanka, ensuring every aspect of our private tours meets the highest standards of luxury, authenticity, and personal care for our global guests.
                 </p>
-              </div>
-
-              <div className="pt-6 mt-6 border-t border-stone-100 space-y-2">
-                <div className="flex items-center gap-1 text-emerald-600">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3 h-3 fill-emerald-600" />
-                  ))}
-                  <span className="text-[10px] font-bold text-slate-500 ml-1">TripAdvisor Review</span>
-                </div>
-                <p className="text-xs text-slate-700 italic leading-relaxed">
-                  &ldquo;Luca accompanied us with passion, generosity and authenticity. Much more than just a guide, we felt almost at home.&rdquo;
-                </p>
-                <span className="text-[11px] font-semibold text-slate-400 block">Esmablb, France</span>
               </div>
             </div>
 
-            {/* 2. Mishal (Micha) */}
-            <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-orange-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
+            {/* 5. Mohamed Rafaz Shabeer */}
+            <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-slate-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-brand-text font-bold text-xl font-heading shadow-2xs group-hover:scale-105 transition-transform">
-                    M
+                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-slate-200/80 shadow-2xs group-hover:scale-105 transition-transform bg-slate-100">
+                    <Image src="/MOHAMED RAFAZ SHABEER.jpeg" alt="Mohamed Rafaz Shabeer" fill className="object-cover" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
-                    Itinerary Curator
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-50 text-slate-800 border border-slate-200">
+                    Director of Sales
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-heading">Mishal (Micha)</h3>
+                  <h3 className="text-xl font-bold text-slate-900 font-heading">Mohamed Rafaz Shabeer</h3>
                   <span className="text-xs font-semibold text-brand-text uppercase tracking-wider block mt-0.5">
-                    Island Concierge &amp; Halal Hospitality Lead
+                    Director &amp; Head of Sales
                   </span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  A master of logistics and personal touches. Mishal curates seamless transitions, handpicks scenic tea country bungalows, and coordinates specialized halal dining and prayer-friendly itineraries with unmatched attention to detail.
+                  Driving our global outreach and building lasting relationships with travelers. Dedicated to understanding guest requirements and crafting the perfect bespoke journeys that exceed expectations.
                 </p>
-              </div>
-
-              <div className="pt-6 mt-6 border-t border-stone-100 space-y-2">
-                <div className="flex items-center gap-1 text-emerald-600">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3 h-3 fill-emerald-600" />
-                  ))}
-                  <span className="text-[10px] font-bold text-slate-500 ml-1">TripAdvisor Review</span>
-                </div>
-                <p className="text-xs text-slate-700 italic leading-relaxed">
-                  &ldquo;Mishal went above and beyond, making me feel safe, respected, and genuinely cared for throughout our travel.&rdquo;
-                </p>
-                <span className="text-[11px] font-semibold text-slate-400 block">Verified TripAdvisor Guest</span>
               </div>
             </div>
 
-            {/* 3. Director Abdul */}
-            <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-sky-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
+            {/* 6. Mohamed Uwais */}
+            <div className="rounded-3xl p-8 bg-white border border-stone-200/90 hover:border-slate-500/40 hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-2xs">
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-800 font-bold text-xl font-heading shadow-2xs group-hover:scale-105 transition-transform">
-                    A
+                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-slate-200/80 shadow-2xs group-hover:scale-105 transition-transform bg-slate-100">
+                    <Image src="/uwais.jpeg" alt="Mohamed Uwais Mohamed Abdhul Rahuman" fill className="object-cover" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
-                    VIP Operations
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-50 text-slate-800 border border-slate-200">
+                    Head Consultant
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 font-heading">Director Abdul</h3>
+                  <h3 className="text-xl font-bold text-slate-900 font-heading">Mohamed Uwais</h3>
                   <span className="text-xs font-semibold text-brand-text uppercase tracking-wider block mt-0.5">
-                    Executive Host &amp; VIP Airport Welcome
+                    Director Sales &amp; Travel Consultant
                   </span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Famous for welcoming guests at Colombo Airport with traditional fresh flower garlands. Abdul coordinates private executive fleet transport, bespoke family circuits, and visits to authentic spice gardens with warm island hospitality.
+                  Expert travel consultant leading a dedicated team of destination specialists. Focuses on deeply personalizing itineraries, ensuring every day of your Sri Lankan adventure is meticulously planned.
                 </p>
-              </div>
-
-              <div className="pt-6 mt-6 border-t border-stone-100 space-y-2">
-                <div className="flex items-center gap-1 text-emerald-600">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3 h-3 fill-emerald-600" />
-                  ))}
-                  <span className="text-[10px] font-bold text-slate-500 ml-1">TripAdvisor Review</span>
-                </div>
-                <p className="text-xs text-slate-700 italic leading-relaxed">
-                  &ldquo;Picked up by our Director Abdul with flower garlands... informative, fun, and wonderful to travel with.&rdquo;
-                </p>
-                <span className="text-[11px] font-semibold text-slate-400 block">Leonardo B., Italy</span>
               </div>
             </div>
           </div>
@@ -660,7 +623,7 @@ export default function AboutClient() {
               </h2>
 
               <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal">
-                No stock photography, no staged actors. These are genuine international travelers discovering Sri Lanka with Luca, Mishal, and our private chauffeur team.
+                No stock photography, no staged actors. These are genuine international travelers discovering Sri Lanka with our private chauffeur team.
               </p>
             </div>
 

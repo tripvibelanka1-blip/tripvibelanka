@@ -2,8 +2,7 @@ import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import BookingClient from '@/components/booking/BookingClient';
 import { Loader2 } from 'lucide-react';
-import { ToursFAQ } from '@/components/ToursFAQ';
-import { Breadcrumb } from '@/components/Breadcrumb';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +51,7 @@ export default function BookingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Breadcrumb items={[{ name: "Book a Tour", href: "/booking" }]} />
+
       <Suspense
         fallback={
           <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center space-y-4">
@@ -65,7 +64,6 @@ export default function BookingPage() {
       >
         <BookingClient />
       </Suspense>
-      <ToursFAQ />
     </>
   );
 }

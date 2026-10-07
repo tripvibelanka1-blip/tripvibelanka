@@ -11,6 +11,7 @@ import ToursFilters, { DurationFilterKey, SortOptionKey } from './ToursFilters';
 import TourCard from './TourCard';
 import TourDetailDrawer, { TourDetailItem } from './TourDetailDrawer';
 import Footer from '@/components/home/Footer';
+import { ToursFAQ } from '@/components/ToursFAQ';
 import { SiteSettings } from '@/types/database';
 
 export default function ToursClient() {
@@ -325,6 +326,9 @@ export default function ToursClient() {
           )}
         </div>
       </main>
+
+      {/* FAQ Section */}
+      <ToursFAQ />
 
       {/* Verified Footer with Real Social Media, TripAdvisor & Contacts */}
       <Footer onOpenBooking={() => handleOpenBooking()} />

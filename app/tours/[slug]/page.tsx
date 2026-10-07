@@ -7,7 +7,8 @@ import { createClient, createStaticClient } from '@/utils/supabase/server';
 import { Clock, MapPin, CheckCircle2, XCircle, Users, ArrowRight, MessageCircle, ChevronRight, Home } from 'lucide-react';
 import { ToursFAQ } from '@/components/ToursFAQ';
 import { SchemaScript } from '@/components/SchemaScript';
-import { Breadcrumb } from '@/components/Breadcrumb';
+import Footer from '@/components/home/Footer';
+
 
 // Ensure this matches the Next.js standard for dynamic params revalidation
 export const revalidate = 3600; 
@@ -129,10 +130,7 @@ export default async function TourDetailPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-slate-50">
       <SchemaScript schema={[touristTripSchema]} />
-      <Breadcrumb items={[
-        { name: "Tours", href: "/tours" },
-        { name: tour.title, href: `/tours/${params.slug}` }
-      ]} />
+
 
       {/* Section 1 - Hero */}
       <section className="relative w-full h-[60vh] min-h-[400px] bg-slate-900">
@@ -369,6 +367,8 @@ export default async function TourDetailPage({ params }: Props) {
           </div>
         </section>
       )}
+      
+      <Footer />
     </main>
   );
 }

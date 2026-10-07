@@ -6,7 +6,7 @@ import { Metadata } from 'next';
 import { createClient, createStaticClient } from '@/utils/supabase/server';
 import { MapPin, Clock, ArrowRight, Home, ChevronRight, CheckCircle2, Compass, Tag } from 'lucide-react';
 import { SchemaScript } from '@/components/SchemaScript';
-import { Breadcrumb } from '@/components/Breadcrumb';
+
 
 export const revalidate = 3600;
 
@@ -128,10 +128,7 @@ export default async function ExperienceDetailPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-slate-50">
       <SchemaScript schema={[touristAttractionSchema]} />
-      <Breadcrumb items={[
-        { name: "Experiences", href: "/experiences" },
-        { name: experience.title, href: `/experiences/${params.slug}` }
-      ]} />
+
 
       {/* Section 1 - Hero */}
       <section className="relative w-full h-[55vh] min-h-[350px] bg-slate-900">
